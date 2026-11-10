@@ -189,8 +189,12 @@ export const api = {
   async saveSupportContacts(c) {
     const v = normalizeContacts(c);
     if (v.error) return v.error;
-    const { error } = await supabase.from('support_contacts').update({ ...v.data, updated_at: new Date().toISOString() }).eq('id', 1);
-    return error ? 'Не удалось сохранить. Проверьте данные.' : '';
+    const { data, error } = await supabase.from('support_contacts').update({ ...v.data, updated_at: new Date().toISOString() }).eq('id', 1).select('id');
+    // Если правила доступа не пустили, база не вернёт ошибку, а просто ничего не изменит.
+    if (!error) return data?.length ? '' : 'Нет прав на изменение. Войдите как администратор.';
+    if (error.code === '42501') return 'Нет прав на изменение. Войдите как администратор.';
+    if (error.code === '23514') return 'База отклонила данные. Проверьте формат номеров и почты.';
+    return 'Не удалось сохранить: ' + (error.message || 'ошибка сети');
   },
   async deleteMyAccount() {
     const { error } = await supabase.rpc('delete_my_account', { confirm: 'УДАЛИТЬ' });

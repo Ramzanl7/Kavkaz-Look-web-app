@@ -57,7 +57,7 @@ export default function Profile() {
       {isAdmin && (
         <Link className="admin-card press rise" to="/admin" style={{ '--d': 1 }}>
           <span className="menu-ic"><Icon name="star" /></span>
-          <span className="grow"><strong>Панель администратора</strong><small>Заявки, бутики, контакты поддержки</small></span>
+          <span className="grow"><strong>Панель администратора</strong><small>Статистика, пользователи, заявки, поддержка</small></span>
           <Icon name="chevron" />
         </Link>
       )}

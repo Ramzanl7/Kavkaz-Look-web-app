@@ -1,23 +1,30 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
-const Ctx = createContext({ user: null, role: null, loading: true });
+import { CONSENT_VERSION } from '../lib/consent.js';
+const EMPTY = { user: null, role: null, blocked: null, needsConsent: false, loading: false };
+const Ctx = createContext({ ...EMPTY, loading: true });
 export const useAuth = () => useContext(Ctx);
 // Роль нужна только для показа нужных экранов. Настоящие права проверяет база.
 export function AuthProvider({ children }) {
-  const [state, setState] = useState({ user: null, role: null, loading: true });
+  const [state, setState] = useState({ ...EMPTY, loading: true });
+  const load = useCallback(async (session) => {
+    const user = session?.user ?? null;
+    if (!user) { setState(EMPTY); return; }
+    let { data, error } = await supabase.from('profiles').select('role,is_blocked,blocked_reason,consent_version').eq('id', user.id).maybeSingle();
+    if (error) ({ data } = await supabase.from('profiles').select('role,is_blocked').eq('id', user.id).maybeSingle());
+    setState({
+      user, role: data?.role ?? 'buyer', loading: false,
+      blocked: data?.is_blocked ? { reason: data.blocked_reason || '' } : null,
+      needsConsent: !error && data?.consent_version !== CONSENT_VERSION,
+    });
+  }, []);
   useEffect(() => {
     let on = true;
-    const load = async (session) => {
-      const user = session?.user ?? null;
-      if (!user) { if (on) setState({ user: null, role: null, loading: false }); return; }
-      const { data } = await supabase.from('profiles').select('role,is_blocked').eq('id', user.id).maybeSingle();
-      if (!on) return;
-      if (data?.is_blocked) { await supabase.auth.signOut(); setState({ user: null, role: null, loading: false }); return; }
-      setState({ user, role: data?.role ?? 'buyer', loading: false });
-    };
-    supabase.auth.getSession().then(({ data }) => load(data.session));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => { setTimeout(() => load(session), 0); });
+    const run = (s) => on && load(s);
+    supabase.auth.getSession().then(({ data }) => run(data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => { setTimeout(() => run(session), 0); });
     return () => { on = false; sub.subscription.unsubscribe(); };
-  }, []);
-  return <Ctx.Provider value={{ ...state, signOut: () => supabase.auth.signOut() }}>{children}</Ctx.Provider>;
+  }, [load]);
+  const refresh = useCallback(async () => { const { data } = await supabase.auth.getSession(); await load(data.session); }, [load]);
+  return <Ctx.Provider value={{ ...state, refresh, signOut: () => supabase.auth.signOut() }}>{children}</Ctx.Provider>;
 }

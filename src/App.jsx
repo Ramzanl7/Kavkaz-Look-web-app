@@ -22,6 +22,8 @@ import Admin from './pages/Admin.jsx';
 import Stub from './pages/Stub.jsx';
 import Support from './pages/Support.jsx';
 import Settings from './pages/Settings.jsx';
+import Privacy from './pages/Privacy.jsx';
+import AdminStats from './pages/AdminStats.jsx';
 
 const ANY = ['buyer', 'seller', 'admin'];
 
@@ -31,7 +33,7 @@ export default function App() {
       <Route path="/" element={<Welcome />} />
       <Route element={<AppLayout />}>
         <Route path="/login" element={<Login />} />
-        <Route path="/privacy" element={<Stub title="Политика конфиденциальности" hint="Документ готовится вместе с юристом." />} />
+        <Route path="/privacy" element={<Privacy />} />
         <Route path="/catalog" element={<Catalog />} />
         <Route path="/nearby/:category" element={<Nearby />} />
         <Route path="/partners" element={<Partners />} />
@@ -57,6 +59,7 @@ export default function App() {
         </Route>
         <Route element={<RequireRole roles={['admin']} />}>
           <Route path="/admin" element={<Admin />} />
+          <Route path="/admin/stats" element={<AdminStats />} />
         </Route>
         <Route path="*" element={<Stub title="Страница не найдена" hint="Проверьте адрес или вернитесь в каталог." />} />
       </Route>

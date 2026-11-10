@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/index.js';
+import SupportEditor from '../components/SupportEditor.jsx';
 const CAT = { food: 'Еда', taxi: 'Такси', delivery: 'Доставка', coffee: 'Кофейни' };
 export default function Admin() {
   const [roles, setRoles] = useState([]);
@@ -31,6 +32,8 @@ export default function Admin() {
         <div key={b.id} className="bcard"><strong>{b.name}</strong><span className="muted">{b.is_approved ? 'одобрен' : 'скрыт'}</span>
           <div className="row"><button type="button" className="link-u" onClick={act(() => api.setBoutiqueApproved(b.id, !b.is_approved))}>{b.is_approved ? 'Скрыть' : 'Одобрить'}</button></div></div>
       )) : <p className="muted">Бутиков нет.</p>}
+      <div className="sec-head"><h2>Контакты поддержки</h2></div>
+      <SupportEditor />
     </main>
   );
 }

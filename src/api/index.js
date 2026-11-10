@@ -16,6 +16,22 @@ const toProduct = (r) => ({
 const lists = new Map(), products = new Map();
 const keyOf = (o) => [o.query ?? '', o.category ?? '', o.boutiqueId ?? '', o.sort ?? 'new'].join('|');
 
+// Приводит контакты поддержки к виду, который принимает база. Пустое поле = канал скрыт.
+const PHONE = /^\+?[0-9]{10,15}$/;
+export function normalizeContacts(c = {}) {
+  const phone = (x) => cleanText(x, 30).replace(/[\s()-]/g, '');
+  const data = {
+    telegram: cleanText(c.telegram, 40).replace(/^(https?:\/\/)?(t\.me\/)?@?/i, ''),
+    whatsapp: phone(c.whatsapp), phone: phone(c.phone), sms: phone(c.sms),
+    email: cleanText(c.email, 254), hours: cleanText(c.hours, 80),
+  };
+  if (data.telegram && !/^[A-Za-z0-9_]{5,32}$/.test(data.telegram)) return { error: 'Telegram: только латиница, цифры и _, от 5 до 32 символов' };
+  for (const [k, n] of [['whatsapp', 'WhatsApp'], ['phone', 'Телефон'], ['sms', 'SMS']]) if (data[k] && !PHONE.test(data[k])) return { error: n + ': номер из 10–15 цифр, например +79281234567' };
+  if (data.email && !/^[^@\s]{1,64}@[^@\s]{1,190}\.[A-Za-z]{2,}$/.test(data.email)) return { error: 'Почта указана неверно' };
+  for (const k in data) if (!data[k]) data[k] = null;
+  return { data };
+}
+
 // Слой данных. Запросы строятся только через параметры клиента Supabase, SQL из ввода не собирается.
 export const api = {
   peekList(o = {}) { const v = lists.get(keyOf(o)); return v && Date.now() - v.t < 60000 ? v.data : null; },
@@ -164,6 +180,23 @@ export const api = {
   async listMyOrders() {
     const { data, error } = await supabase.from('orders').select('id,status,total_rub,created_at,items:order_items(title,qty,price_rub)').order('created_at', { ascending: false }).limit(50);
     return error || !data ? [] : data;
+  },
+  // ===== Поддержка и аккаунт =====
+  async getSupportContacts() {
+    const { data, error } = await supabase.from('support_contacts').select('telegram,whatsapp,phone,sms,email,hours').eq('id', 1).maybeSingle();
+    return error || !data ? {} : data;
+  },
+  async saveSupportContacts(c) {
+    const v = normalizeContacts(c);
+    if (v.error) return v.error;
+    const { error } = await supabase.from('support_contacts').update({ ...v.data, updated_at: new Date().toISOString() }).eq('id', 1);
+    return error ? 'Не удалось сохранить. Проверьте данные.' : '';
+  },
+  async deleteMyAccount() {
+    const { error } = await supabase.rpc('delete_my_account', { confirm: 'УДАЛИТЬ' });
+    if (error) return error.message || 'Не удалось удалить аккаунт';
+    await supabase.auth.signOut();
+    return '';
   },
   // ===== Администратор (права проверяет база) =====
   async listPendingRoleRequests() {

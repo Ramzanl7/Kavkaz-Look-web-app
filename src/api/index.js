@@ -202,6 +202,32 @@ export const api = {
     await supabase.auth.signOut();
     return '';
   },
+  // ===== Согласие, активность, бан =====
+  async giveConsent(version) {
+    const { error } = await supabase.rpc('give_consent', { version });
+    return !error;
+  },
+  async touch(guestFirstToday = false) {
+    await supabase.rpc('touch_activity', { guest_first_today: !!guestFirstToday });
+  },
+  async adminStats(days) {
+    const { data, error } = await supabase.rpc('admin_stats', { days });
+    return error ? null : data;
+  },
+  async adminListUsers({ search = '', limit = 50, offset = 0 } = {}) {
+    const { data, error } = await supabase.rpc('admin_list_users', { search: cleanQuery(search), lim: limit, off: offset });
+    return error || !data ? null : data;
+  },
+  async adminUserDays(id) {
+    if (!isUuid(id)) return [];
+    const { data, error } = await supabase.rpc('admin_user_days', { target: id });
+    return error || !data ? [] : data.map((r) => (typeof r === 'string' ? r : r.admin_user_days));
+  },
+  async adminSetBlocked(id, blocked, reason = '') {
+    if (!isUuid(id)) return 'Неверный пользователь';
+    const { error } = await supabase.rpc('admin_set_blocked', { target: id, blocked: !!blocked, reason: cleanText(reason, 200) || null });
+    return error ? (error.message || 'Не удалось') : '';
+  },
   // ===== Администратор (права проверяет база) =====
   async listPendingRoleRequests() {
     const { data, error } = await supabase.from('role_requests').select('id,boutique_name,created_at').eq('status', 'pending').order('created_at').limit(50);

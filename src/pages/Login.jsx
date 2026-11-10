@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { CONSENT_VERSION } from '../lib/consent.js';
 import { supabase } from '../lib/supabase.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 export default function Login() {
@@ -9,14 +10,19 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const [agree, setAgree] = useState(false);
   useEffect(() => { if (user) nav('/profile', { replace: true }); }, [user, nav]);
   const run = async (mode) => {
     setMsg('');
     if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 120 || password.length < 8 || password.length > 72) { setMsg('Введите почту и пароль не короче 8 символов.'); return; }
+    if (mode === 'up' && !agree) { setMsg('Чтобы создать аккаунт, отметьте согласие на обработку персональных данных.'); return; }
     setBusy(true);
-    const { error } = mode === 'in' ? await supabase.auth.signInWithPassword({ email, password }) : await supabase.auth.signUp({ email, password });
+    const { error } = mode === 'in'
+      ? await supabase.auth.signInWithPassword({ email, password })
+      : await supabase.auth.signUp({ email, password, options: { data: { consent_version: CONSENT_VERSION } } });
     setBusy(false);
-    if (error) setMsg('Не получилось. Проверьте данные и попробуйте ещё раз.');
+    if (error?.code === 'user_banned' || /banned/i.test(error?.message || '')) setMsg('Аккаунт заблокирован. Чтобы узнать причину или оспорить блокировку, напишите в поддержку.');
+    else if (error) setMsg('Не получилось. Проверьте данные и попробуйте ещё раз.');
     else if (mode === 'up') setMsg('Готово. Если пришло письмо, подтвердите адрес и войдите.');
   };
   return (
@@ -26,9 +32,13 @@ export default function Login() {
       <form className="form" onSubmit={(e) => { e.preventDefault(); run('in'); }}>
         <div className="field"><label htmlFor="em">Почта</label><input id="em" type="email" autoComplete="email" maxLength={120} value={email} onChange={(e) => setEmail(e.target.value)} /></div>
         <div className="field"><label htmlFor="pw">Пароль</label><input id="pw" type="password" autoComplete="current-password" maxLength={72} value={password} onChange={(e) => setPassword(e.target.value)} /></div>
-        {msg && <p className="msg" role="status">{msg}</p>}
+        <label className="check">
+          <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+          <span>Для нового аккаунта: я согласен на обработку персональных данных по <Link className="link-u" to="/privacy">политике конфиденциальности</Link></span>
+        </label>
+        {msg && <p className="msg" role="status">{msg}{/заблокирован/.test(msg) && <> <Link className="link-u" to="/support">Поддержка</Link></>}</p>}
         <button className="btn btn-primary press" type="submit" disabled={busy}>Войти</button>
-        <button className="btn btn-secondary press" type="button" disabled={busy} onClick={() => run('up')}>Создать аккаунт</button>
+        <button className="btn btn-secondary press" type="button" disabled={busy || !agree} onClick={() => run('up')}>Создать аккаунт</button>
       </form>
     </main>
   );

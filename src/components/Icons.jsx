@@ -7,6 +7,7 @@ export const PATHS = {
   user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
   back: 'M15 5l-7 7 7 7',
   chevron: 'M9 5l7 7-7 7',
+  chart: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
   box: 'M4 7l8-4 8 4v10l-8 4-8-4zM4 7l8 4 8-4M12 11v10',
   ruler: 'M3 16L16 3l5 5L8 21zM7 12l2 2M10 9l2 2M13 6l2 2',
   chat: 'M4 5h16v11H9l-5 4z',

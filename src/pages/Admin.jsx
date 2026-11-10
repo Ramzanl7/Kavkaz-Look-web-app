@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Icon } from '../components/Icons.jsx';
 import { api } from '../api/index.js';
 import SupportEditor from '../components/SupportEditor.jsx';
 const CAT = { food: 'Еда', taxi: 'Такси', delivery: 'Доставка', coffee: 'Кофейни' };
@@ -16,6 +18,11 @@ export default function Admin() {
   return (
     <main className="wrap">
       <h1 className="screen-title rise">Админ-панель</h1>
+      <Link className="admin-card press rise" to="/admin/stats">
+        <span className="menu-ic"><Icon name="chart" /></span>
+        <span className="grow"><strong>Статистика и пользователи</strong><small>Посещения, кто был в сети, блокировка</small></span>
+        <Icon name="chevron" />
+      </Link>
       {msg && <p className="msg" role="status">{msg}</p>}
       <div className="sec-head"><h2>Заявки на бутик</h2></div>
       {roles.length ? roles.map((r) => (

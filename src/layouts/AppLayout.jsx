@@ -1,20 +1,38 @@
-import { Suspense, useEffect } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Suspense, useEffect, useRef } from 'react';
+import { useLocation, useNavigate, useNavigationType, useOutlet } from 'react-router-dom';
 import { Icon } from '../components/Icons.jsx';
+import TabBar, { TABS, tabIndexOf } from '../components/TabBar.jsx';
+import PageStage from '../components/PageStage.jsx';
 import { useCart } from '../store/cart.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { ConsentGate, BlockedScreen } from '../components/Gates.jsx';
 import { useActivity } from '../lib/useActivity.js';
-const ROOTS = ['/catalog', '/boutiques', '/wishlist', '/cart', '/profile'];
-const tabs = [['/catalog', 'Каталог', 'catalog'], ['/boutiques', 'Бутики', 'shop'], ['/wishlist', 'Избранное', 'heart'], ['/cart', 'Корзина', 'bag'], ['/profile', 'Профиль', 'user']];
+
+const ROOTS = TABS.map(([to]) => to);
+const Fallback = () => (
+  <main className="wrap"><div className="skeleton" style={{ height: 32, width: '50%', borderRadius: 8 }} /><div className="skeleton" style={{ height: 160, borderRadius: 16 }} /></main>
+);
+
 export default function AppLayout() {
   const { pathname } = useLocation();
+  const navType = useNavigationType();
   const nav = useNavigate();
+  const outlet = useOutlet();
   const { items } = useCart();
   const count = items.reduce((s, i) => s + i.qty, 0);
   const root = ROOTS.includes(pathname);
   const { user, blocked, needsConsent } = useAuth();
   useActivity(user?.id ?? null);
+
+  // Направление перехода: между вкладками — по их порядку, иначе «назад» = кнопка назад/жест.
+  const prevPath = useRef(pathname);
+  const dirRef = useRef('fwd');
+  if (prevPath.current !== pathname) {
+    const a = ROOTS.indexOf(prevPath.current), b = ROOTS.indexOf(pathname);
+    dirRef.current = a >= 0 && b >= 0 ? (b > a ? 'fwd' : 'back') : navType === 'POP' ? 'back' : 'fwd';
+    prevPath.current = pathname;
+  }
+
   const open = ['/privacy', '/support'].includes(pathname);
   const gate = user && !open ? (blocked ? <BlockedScreen reason={blocked.reason} /> : needsConsent ? <ConsentGate /> : null) : null;
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
@@ -29,12 +47,10 @@ export default function AppLayout() {
         <rect width="100%" height="100%" fill="url(#bgp)" />
       </svg>
       {!root && <header className="appbar"><button type="button" className="back press" onClick={back} aria-label="Назад"><Icon name="back" /></button></header>}
-      <div className="page" key={pathname}>{gate || <Suspense fallback={<main className="wrap"><div className="skeleton" style={{ height: 32, width: '50%', borderRadius: 8 }} /><div className="skeleton" style={{ height: 160, borderRadius: 16 }} /></main>}><Outlet /></Suspense>}</div>
-      <nav className="tabbar" aria-label="Основная навигация">
-        {tabs.map(([to, label, ic]) => (
-          <NavLink key={to} to={to}><Icon name={ic} /><span>{label}</span>{to === '/cart' && count > 0 && <i className="badge">{count}</i>}</NavLink>
-        ))}
-      </nav>
+      <PageStage pageKey={pathname} dir={dirRef.current}>
+        {gate || <Suspense fallback={<Fallback />}>{outlet}</Suspense>}
+      </PageStage>
+      <TabBar active={tabIndexOf(pathname)} count={count} />
     </div>
   );
 }

@@ -9,16 +9,37 @@ body { background: radial-gradient(120% 55% at 50% -8%, #0F3D1E 0%, transparent 
 .photo img.loaded { opacity: 1; }
 .skeleton { background: linear-gradient(90deg, #14261A 25%, #20432d 37%, #14261A 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; }
 @keyframes shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
-.page { animation: pageIn .42s var(--ease) both; }
+/* Переходы между экранами: новый въезжает, старый уезжает с лёгким параллаксом (как в iOS) */
+.stage { position: relative; overflow-x: clip; }
+.page-enter.fwd { animation: inFromRight .38s var(--ease) backwards; }
+.page-enter.back { animation: inFromLeft .38s var(--ease) backwards; }
+.page-exit { position: absolute; left: 0; right: 0; pointer-events: none; z-index: 0; animation-duration: .38s; animation-timing-function: var(--ease); animation-fill-mode: forwards; }
+.page-exit.fwd { animation-name: outToLeft; }
+.page-exit.back { animation-name: outToRight; }
+.page-enter { position: relative; z-index: 1; }
+@keyframes inFromRight { from { opacity: 0; transform: translateX(32%); } }
+@keyframes inFromLeft { from { opacity: 0; transform: translateX(-32%); } }
+@keyframes outToLeft { to { opacity: 0; transform: translateX(-16%) scale(.97); } }
+@keyframes outToRight { to { opacity: 0; transform: translateX(16%) scale(.97); } }
 @keyframes pageIn { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
 .appbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; padding: max(10px, env(safe-area-inset-top)) 16px 6px; background: linear-gradient(#061914 60%, transparent); }
 .has-bar .wrap { padding-top: 8px; }
 .back, .iconbtn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--edge); background: rgba(6,25,20,.7); color: var(--gold); display: grid; place-items: center; }
 .back svg, .iconbtn svg, .tabbar svg { width: 22px; height: 22px; }
 .tabbar { backdrop-filter: blur(14px); background: rgba(16,40,26,.88); }
-.tabbar a { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; transition: color .2s var(--ease), transform .2s var(--ease); }
-.tabbar a.active { transform: translateY(-2px); }
-.tabbar a.active::after { content: ''; position: absolute; top: 4px; width: 20px; height: 3px; border-radius: 2px; background: var(--gold); animation: pageIn .3s var(--ease) both; }
+.tabbar { overflow: hidden; z-index: 40; }
+.tabbar a { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; transition: color .3s var(--ease), transform .2s var(--ease); -webkit-tap-highlight-color: transparent; }
+.tabbar a:active { transform: scale(.92); }
+.tabbar a.active { color: var(--champagne); }
+.tab-ic { display: grid; }
+.tabbar a.active .tab-ic { animation: tabPop .55s cubic-bezier(.3,.7,.35,1) both; }
+@keyframes tabPop { 0% { transform: scale(1); } 35% { transform: translateY(-3px) scale(1.22); } 65% { transform: translateY(0) scale(.94); } 100% { transform: scale(1); } }
+/* «Жидкая» стеклянная капля под активной вкладкой */
+.tab-blob { position: absolute; z-index: 0; left: 0; top: 5px; bottom: 5px; width: 64px; border-radius: 999px; transform-origin: center; will-change: transform;
+  background: radial-gradient(120% 95% at 30% 0%, rgba(244,231,192,.5), rgba(214,181,106,.3) 45%, rgba(179,139,69,.2) 100%);
+  border: 1px solid rgba(244,231,192,.45);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.45), inset 0 -8px 14px rgba(6,25,20,.3), 0 6px 18px rgba(0,0,0,.35), 0 0 22px rgba(214,181,106,.22);
+  backdrop-filter: blur(6px) saturate(1.5); -webkit-backdrop-filter: blur(6px) saturate(1.5); }
 .badge { position: absolute; top: 6px; left: calc(50% + 6px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--gold); color: var(--bg); font-size: 10px; font-weight: 700; font-style: normal; display: grid; place-items: center; }
 .pcard { position: relative; display: grid; gap: 6px; align-content: start; border-radius: var(--r-lg); padding: 8px; }
 .plink { display: grid; gap: 4px; }

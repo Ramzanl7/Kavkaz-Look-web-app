@@ -1,0 +1,9 @@
+.form { display: grid; gap: var(--s-4); }
+.field { display: grid; gap: 6px; }
+.field label { font-size: var(--fs-small); color: var(--text-2); }
+.field input, .field select { min-height: 48px; width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); color: var(--text); padding: 0 16px; font: inherit; }
+.notice { border: 1px solid rgba(214,181,106,.35); border-radius: var(--r-md); padding: var(--s-3) var(--s-4); color: var(--text-2); font-size: var(--fs-small); }
+.msg { color: var(--champagne); font-size: var(--fs-small); }
+.bcard { display: grid; gap: 4px; background: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-4); }
+.bcard strong { font-size: var(--fs-card); }
+.list { display: grid; gap: var(--s-3); }

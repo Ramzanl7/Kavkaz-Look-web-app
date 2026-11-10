@@ -1,0 +1,16 @@
+{
+  "name": "Kavkaz Look",
+  "short_name": "Kavkaz Look",
+  "description": "Одежда и бутики Грозного в одном месте",
+  "lang": "ru",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#061914",
+  "theme_color": "#061914",
+  "icons": [
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

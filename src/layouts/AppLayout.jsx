@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icons.jsx';
 import { useCart } from '../store/cart.jsx';
@@ -29,7 +29,7 @@ export default function AppLayout() {
         <rect width="100%" height="100%" fill="url(#bgp)" />
       </svg>
       {!root && <header className="appbar"><button type="button" className="back press" onClick={back} aria-label="Назад"><Icon name="back" /></button></header>}
-      <div className="page" key={pathname}>{gate || <Outlet />}</div>
+      <div className="page" key={pathname}>{gate || <Suspense fallback={<main className="wrap"><div className="skeleton" style={{ height: 32, width: '50%', borderRadius: 8 }} /><div className="skeleton" style={{ height: 160, borderRadius: 16 }} /></main>}><Outlet /></Suspense>}</div>
       <nav className="tabbar" aria-label="Основная навигация">
         {tabs.map(([to, label, ic]) => (
           <NavLink key={to} to={to}><Icon name={ic} /><span>{label}</span>{to === '/cart' && count > 0 && <i className="badge">{count}</i>}</NavLink>

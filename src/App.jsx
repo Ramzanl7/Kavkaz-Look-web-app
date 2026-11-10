@@ -1,29 +1,37 @@
+import { lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import AppLayout from './layouts/AppLayout.jsx';
 import RequireRole from './auth/RequireRole.jsx';
 import Welcome from './pages/Welcome.jsx';
 import Catalog from './pages/Catalog.jsx';
-import Nearby from './pages/Nearby.jsx';
-import Product from './pages/Product.jsx';
-import Cart from './pages/Cart.jsx';
-import Login from './pages/Login.jsx';
-import Profile from './pages/Profile.jsx';
-import Boutiques from './pages/Boutiques.jsx';
-import BoutiqueDetails from './pages/BoutiqueDetails.jsx';
-import Wishlist from './pages/Wishlist.jsx';
-import BecomeSeller from './pages/BecomeSeller.jsx';
-import Partners from './pages/Partners.jsx';
-import Orders from './pages/Orders.jsx';
-import SellerHome from './pages/SellerHome.jsx';
-import SellerProducts from './pages/SellerProducts.jsx';
-import SellerProductNew from './pages/SellerProductNew.jsx';
-import SellerOrders from './pages/SellerOrders.jsx';
-import Admin from './pages/Admin.jsx';
 import Stub from './pages/Stub.jsx';
-import Support from './pages/Support.jsx';
-import Settings from './pages/Settings.jsx';
-import Privacy from './pages/Privacy.jsx';
-import AdminStats from './pages/AdminStats.jsx';
+
+// Остальные экраны грузятся только когда их открывают — покупатель не скачивает код админки и продавца.
+const Nearby = lazy(() => import('./pages/Nearby.jsx'));
+const Product = lazy(() => import('./pages/Product.jsx'));
+const Cart = lazy(() => import('./pages/Cart.jsx'));
+const Login = lazy(() => import('./pages/Login.jsx'));
+const Profile = lazy(() => import('./pages/Profile.jsx'));
+const Boutiques = lazy(() => import('./pages/Boutiques.jsx'));
+const BoutiqueDetails = lazy(() => import('./pages/BoutiqueDetails.jsx'));
+const Wishlist = lazy(() => import('./pages/Wishlist.jsx'));
+const BecomeSeller = lazy(() => import('./pages/BecomeSeller.jsx'));
+const Partners = lazy(() => import('./pages/Partners.jsx'));
+const Orders = lazy(() => import('./pages/Orders.jsx'));
+const SellerHome = lazy(() => import('./pages/SellerHome.jsx'));
+const SellerProducts = lazy(() => import('./pages/SellerProducts.jsx'));
+const SellerProductNew = lazy(() => import('./pages/SellerProductNew.jsx'));
+const SellerOrders = lazy(() => import('./pages/SellerOrders.jsx'));
+const Admin = lazy(() => import('./pages/Admin.jsx'));
+const Support = lazy(() => import('./pages/Support.jsx'));
+const Settings = lazy(() => import('./pages/Settings.jsx'));
+const Privacy = lazy(() => import('./pages/Privacy.jsx'));
+const AdminStats = lazy(() => import('./pages/AdminStats.jsx'));
+
+// Когда главная уже показана и браузер свободен — заранее подгружаем экраны нижнего меню,
+// чтобы переход по вкладкам был мгновенным.
+const idle = window.requestIdleCallback || ((f) => setTimeout(f, 1500));
+idle(() => { import('./pages/Boutiques.jsx'); import('./pages/Wishlist.jsx'); import('./pages/Cart.jsx'); import('./pages/Profile.jsx'); import('./pages/Product.jsx'); });
 
 const ANY = ['buyer', 'seller', 'admin'];
 

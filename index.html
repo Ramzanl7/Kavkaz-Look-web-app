@@ -9,14 +9,25 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Kavkaz Look" />
     <meta name="format-detection" content="telephone=no" />
+    <!-- Соединение с базой начинаем открывать сразу, не дожидаясь загрузки скриптов -->
+    <link rel="preconnect" href="%VITE_SUPABASE_URL%" crossorigin />
+    <link rel="dns-prefetch" href="%VITE_SUPABASE_URL%" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="/apple-touch-icon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <style>html,body{background:#061914;overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}</style>
+    <style>html,body{background:#061914;overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+      /* Заставка до загрузки скриптов: React заменит её, когда приложение будет готово */
+      .boot{min-height:100vh;display:grid;place-content:center;justify-items:center;gap:14px;font-family:system-ui,sans-serif;color:#F4E7C0}
+      .boot-k{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;font:400 2.25rem Georgia,serif;color:#061914;background:linear-gradient(145deg,#F4E7C0,#D6B56A 55%,#B38B45)}
+      .boot-name{font-weight:700;font-size:1.25rem}.boot-name b{color:#D6B56A}
+      .boot-bar{width:120px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,#D6B56A,transparent);background-size:200% 100%;animation:boot 1.2s linear infinite}
+      @keyframes boot{from{background-position:100% 0}to{background-position:-100% 0}}
+      @media (prefers-reduced-motion:reduce){.boot-bar{animation:none}}
+    </style>
     <title>Kavkaz Look</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="boot" aria-label="Загрузка Kavkaz Look"><span class="boot-k">K</span><span class="boot-name">Kavkaz <b>Look</b></span><i class="boot-bar"></i></div></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

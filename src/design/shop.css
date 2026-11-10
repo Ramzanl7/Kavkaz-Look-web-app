@@ -1,0 +1,10 @@
+.muted { color: var(--text-2); font-size: var(--fs-small); }
+.price { color: var(--gold); font-size: var(--fs-card); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.pgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px 12px; }
+.pcard { display: grid; gap: 4px; align-content: start; }
+.pcard strong { font-size: var(--fs-small); }
+.cart-row { display: flex; justify-content: space-between; align-items: center; gap: var(--s-4); background: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-4); }
+.qty { display: flex; align-items: center; gap: var(--s-3); }
+.qty button { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--gold); background: transparent; color: var(--gold); font-size: 1.125rem; }
+.cart-total { display: flex; justify-content: space-between; align-items: center; padding: var(--s-2) 0; }

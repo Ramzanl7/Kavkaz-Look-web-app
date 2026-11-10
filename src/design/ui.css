@@ -1,0 +1,41 @@
+/* Слой оформления: фон, контраст карточек, навигация, движение */
+:root { --card: #10281A; --edge: rgba(214,181,106,.2); }
+body { background: radial-gradient(120% 55% at 50% -8%, #0F3D1E 0%, transparent 62%), radial-gradient(90% 40% at 100% 100%, #0c2a1c 0%, transparent 70%), #061914; background-attachment: fixed; }
+.bgpattern { position: fixed; inset: 0; z-index: -1; pointer-events: none; color: var(--gold); opacity: .07; }
+.bcard, .cart-row, .tile, .pcard, .empty { background: var(--card); border: 1px solid var(--edge); box-shadow: 0 8px 24px rgba(0,0,0,.28); }
+.search, .chip, .sort, .field input, .field select { border-color: var(--edge); }
+.photo { background: linear-gradient(160deg, #1b4a2c, #0b1f16); border: 1px solid var(--edge); }
+.photo img { opacity: 0; transition: opacity .35s var(--ease); }
+.photo img.loaded { opacity: 1; }
+.skeleton { background: linear-gradient(90deg, #14261A 25%, #20432d 37%, #14261A 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; }
+@keyframes shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+.page { animation: pageIn .42s var(--ease) both; }
+@keyframes pageIn { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+.appbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; padding: max(10px, env(safe-area-inset-top)) 16px 6px; background: linear-gradient(#061914 60%, transparent); }
+.has-bar .wrap { padding-top: 8px; }
+.back, .iconbtn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--edge); background: rgba(6,25,20,.7); color: var(--gold); display: grid; place-items: center; }
+.back svg, .iconbtn svg, .tabbar svg { width: 22px; height: 22px; }
+.tabbar { backdrop-filter: blur(14px); background: rgba(16,40,26,.88); }
+.tabbar a { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; transition: color .2s var(--ease), transform .2s var(--ease); }
+.tabbar a.active { transform: translateY(-2px); }
+.tabbar a.active::after { content: ''; position: absolute; top: 4px; width: 20px; height: 3px; border-radius: 2px; background: var(--gold); animation: pageIn .3s var(--ease) both; }
+.badge { position: absolute; top: 6px; left: calc(50% + 6px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--gold); color: var(--bg); font-size: 10px; font-weight: 700; font-style: normal; display: grid; place-items: center; }
+.pcard { position: relative; display: grid; gap: 6px; align-content: start; border-radius: var(--r-lg); padding: 8px; }
+.plink { display: grid; gap: 4px; }
+.pcard .photo { border-radius: 12px; }
+.heart { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; }
+.heart.on, .iconbtn.on { color: var(--gold); } .heart.on svg, .iconbtn.on svg { fill: var(--gold); }
+.heart.pop { animation: pop .35s var(--ease); }
+@keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+.addbtn { min-height: 40px; border-radius: 12px; border: 0; background: var(--gold); color: var(--bg); font-weight: 600; }
+.stars { color: var(--gold); font-size: var(--fs-small); }
+.price.big { font-size: 1.5rem; }
+.iconbtn.big { width: 48px; height: 48px; flex: none; }
+.grow { flex: 1; }
+.sort { min-height: 36px; background: var(--card); border: 1px solid var(--edge); border-radius: 999px; color: var(--text); padding: 0 12px; font: inherit; font-size: var(--fs-small); }
+.starpick { display: flex; gap: 4px; }
+.starpick button { background: none; border: 0; font-size: 2rem; line-height: 1; color: var(--text-2); transition: transform .15s var(--ease); }
+.starpick button.on { color: var(--gold); } .starpick button:active { transform: scale(1.25); }
+.reviews { display: grid; gap: var(--s-3); }
+.toast { position: fixed; left: 50%; bottom: calc(var(--nav-h) + 32px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 50; background: var(--champagne); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-weight: 600; font-size: var(--fs-small); box-shadow: 0 8px 24px rgba(0,0,0,.4); animation: toastIn .3s var(--ease) both; white-space: nowrap; }
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }

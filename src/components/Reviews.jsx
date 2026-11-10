@@ -42,7 +42,7 @@ export default function Reviews({ productId }) {
           <strong>{r.author_name}</strong>
           {r.body && <span>{r.body}</span>}
           <span className="muted">{new Date(r.created_at).toLocaleDateString('ru-RU')}</span>
-          {user && r.user_id === user.id && <button type="button" className="link-u" style={{ justifySelf: 'start' }} onClick={() => del(r.id)}>Удалить мой отзыв</button>}
+          {user && r.user_id === user.id && <button type="button" className="act danger press" style={{ justifySelf: 'start' }} onClick={() => del(r.id)}>Удалить мой отзыв</button>}
         </div>
       ))}
     </section>

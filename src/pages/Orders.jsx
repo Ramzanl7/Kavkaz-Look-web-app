@@ -18,7 +18,7 @@ export default function Orders() {
             <strong>{rub(o.total_rub)} · {STATUS[o.status] || o.status}</strong>
             <span className="muted">{new Date(o.created_at).toLocaleDateString('ru-RU')}</span>
             {o.items.map((i, n) => <span key={n} className="muted">{i.title} × {i.qty}</span>)}
-            {o.status === 'new' && <button type="button" className="link-u" style={{ justifySelf: 'start' }} onClick={() => cancel(o.id)}>Отменить заказ</button>}
+            {o.status === 'new' && <button type="button" className="act danger press" style={{ justifySelf: 'start' }} onClick={() => cancel(o.id)}>Отменить заказ</button>}
           </div>
         ))}</div>
       ) : <EmptyState title="Заказов пока нет" action={<Link className="link-u" to="/catalog">В каталог</Link>} />}

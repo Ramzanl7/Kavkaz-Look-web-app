@@ -66,3 +66,11 @@ body { background: radial-gradient(120% 55% at 50% -8%, #0F3D1E 0%, transparent 
 .sheet h2 { font-size: var(--fs-card); }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
+/* Кнопки действий в карточках (одобрить, скрыть, отменить, удалить) */
+.acts { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-2); }
+.act { -webkit-appearance: none; appearance: none; min-height: 40px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--gold); background: transparent; color: var(--gold); font-weight: 600; font-size: var(--fs-small); display: inline-flex; align-items: center; justify-content: center; }
+.act.ok { background: var(--gold); color: var(--bg); }
+.act.danger { border-color: rgba(217,83,79,.55); color: #F08A86; }
+.act:disabled { opacity: .5; }
+.status { justify-self: start; border: 1px solid var(--edge); border-radius: 999px; padding: 1px 10px; font-size: var(--fs-caption); color: var(--text-2); }
+.status.ok { border-color: rgba(30,122,60,.8); color: #7FD79B; }

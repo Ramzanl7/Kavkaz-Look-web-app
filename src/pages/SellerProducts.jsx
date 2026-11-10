@@ -23,9 +23,9 @@ export default function SellerProducts() {
           <div key={p.id} className="bcard">
             <strong>{p.title}</strong>
             <span className="muted">{rub(p.price)} · {p.category} · {p.published ? 'опубликован' : 'скрыт'}</span>
-            <div className="row">
-              <button type="button" className="link-u" onClick={() => toggle(p)}>{p.published ? 'Скрыть' : 'Опубликовать'}</button>
-              <button type="button" className="link-u" onClick={() => remove(p)}>Удалить</button>
+            <div className="acts">
+              <button type="button" className="act press" onClick={() => toggle(p)}>{p.published ? 'Скрыть' : 'Опубликовать'}</button>
+              <button type="button" className="act danger press" onClick={() => remove(p)}>Удалить</button>
             </div>
           </div>
         ))}</div>

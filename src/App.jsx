@@ -20,6 +20,8 @@ import SellerProductNew from './pages/SellerProductNew.jsx';
 import SellerOrders from './pages/SellerOrders.jsx';
 import Admin from './pages/Admin.jsx';
 import Stub from './pages/Stub.jsx';
+import Support from './pages/Support.jsx';
+import Settings from './pages/Settings.jsx';
 
 const ANY = ['buyer', 'seller', 'admin'];
 
@@ -38,10 +40,14 @@ export default function App() {
         <Route path="/product/:id" element={<Product />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/support" element={<Support />} />
         <Route element={<RequireRole roles={ANY} />}>
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/become-seller" element={<BecomeSeller />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/measurements" element={<Stub title="Мои мерки" hint="Скоро. Мерки — личные данные, мы включим их после переноса хранения на сервер в России." />} />
+          <Route path="/notifications" element={<Stub title="Уведомления" hint="Скоро здесь появятся уведомления о заказах." />} />
         </Route>
         <Route element={<RequireRole roles={['seller']} />}>
           <Route path="/seller" element={<SellerHome />} />

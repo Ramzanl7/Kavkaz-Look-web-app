@@ -14,7 +14,9 @@ const Fallback = () => (
 );
 
 export default function AppLayout() {
-  const { pathname } = useLocation();
+  const { pathname, state } = useLocation();
+  // Экран входа, куда отправили с вкладки (например, «Избранное»), — капля остаётся на этой вкладке.
+  const tabPath = pathname === '/login' && typeof state?.from === 'string' ? state.from : pathname;
   const navType = useNavigationType();
   const nav = useNavigate();
   const outlet = useOutlet();
@@ -53,7 +55,7 @@ export default function AppLayout() {
         <rect width="100%" height="100%" fill="url(#bgp)" />
       </svg>
       <PageStage pageKey={pathname} dir={dirRef.current}>{screen}</PageStage>
-      <TabBar active={tabIndexOf(pathname)} count={count} />
+      <TabBar active={tabIndexOf(tabPath)} count={count} />
     </>
   );
 }

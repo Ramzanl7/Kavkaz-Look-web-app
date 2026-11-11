@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { CONSENT_VERSION } from '../lib/consent.js';
 import { supabase } from '../lib/supabase.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 export default function Login() {
   const nav = useNavigate();
+  // Куда вернуть после входа: на экран, с которого отправили на вход (например, «Избранное»).
+  const from = useLocation().state?.from;
+  const back = typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') ? from : '/profile';
   const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const [agree, setAgree] = useState(false);
-  useEffect(() => { if (user) nav('/profile', { replace: true }); }, [user, nav]);
+  useEffect(() => { if (user) nav(back, { replace: true }); }, [user, nav, back]);
   const run = async (mode) => {
     setMsg('');
     if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 120 || password.length < 8 || password.length > 72) { setMsg('Введите почту и пароль не короче 8 символов.'); return; }

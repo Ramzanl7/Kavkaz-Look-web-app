@@ -19,6 +19,9 @@ import { CartProvider } from './store/cart.jsx';
 import { ToastProvider } from './store/toast.jsx';
 import { WishlistProvider } from './store/wishlist.jsx';
 import App from './App.jsx';
+import { startUpdater } from './lib/updater.js';
+
+startUpdater();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

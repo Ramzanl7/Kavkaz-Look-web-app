@@ -1,49 +1,27 @@
-import { useEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 
-const DURATION = 380;
 const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-// Safari (iPhone, iPad, Mac) — у него бывает ошибка перерисовки после анимаций.
-const isSafari = /AppleWebKit/.test(navigator.userAgent) && !/Chrome|CriOS|Chromium|Android/.test(navigator.userAgent);
 
-// Сцена переходов: новый экран въезжает, старый в это время плавно уезжает (а не исчезает мгновенно).
-// dir: 'fwd' — вперёд/вправо, 'back' — назад/влево.
+// Переходы между экранами через встроенные View Transitions браузера:
+// браузер сам снимает «снимок» старого экрана и анимирует его вместе с новым.
+// В самой странице всегда живёт ОДИН экран — это убирает ошибку перерисовки в Safari на iPhone.
+// Где View Transitions нет — экран просто сменяется без анимации.
 export default function PageStage({ pageKey, dir, children }) {
-  const [exiting, setExiting] = useState([]);
-  const prev = useRef({ key: pageKey, el: children });
-  const current = useRef(null);
+  const [shownKey, setShownKey] = useState(pageKey);
+  const last = useRef(children);
+  // Пока переход не начался, показываем прежний экран (нужно для «снимка» старого состояния).
+  if (shownKey === pageKey) last.current = children;
 
-  // Смена экрана: запоминаем старый вместе с прокруткой, чтобы он уезжал с того же места.
-  if (prev.current.key !== pageKey) {
-    const old = prev.current;
-    prev.current = { key: pageKey, el: children };
-    if (!reduced()) setExiting((list) => [...list.filter((x) => x.key !== pageKey), { key: old.key, el: old.el, dir, y: window.scrollY }]);
-  } else {
-    prev.current.el = children;
-  }
+  useLayoutEffect(() => {
+    if (shownKey === pageKey) return;
+    const apply = () => { flushSync(() => setShownKey(pageKey)); window.scrollTo(0, 0); };
+    if (!document.startViewTransition || reduced()) { apply(); return; }
+    const root = document.documentElement;
+    root.dataset.nav = dir;
+    const vt = document.startViewTransition(apply);
+    vt.finished.finally(() => { if (root.dataset.nav === dir) delete root.dataset.nav; });
+  }, [pageKey, shownKey, dir]);
 
-  useEffect(() => {
-    if (!exiting.length) return undefined;
-    const t = setTimeout(() => setExiting([]), DURATION);
-    return () => clearTimeout(t);
-  }, [exiting]);
-
-  // Страховка для Safari: после окончания перехода заставляем его перерисовать экран.
-  useEffect(() => {
-    if (!isSafari || exiting.length) return undefined;
-    const el = current.current; if (!el) return undefined;
-    const id = requestAnimationFrame(() => {
-      el.style.opacity = '0.999';
-      requestAnimationFrame(() => { el.style.opacity = ''; });
-    });
-    return () => cancelAnimationFrame(id);
-  }, [exiting, pageKey]);
-
-  return (
-    <div className="stage">
-      {exiting.map((x) => (
-        <div key={x.key} className={'page page-exit ' + x.dir} style={{ top: -x.y }} aria-hidden="true" inert>{x.el}</div>
-      ))}
-      <div key={pageKey} ref={current} className={'page page-enter ' + dir}>{children}</div>
-    </div>
-  );
+  return <div className="page">{shownKey === pageKey ? children : last.current}</div>;
 }

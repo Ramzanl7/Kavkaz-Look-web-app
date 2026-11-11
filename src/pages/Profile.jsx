@@ -6,6 +6,7 @@ import { Icon } from '../components/Icons.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useToast } from '../store/toast.jsx';
 import { api } from '../api/index.js';
+import { buildLabel } from '../lib/updater.js';
 
 const ROLES = { buyer: 'Покупатель', seller: 'Продавец', admin: 'Администратор' };
 
@@ -79,6 +80,8 @@ export default function Profile() {
         <button type="button" className="link-muted" onClick={() => setConfirming(true)}>Удалить аккаунт</button>
         <button type="button" className="logout press" onClick={signOut}><Icon name="logout" />Выйти</button>
       </div>
+
+      <p className="version">Версия {buildLabel()}</p>
 
       {confirming && createPortal(
         <div className="sheet-bg" role="presentation" onClick={() => !busy && setConfirming(false)}>

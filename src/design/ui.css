@@ -9,21 +9,20 @@ body { background: radial-gradient(120% 55% at 50% -8%, #0F3D1E 0%, transparent 
 .photo img.loaded { opacity: 1; }
 .skeleton { background: linear-gradient(90deg, #14261A 25%, #20432d 37%, #14261A 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; }
 @keyframes shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
-/* Переходы между экранами: новый въезжает, старый уезжает с лёгким параллаксом (как в iOS) */
-/* Safari на iPhone: экран всегда живёт в собственном слое (translateZ), иначе после анимации
-   Safari иногда не перерисовывает содержимое и оно «пропадает». overflow: hidden вместо clip — тоже ради Safari. */
-.stage { position: relative; overflow: hidden; }
-.page-enter, .page-exit { transform: translate3d(0, 0, 0); -webkit-backface-visibility: hidden; backface-visibility: hidden; }
-.page-enter.fwd { animation: inFromRight .38s var(--ease) backwards; }
-.page-enter.back { animation: inFromLeft .38s var(--ease) backwards; }
-.page-exit { position: absolute; left: 0; right: 0; pointer-events: none; z-index: 0; animation-duration: .38s; animation-timing-function: var(--ease); animation-fill-mode: forwards; }
-.page-exit.fwd { animation-name: outToLeft; }
-.page-exit.back { animation-name: outToRight; }
-.page-enter { position: relative; z-index: 1; }
-@keyframes inFromRight { from { opacity: 0; transform: translate3d(32%, 0, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
-@keyframes inFromLeft { from { opacity: 0; transform: translate3d(-32%, 0, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
-@keyframes outToLeft { from { opacity: 1; transform: translate3d(0, 0, 0); } to { opacity: 0; transform: translate3d(-16%, 0, 0) scale(.97); } }
-@keyframes outToRight { from { opacity: 1; transform: translate3d(0, 0, 0); } to { opacity: 0; transform: translate3d(16%, 0, 0) scale(.97); } }
+/* Переходы между экранами — View Transitions: старый экран уезжает с лёгким параллаксом, новый въезжает.
+   Нижнее меню в анимации не участвует (у него своё имя), капля в меню анимируется сама. */
+.tabbar { view-transition-name: tabbar; }
+::view-transition-old(tabbar) { display: none; }
+::view-transition-new(tabbar) { animation: none; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .38s; animation-timing-function: cubic-bezier(.22, .8, .24, 1); }
+html[data-nav="fwd"]::view-transition-old(root) { animation-name: vtOutLeft; }
+html[data-nav="fwd"]::view-transition-new(root) { animation-name: vtInRight; }
+html[data-nav="back"]::view-transition-old(root) { animation-name: vtOutRight; }
+html[data-nav="back"]::view-transition-new(root) { animation-name: vtInLeft; }
+@keyframes vtInRight { from { opacity: 0; transform: translateX(32%); } }
+@keyframes vtInLeft { from { opacity: 0; transform: translateX(-32%); } }
+@keyframes vtOutLeft { to { opacity: 0; transform: translateX(-16%) scale(.97); } }
+@keyframes vtOutRight { to { opacity: 0; transform: translateX(16%) scale(.97); } }
 @keyframes pageIn { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
 .appbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; padding: max(10px, env(safe-area-inset-top)) 16px 6px; background: linear-gradient(#061914 60%, transparent); }
 .has-bar .wrap { padding-top: 8px; }
@@ -147,3 +146,4 @@ body { background: radial-gradient(120% 55% at 50% -8%, #0F3D1E 0%, transparent 
 .strip i.on { background: #B38B45; }
 .doc { gap: var(--s-6); } .doc-sec { display: grid; gap: var(--s-2); } .doc-sec h2 { font-size: var(--fs-card); color: var(--champagne); }
 .doc-sec p, .doc-sec li { color: var(--text-2); } .doc-sec ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.version { text-align: center; font-size: var(--fs-caption); color: var(--text-2); opacity: .55; }

@@ -27,6 +27,7 @@ const Support = lazy(() => import('./pages/Support.jsx'));
 const Settings = lazy(() => import('./pages/Settings.jsx'));
 const Privacy = lazy(() => import('./pages/Privacy.jsx'));
 const AdminStats = lazy(() => import('./pages/AdminStats.jsx'));
+const Measurements = lazy(() => import('./pages/Measurements.jsx'));
 
 // Когда главная уже показана и браузер свободен — заранее подгружаем экраны нижнего меню,
 // чтобы переход по вкладкам был мгновенным.
@@ -56,7 +57,7 @@ export default function App() {
           <Route path="/orders" element={<Orders />} />
           <Route path="/become-seller" element={<BecomeSeller />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/measurements" element={<Stub title="Мои мерки" hint="Скоро. Мерки — личные данные, мы включим их после переноса хранения на сервер в России." />} />
+          <Route path="/measurements" element={<Measurements />} />
           <Route path="/notifications" element={<Stub title="Уведомления" hint="Скоро здесь появятся уведомления о заказах." />} />
         </Route>
         <Route element={<RequireRole roles={['seller']} />}>

@@ -240,6 +240,26 @@ export const api = {
     const { error } = await supabase.rpc('admin_set_blocked', { target: id, blocked: !!blocked, reason: cleanText(reason, 200) || null });
     return error ? (error.message || 'Не удалось') : '';
   },
+  // ===== Мои мерки (видит и меняет только владелец) =====
+  async getMeasurements() {
+    const { data, error } = await supabase.from('measurements').select('gender,height_cm,chest_cm,waist_cm,hips_cm,shoe_eu,updated_at').maybeSingle();
+    return error ? null : data;
+  },
+  async saveMeasurements(userId, m) {
+    if (!isUuid(userId)) return 'Нужно войти';
+    const row = { user_id: userId, gender: ['female', 'male'].includes(m.gender) ? m.gender : null, updated_at: new Date().toISOString() };
+    for (const k of ['height_cm', 'chest_cm', 'waist_cm', 'hips_cm']) { const v = Math.round(Number(m[k])); row[k] = m[k] === '' || m[k] == null || !Number.isFinite(v) ? null : v; }
+    const shoe = Number(String(m.shoe_eu ?? '').replace(',', '.'));
+    row.shoe_eu = m.shoe_eu === '' || m.shoe_eu == null || !Number.isFinite(shoe) ? null : Math.round(shoe * 2) / 2;
+    const { error } = await supabase.from('measurements').upsert(row, { onConflict: 'user_id' });
+    if (!error) return '';
+    return error.code === '23514' ? 'Проверьте значения: одно из них вне допустимого диапазона.' : 'Не удалось сохранить. Попробуйте ещё раз.';
+  },
+  async clearMeasurements(userId) {
+    if (!isUuid(userId)) return false;
+    const { error } = await supabase.from('measurements').delete().eq('user_id', userId);
+    return !error;
+  },
   // ===== Администратор (права проверяет база) =====
   async listPendingRoleRequests() {
     const { data, error } = await supabase.from('role_requests').select('id,boutique_name,created_at').eq('status', 'pending').order('created_at').limit(50);

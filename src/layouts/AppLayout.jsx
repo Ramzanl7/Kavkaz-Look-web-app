@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useNavigationType, useOutlet } from 'react-ro
 import { Icon } from '../components/Icons.jsx';
 import TabBar, { TABS, tabIndexOf } from '../components/TabBar.jsx';
 import PageStage from '../components/PageStage.jsx';
+import { BackgroundPattern } from '../components/Ornament.jsx';
 import { useCart } from '../store/cart.jsx';
 import { useNotifications } from '../store/notifications.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
@@ -50,10 +51,7 @@ export default function AppLayout() {
   return (
     <>
       <svg className="bgpattern" width="100%" height="100%" aria-hidden="true">
-        <defs><pattern id="bgp" width="56" height="56" patternUnits="userSpaceOnUse">
-          <path d="M28 4 L52 28 L28 52 L4 28 Z" fill="none" stroke="currentColor" />
-          <path d="M28 16 L40 28 L28 40 L16 28 Z" fill="none" stroke="currentColor" />
-        </pattern></defs>
+        <defs><BackgroundPattern id="bgp" /></defs>
         <rect width="100%" height="100%" fill="url(#bgp)" />
       </svg>
       <PageStage pageKey={pathname} dir={dirRef.current}>{screen}</PageStage>

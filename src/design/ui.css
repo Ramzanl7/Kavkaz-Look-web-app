@@ -1,7 +1,7 @@
 /* Слой оформления: фон, контраст карточек, навигация, движение */
 :root { --card: #10281A; --edge: rgba(214,181,106,.2); }
 body { background: radial-gradient(120% 55% at 50% -8%, #0F3D1E 0%, transparent 62%), radial-gradient(90% 40% at 100% 100%, #0c2a1c 0%, transparent 70%), #061914; background-attachment: fixed; }
-.bgpattern { position: fixed; inset: 0; z-index: -1; pointer-events: none; color: var(--gold); opacity: .07; }
+.bgpattern { position: fixed; inset: 0; z-index: -1; pointer-events: none; color: var(--gold); opacity: .1; }
 .bcard, .cart-row, .tile, .pcard, .empty { background: var(--card); border: 1px solid var(--edge); box-shadow: 0 8px 24px rgba(0,0,0,.28); }
 .search, .chip, .sort, .field input, .field select { border-color: var(--edge); }
 .photo { background: linear-gradient(160deg, #1b4a2c, #0b1f16); border: 1px solid var(--edge); }

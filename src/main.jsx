@@ -21,8 +21,10 @@ import { WishlistProvider } from './store/wishlist.jsx';
 import { NotificationsProvider } from './store/notifications.jsx';
 import App from './App.jsx';
 import { startUpdater } from './lib/updater.js';
+import { keepPushWorker } from './lib/push.js';
 
 startUpdater();
+keepPushWorker();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { CONSENT_VERSION } from '../lib/consent.js';
+import { disablePush } from '../lib/push.js';
 const EMPTY = { user: null, role: null, blocked: null, needsConsent: false, loading: false };
 const Ctx = createContext({ ...EMPTY, loading: true });
 export const useAuth = () => useContext(Ctx);
@@ -26,5 +27,5 @@ export function AuthProvider({ children }) {
     return () => { on = false; sub.subscription.unsubscribe(); };
   }, [load]);
   const refresh = useCallback(async () => { const { data } = await supabase.auth.getSession(); await load(data.session); }, [load]);
-  return <Ctx.Provider value={{ ...state, refresh, signOut: () => supabase.auth.signOut() }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ ...state, refresh, signOut: async () => { await disablePush(); return supabase.auth.signOut(); } }}>{children}</Ctx.Provider>;
 }

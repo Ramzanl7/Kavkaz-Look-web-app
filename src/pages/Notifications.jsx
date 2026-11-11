@@ -4,6 +4,43 @@ import EmptyState from '../components/EmptyState.jsx';
 import { Icon } from '../components/Icons.jsx';
 import { useNotifications } from '../store/notifications.jsx';
 import { api } from '../api/index.js';
+import { useAuth } from '../auth/AuthContext.jsx';
+import { useToast } from '../store/toast.jsx';
+import { useAction } from '../lib/useAction.js';
+import { pushSupport, pushEnabled, enablePush, disablePush } from '../lib/push.js';
+
+// Переключатель push-уведомлений на телефон для этого устройства.
+function PushCard() {
+  const { user } = useAuth();
+  const toast = useToast();
+  const [on, setOn] = useState(null);
+  const [busy, run] = useAction();
+  const support = pushSupport();
+  useEffect(() => { pushEnabled().then(setOn).catch(() => setOn(false)); }, []);
+  const toggle = () => run(async () => {
+    if (on) { await disablePush(); setOn(false); toast('Push-уведомления выключены'); return; }
+    const r = await enablePush(user.id).catch(() => 'error');
+    if (r === 'ok') { setOn(true); toast('Push-уведомления включены'); }
+    else toast(r === 'denied' ? 'Уведомления запрещены в настройках телефона' : 'Не удалось включить. Попробуйте ещё раз.');
+  });
+  return (
+    <div className="push-card">
+      <span className="menu-ic"><Icon name="bell" /></span>
+      <span className="grow">
+        <strong className="block">Push-уведомления на телефон</strong>
+        <small className="muted">
+          {support === 'ios-install' ? 'На iPhone: откройте сайт в Safari → «Поделиться» → «На экран „Домой“», затем включите здесь.'
+            : support === 'unsupported' ? 'Этот браузер не поддерживает push-уведомления.'
+            : support === 'denied' ? 'Разрешите уведомления для сайта в настройках телефона.'
+            : 'О заказах и заявках — даже когда приложение закрыто.'}
+        </small>
+      </span>
+      {support === 'ok' && on !== null && (
+        <button type="button" role="switch" aria-checked={on} aria-label="Push-уведомления" className={'switch' + (on ? ' on' : '')} disabled={!!busy} onClick={toggle}><i /></button>
+      )}
+    </div>
+  );
+}
 
 const ICON = (kind) => (kind.startsWith('order') ? 'box' : kind.startsWith('review') ? 'star' : kind.startsWith('request') ? 'store' : 'bell');
 const ago = (iso) => {
@@ -30,6 +67,7 @@ export default function Notifications() {
   return (
     <main className="wrap">
       <h1 className="screen-title rise">Уведомления</h1>
+      <PushCard />
       {items === null ? <div className="skeleton" style={{ height: 200, borderRadius: 16 }} /> : items.length ? (
         <div className="menu">{items.map((n) => {
           const inner = (

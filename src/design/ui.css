@@ -176,3 +176,8 @@ html[data-nav="back"]::view-transition-new(root) { animation-name: vtInLeft; }
 .look-item { display: grid; gap: 4px; align-content: start; font-size: var(--fs-small); }
 .look-item strong { font-weight: 600; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .look-item .price { font-size: var(--fs-small); }
+/* 3D и AR */
+model-viewer.viewer3d, .viewer3d { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; border-radius: var(--r-lg); background: radial-gradient(80% 70% at 50% 40%, #1b4a2c, #0b1f16); border: 1px solid var(--edge); --poster-color: transparent; }
+.ar-btn { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); min-height: 44px; padding: 0 18px; border-radius: 999px; border: 0; background: var(--gold); color: var(--bg); font-weight: 700; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.act.disabled { opacity: .5; pointer-events: none; }
+label.act { cursor: pointer; }

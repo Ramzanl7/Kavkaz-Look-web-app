@@ -13,7 +13,8 @@ window.fetch = async (...args) => {
 const CATEGORIES = ['Женское', 'Мужское', 'Национальное', 'Обувь', 'Аксессуары'];
 const PARTNER_CATEGORIES = ['food', 'taxi', 'delivery', 'coffee'];
 const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
-const COLS = 'id,title,price_rub,category,image_path,is_published,rating_avg,rating_count,boutique:boutiques(name)';
+const COLS = 'id,title,price_rub,category,image_path,model_path,is_published,rating_avg,rating_count,boutique:boutiques(name)';
+const modelUrl = (path) => supabase.storage.from('product-models').getPublicUrl(path).data.publicUrl;
 const SORTS = { new: ['created_at', false], price_asc: ['price_rub', true], price_desc: ['price_rub', false], rating: ['rating_avg', false] };
 const pub = (path) => supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl;
 // Ссылки на фото товара по пути в хранилище (для ответов, где есть только image_path)
@@ -21,6 +22,7 @@ export const imageUrls = (path) => (path ? { image: pub(path), thumb: pub(path.r
 const toProduct = (r) => ({
   id: r.id, title: r.title, price: r.price_rub, category: r.category, description: r.description ?? '', boutique: r.boutique?.name ?? '', published: r.is_published,
   rating: Number(r.rating_avg) || 0, ratingCount: r.rating_count || 0,
+  model: r.model_path ? modelUrl(r.model_path) : null, modelPath: r.model_path ?? null,
   image: r.image_path ? pub(r.image_path) : null, thumb: r.image_path ? pub(r.image_path.replace(/\.jpg$/, '_t.jpg')) : null,
 });
 // Кэш на 60 секунд: каталог открывается мгновенно, данные обновляются в фоне.
@@ -167,6 +169,24 @@ export const api = {
     }
     const { error } = await supabase.from('products').insert({ boutique_id: boutiqueId, title: t, description: d || null, price_rub: p, category, image_path });
     return error ? { ok: false, error: 'Не удалось сохранить товар.' } : { ok: true };
+  },
+  // 3D-модель товара (.glb, до 15 МБ). Файл проверяется по сигнатуре glTF, а не только по расширению.
+  async uploadModel(boutiqueId, productId, file) {
+    if (!isUuid(boutiqueId) || !isUuid(productId) || !file) return 'Неверные данные';
+    if (file.size > 15 * 1024 * 1024) return 'Файл больше 15 МБ';
+    const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+    if (String.fromCharCode(...head) !== 'glTF') return 'Это не файл .glb (glTF binary)';
+    const path = boutiqueId + '/' + productId + '.glb';
+    const up = await supabase.storage.from('product-models').upload(path, file, { upsert: true, contentType: 'model/gltf-binary', cacheControl: '3600' });
+    if (up.error) return 'Не удалось загрузить модель';
+    const { error } = await supabase.from('products').update({ model_path: path }).eq('id', productId);
+    return error ? 'Модель загружена, но не привязана к товару' : '';
+  },
+  async removeModel(productId, path) {
+    if (!isUuid(productId)) return false;
+    if (path) await supabase.storage.from('product-models').remove([path]);
+    const { error } = await supabase.from('products').update({ model_path: null }).eq('id', productId);
+    return !error;
   },
   async setProductPublished(id, on) {
     if (!isUuid(id)) return false;

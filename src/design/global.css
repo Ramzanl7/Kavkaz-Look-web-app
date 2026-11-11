@@ -31,7 +31,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .wordmark { font-family: var(--font-display); font-size: 1.5rem; color: var(--champagne); }
 .wordmark-sans { font-weight: 700; font-size: 1.25rem; } .wordmark-sans span { color: var(--gold); }
 .pill { border: 1px solid var(--border); background: var(--card); border-radius: 999px; padding: 4px 12px; font-size: var(--fs-caption); color: var(--text-2); }
-.belt { color: var(--gold); opacity: .7; display: block; }
+.belt { display: flex; align-items: center; gap: 12px; width: 100%; }
+.belt i { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(214,181,106,.6)); }
+.belt i:last-child { background: linear-gradient(90deg, rgba(214,181,106,.6), transparent); }
+.belt svg { flex: none; }
 .eyebrow { display: flex; align-items: center; gap: 10px; color: var(--gold); letter-spacing: .2em; font-size: .6875rem; text-transform: uppercase; }
 .eyebrow::before { content: ''; width: 24px; height: 1px; background: var(--gold); }
 .display { font-family: var(--font-display); font-weight: 400; font-size: clamp(2.25rem, 9vw, 3.25rem); line-height: 1.05; color: var(--champagne); }

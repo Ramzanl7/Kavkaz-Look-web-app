@@ -16,6 +16,8 @@ const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'we
 const COLS = 'id,title,price_rub,category,image_path,is_published,rating_avg,rating_count,boutique:boutiques(name)';
 const SORTS = { new: ['created_at', false], price_asc: ['price_rub', true], price_desc: ['price_rub', false], rating: ['rating_avg', false] };
 const pub = (path) => supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl;
+// Ссылки на фото товара по пути в хранилище (для ответов, где есть только image_path)
+export const imageUrls = (path) => (path ? { image: pub(path), thumb: pub(path.replace(/\.jpg$/, '_t.jpg')) } : { image: null, thumb: null });
 const toProduct = (r) => ({
   id: r.id, title: r.title, price: r.price_rub, category: r.category, description: r.description ?? '', boutique: r.boutique?.name ?? '', published: r.is_published,
   rating: Number(r.rating_avg) || 0, ratingCount: r.rating_count || 0,
@@ -43,6 +45,7 @@ export function normalizeContacts(c = {}) {
 
 // Слой данных. Запросы строятся только через параметры клиента Supabase, SQL из ввода не собирается.
 export const api = {
+  imageUrls,
   peekList(o = {}) { const v = lists.get(keyOf(o)); return v && Date.now() - v.t < 60000 ? v.data : null; },
   peekProduct(id) { return products.get(id) ?? null; },
   async listProducts({ query = '', category = '', boutiqueId = '', sort = 'new' } = {}) {

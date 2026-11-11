@@ -178,8 +178,32 @@ html[data-nav="back"]::view-transition-new(root) { animation-name: vtInLeft; }
 .look-item { display: grid; gap: 4px; align-content: start; font-size: var(--fs-small); }
 .look-item strong { font-weight: 600; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .look-item .price { font-size: var(--fs-small); }
-/* 3D и AR */
-model-viewer.viewer3d, .viewer3d { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; border-radius: var(--r-lg); background: radial-gradient(80% 70% at 50% 40%, #1b4a2c, #0b1f16); border: 1px solid var(--edge); --poster-color: transparent; }
-.ar-btn { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); min-height: 44px; padding: 0 18px; border-radius: 999px; border: 0; background: var(--gold); color: var(--bg); font-weight: 700; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
-.act.disabled { opacity: .5; pointer-events: none; }
-label.act { cursor: pointer; }
+/* Примерка */
+.tryon-btn { display: flex; align-items: center; gap: var(--s-3); padding: 14px 16px; border-radius: var(--r-xl); border: 1px solid var(--gold); background: linear-gradient(135deg, rgba(214,181,106,.22), rgba(15,61,30,.6)); color: var(--champagne); }
+.tryon-btn small { color: var(--text-2); font-size: var(--fs-caption); }
+.tryon-ic { width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--gold); color: var(--bg); font-size: 1.3rem; }
+.mannequin-wrap { position: relative; }
+.mannequin { width: 100%; aspect-ratio: 3 / 4; border-radius: var(--r-xl); overflow: hidden; touch-action: pan-y; background: radial-gradient(70% 60% at 50% 35%, rgba(30,122,60,.35), rgba(6,25,20,.2)); border: 1px solid var(--edge); }
+.mannequin canvas { display: block; width: 100% !important; height: 100% !important; }
+.heat-btn { position: absolute; top: 12px; right: 12px; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--edge); background: rgba(6,25,20,.75); color: var(--champagne); font-size: var(--fs-small); font-weight: 600; backdrop-filter: blur(6px); }
+.heat-btn.on { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+.heat-legend { position: absolute; left: 12px; bottom: 12px; display: flex; gap: 10px; padding: 6px 10px; border-radius: 999px; background: rgba(6,25,20,.75); font-size: var(--fs-caption); color: var(--text-2); }
+.heat-legend span, .fit-zones li { display: inline-flex; align-items: center; gap: 6px; }
+.heat-legend i, .fit-zones i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
+.center { text-align: center; }
+.size-pick { display: grid; gap: 6px; }
+.fit-card { display: grid; gap: 8px; padding: var(--s-4); border-radius: var(--r-xl); background: var(--card); border: 1px solid var(--edge); }
+.fit-card.good { border-color: rgba(76,195,122,.6); } .fit-card.loose { border-color: rgba(230,195,74,.6); } .fit-card.tight { border-color: rgba(229,83,75,.7); }
+.fit-card > strong { font-size: var(--fs-card); color: var(--champagne); }
+.fit-zones { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: var(--fs-small); }
+.fit-zones b { min-width: 64px; }
+.fit-zones span { color: var(--text-2); }
+/* Размеры у продавца */
+.size-editor { border: 1px solid var(--edge); border-radius: var(--r-lg); padding: var(--s-3) var(--s-4) var(--s-4); display: grid; gap: var(--s-3); margin: 0; }
+.size-editor legend { padding: 0 6px; color: var(--champagne); font-weight: 600; }
+.chart-details summary { cursor: pointer; color: var(--gold); font-size: var(--fs-small); }
+.chart-details[open] { display: grid; gap: 8px; }
+.chart-table { display: grid; gap: 6px; align-items: center; font-size: var(--fs-small); }
+.chart-table b { color: var(--text-2); font-weight: 600; }
+.chart-table input { min-height: 40px; width: 100%; background: var(--card); border: 1px solid var(--edge); border-radius: 10px; color: var(--text); padding: 0 8px; font: inherit; text-align: center; }
+.sheet { max-height: 90vh; overflow-y: auto; }

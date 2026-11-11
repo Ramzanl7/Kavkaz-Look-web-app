@@ -1,15 +1,20 @@
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useToast } from '../store/toast.jsx';
 import { useAction } from '../lib/useAction.js';
 import { FIELDS, suggestSize } from '../lib/sizes.js';
 import { api } from '../api/index.js';
 
-const EMPTY = { gender: '', height_cm: '', chest_cm: '', waist_cm: '', hips_cm: '', shoe_eu: '' };
+const EMPTY = { gender: '', height_cm: '', chest_cm: '', waist_cm: '', hips_cm: '', shoulder_cm: '', inseam_cm: '', shoe_eu: '' };
 
 export default function Measurements() {
   const { user } = useAuth();
   const toast = useToast();
+  const nav = useNavigate();
+  // пришли с примерки — после сохранения вернём туда
+  const from = useLocation().state?.from;
+  const back = typeof from === 'string' && from.startsWith('/tryon/') ? from : null;
   const [m, setM] = useState(null);
   const [msg, setMsg] = useState('');
   const [busy, run] = useAction();
@@ -25,7 +30,7 @@ export default function Measurements() {
   const save = (e) => { e.preventDefault(); return run(async () => {
     setMsg('');
     const err = await api.saveMeasurements(user.id, { ...m, shoe_eu: m.shoe_eu });
-    if (err) setMsg(err); else toast('Мерки сохранены');
+    if (err) setMsg(err); else { toast('Мерки сохранены'); if (back) nav(back, { replace: true }); }
   }, 'save'); };
   const clear = () => run(async () => {
     if (!window.confirm('Удалить все мерки?')) return;
@@ -56,7 +61,7 @@ export default function Measurements() {
           </div>
         )}
         {msg && <p className="msg" role="status">{msg}</p>}
-        <button type="submit" className="btn btn-primary press" disabled={!!busy}>{busy === 'save' ? 'Сохраняем…' : 'Сохранить мерки'}</button>
+        <button type="submit" className="btn btn-primary press" disabled={!!busy}>{busy === 'save' ? 'Сохраняем…' : back ? 'Сохранить и примерить' : 'Сохранить мерки'}</button>
         <button type="button" className="link-muted" disabled={!!busy} onClick={clear}>Удалить мои мерки</button>
       </form>
       <p className="notice">Мерки видите только вы. Продавцы их не видят. Они удаляются вместе с аккаунтом или кнопкой выше.</p>

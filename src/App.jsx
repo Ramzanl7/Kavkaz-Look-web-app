@@ -30,6 +30,7 @@ const AdminStats = lazy(() => import('./pages/AdminStats.jsx'));
 const Measurements = lazy(() => import('./pages/Measurements.jsx'));
 const Notifications = lazy(() => import('./pages/Notifications.jsx'));
 const Stylist = lazy(() => import('./pages/Stylist.jsx'));
+const TryOn = lazy(() => import('./pages/TryOn.jsx'));
 
 // Когда главная уже показана и браузер свободен — заранее подгружаем экраны нижнего меню,
 // чтобы переход по вкладкам был мгновенным.
@@ -55,6 +56,7 @@ export default function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/support" element={<Support />} />
         <Route path="/stylist" element={<Stylist />} />
+        <Route path="/tryon/:id" element={<TryOn />} />
         <Route element={<RequireRole roles={ANY} />}>
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/orders" element={<Orders />} />

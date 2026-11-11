@@ -3,19 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { api } from '../api/index.js';
 import { useAction } from '../lib/useAction.js';
+import SizeEditor from '../components/SizeEditor.jsx';
 const cats = ['Женское', 'Мужское', 'Национальное', 'Обувь', 'Аксессуары'];
 export default function SellerProductNew() {
   const { user } = useAuth();
   const nav = useNavigate();
   const [f, setF] = useState({ title: '', price: '', category: cats[0], description: '' });
   const [file, setFile] = useState(null);
+  const [sizing, setSizing] = useState({ type: '', sizes: [], chart: {} });
   const [msg, setMsg] = useState('');
   const [busy, run] = useAction();
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const submit = (e) => { e.preventDefault(); return run(async () => {
     setMsg('');
     const b = await api.getMyBoutique(user.id);
-    const r = b ? await api.createProduct({ boutiqueId: b.id, ...f, price: Number(f.price), file }) : { ok: false, error: 'Бутик не найден.' };
+    const r = b ? await api.createProduct({ boutiqueId: b.id, ...f, price: Number(f.price), file, sizing }) : { ok: false, error: 'Бутик не найден.' };
     if (r.ok) nav('/seller/products'); else setMsg(r.error);
   }); };
   return (
@@ -27,6 +29,7 @@ export default function SellerProductNew() {
         <div className="field"><label htmlFor="c">Раздел</label><select id="c" value={f.category} onChange={set('category')}>{cats.map((c) => <option key={c}>{c}</option>)}</select></div>
         <div className="field"><label htmlFor="d">Описание</label><input id="d" maxLength={2000} value={f.description} onChange={set('description')} /></div>
         <div className="field"><label htmlFor="i">Фото (jpeg, png, webp). Оно сожмётся автоматически</label><input id="i" type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setFile(e.target.files?.[0] ?? null)} /></div>
+        <SizeEditor value={sizing} onChange={setSizing} title={f.title} category={f.category} />
         {msg && <p className="msg" role="status">{msg}</p>}
         <button className="btn btn-primary press" type="submit" disabled={busy || f.title.trim().length < 2 || !/^[0-9]+$/.test(f.price)}>Сохранить</button>
       </form>

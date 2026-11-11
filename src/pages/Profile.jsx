@@ -8,13 +8,15 @@ import { useToast } from '../store/toast.jsx';
 import { api } from '../api/index.js';
 import { buildLabel } from '../lib/updater.js';
 import { useAction } from '../lib/useAction.js';
+import { useNotifications } from '../store/notifications.jsx';
 
 const ROLES = { buyer: 'Покупатель', seller: 'Продавец', admin: 'Администратор' };
 
-const Item = ({ to, icon, label, d }) => (
+const Item = ({ to, icon, label, d, badge }) => (
   <Link className="menu-item press" to={to} style={{ '--d': d }}>
     <span className="menu-ic"><Icon name={icon} /></span>
     <span className="grow">{label}</span>
+    {badge > 0 && <i className="pill-count">{badge > 99 ? '99+' : badge}</i>}
     <span className="menu-arrow"><Icon name="chevron" /></span>
   </Link>
 );
@@ -23,6 +25,7 @@ export default function Profile() {
   const { user, role, loading, signOut } = useAuth();
   const toast = useToast();
   const nav = useNavigate();
+  const { unread } = useNotifications();
   const [name, setName] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [busy, run] = useAction();
@@ -67,7 +70,7 @@ export default function Profile() {
         <Item to="/measurements" icon="ruler" label="Мои мерки" />
         <Item to="/wishlist" icon="heart" label="Избранное" />
         <Item to="/support" icon="chat" label="Поддержка" />
-        <Item to="/notifications" icon="bell" label="Уведомления" />
+        <Item to="/notifications" icon="bell" label="Уведомления" badge={unread} />
         <Item to="/settings" icon="sliders" label="Настройки" />
         <Item to="/privacy" icon="shield" label="Политика конфиденциальности" />
         {role === 'seller'

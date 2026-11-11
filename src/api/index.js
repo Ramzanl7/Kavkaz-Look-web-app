@@ -260,6 +260,19 @@ export const api = {
     const { error } = await supabase.from('measurements').delete().eq('user_id', userId);
     return !error;
   },
+  // ===== Уведомления (создаёт только база; клиент читает свои и отмечает прочитанными) =====
+  async listNotifications() {
+    const { data, error } = await supabase.from('notifications').select('id,kind,title,body,link,created_at,read_at').order('created_at', { ascending: false }).limit(50);
+    return error || !data ? [] : data;
+  },
+  async unreadNotifications() {
+    const { count, error } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null);
+    return error ? 0 : count || 0;
+  },
+  async markNotificationsRead() {
+    const { error } = await supabase.from('notifications').update({ read_at: new Date().toISOString() }).is('read_at', null);
+    return !error;
+  },
   // ===== Администратор (права проверяет база) =====
   async listPendingRoleRequests() {
     const { data, error } = await supabase.from('role_requests').select('id,boutique_name,created_at').eq('status', 'pending').order('created_at').limit(50);

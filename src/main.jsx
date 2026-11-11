@@ -18,6 +18,7 @@ import { AuthProvider } from './auth/AuthContext.jsx';
 import { CartProvider } from './store/cart.jsx';
 import { ToastProvider } from './store/toast.jsx';
 import { WishlistProvider } from './store/wishlist.jsx';
+import { NotificationsProvider } from './store/notifications.jsx';
 import App from './App.jsx';
 import { startUpdater } from './lib/updater.js';
 
@@ -25,6 +26,6 @@ startUpdater();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter><AuthProvider><CartProvider><ToastProvider><WishlistProvider><App /></WishlistProvider></ToastProvider></CartProvider></AuthProvider></BrowserRouter>
+    <BrowserRouter><AuthProvider><CartProvider><ToastProvider><WishlistProvider><NotificationsProvider><App /></NotificationsProvider></WishlistProvider></ToastProvider></CartProvider></AuthProvider></BrowserRouter>
   </StrictMode>
 );

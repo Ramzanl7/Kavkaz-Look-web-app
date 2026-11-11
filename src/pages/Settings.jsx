@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useToast } from '../store/toast.jsx';
 import { api } from '../api/index.js';
+import { buildLabel } from '../lib/updater.js';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -23,6 +24,7 @@ export default function Settings() {
         <button type="submit" className="btn btn-primary press">Сохранить</button>
       </form>
       <div className="bcard"><strong>Почта для входа</strong><span className="muted">{user?.email}</span></div>
+      <p className="muted">Версия приложения: {buildLabel()}</p>
     </main>
   );
 }

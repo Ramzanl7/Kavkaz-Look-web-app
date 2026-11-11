@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useRef } from 'react';
 import { useLocation, useNavigate, useNavigationType, useOutlet } from 'react-router-dom';
 import { Icon } from '../components/Icons.jsx';
 import TabBar, { TABS, tabIndexOf } from '../components/TabBar.jsx';
@@ -35,10 +35,16 @@ export default function AppLayout() {
 
   const open = ['/privacy', '/support'].includes(pathname);
   const gate = user && !open ? (blocked ? <BlockedScreen reason={blocked.reason} /> : needsConsent ? <ConsentGate /> : null) : null;
-  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
   const back = () => (window.history.state?.idx > 0 ? nav(-1) : nav('/catalog'));
-  return (
+  // Кнопка «назад» — часть экрана: она меняется вместе с ним в анимации перехода.
+  const screen = (
     <div className={root ? '' : 'has-bar'}>
+      {!root && <header className="appbar"><button type="button" className="back press" onClick={back} aria-label="Назад"><Icon name="back" /></button></header>}
+      {gate || <Suspense fallback={<Fallback />}>{outlet}</Suspense>}
+    </div>
+  );
+  return (
+    <>
       <svg className="bgpattern" width="100%" height="100%" aria-hidden="true">
         <defs><pattern id="bgp" width="56" height="56" patternUnits="userSpaceOnUse">
           <path d="M28 4 L52 28 L28 52 L4 28 Z" fill="none" stroke="currentColor" />
@@ -46,11 +52,8 @@ export default function AppLayout() {
         </pattern></defs>
         <rect width="100%" height="100%" fill="url(#bgp)" />
       </svg>
-      {!root && <header className="appbar"><button type="button" className="back press" onClick={back} aria-label="Назад"><Icon name="back" /></button></header>}
-      <PageStage pageKey={pathname} dir={dirRef.current}>
-        {gate || <Suspense fallback={<Fallback />}>{outlet}</Suspense>}
-      </PageStage>
+      <PageStage pageKey={pathname} dir={dirRef.current}>{screen}</PageStage>
       <TabBar active={tabIndexOf(pathname)} count={count} />
-    </div>
+    </>
   );
 }

@@ -13,16 +13,28 @@ window.fetch = async (...args) => {
 const CATEGORIES = ['Женское', 'Мужское', 'Национальное', 'Обувь', 'Аксессуары'];
 const PARTNER_CATEGORIES = ['food', 'taxi', 'delivery', 'coffee'];
 const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
-const COLS = 'id,title,price_rub,category,image_path,model_path,is_published,rating_avg,rating_count,boutique:boutiques(name)';
-const modelUrl = (path) => supabase.storage.from('product-models').getPublicUrl(path).data.publicUrl;
+const COLS = 'id,title,price_rub,category,image_path,garment_type,sizes,size_chart,is_published,rating_avg,rating_count,boutique:boutiques(name)';
 const SORTS = { new: ['created_at', false], price_asc: ['price_rub', true], price_desc: ['price_rub', false], rating: ['rating_avg', false] };
 const pub = (path) => supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl;
 // Ссылки на фото товара по пути в хранилище (для ответов, где есть только image_path)
 export const imageUrls = (path) => (path ? { image: pub(path), thumb: pub(path.replace(/\.jpg$/, '_t.jpg')) } : { image: null, thumb: null });
+// Размеры и посадка товара → вид для базы (только числа в разумных пределах)
+export function normalizeSizing(v = {}) {
+  const types = ['dress', 'top', 'outer', 'pants', 'skirt', 'none'];
+  const garment_type = types.includes(v.type) ? v.type : null;
+  const sizes = (v.sizes || []).filter((s) => /^[0-9]{2}$/.test(s)).slice(0, 20);
+  const chart = {};
+  for (const s of sizes) {
+    const row = {};
+    for (const k of ['chest', 'waist', 'hips', 'length']) { const n = Number(v.chart?.[s]?.[k]); if (Number.isInteger(n) && n >= 20 && n <= 250) row[k] = n; }
+    if (Object.keys(row).length) chart[s] = row;
+  }
+  return { garment_type, sizes: garment_type === 'none' ? [] : sizes, size_chart: garment_type !== 'none' && Object.keys(chart).length ? chart : null };
+}
 const toProduct = (r) => ({
   id: r.id, title: r.title, price: r.price_rub, category: r.category, description: r.description ?? '', boutique: r.boutique?.name ?? '', published: r.is_published,
   rating: Number(r.rating_avg) || 0, ratingCount: r.rating_count || 0,
-  model: r.model_path ? modelUrl(r.model_path) : null, modelPath: r.model_path ?? null,
+  garmentType: r.garment_type ?? null, sizes: r.sizes ?? [], sizeChart: r.size_chart ?? null,
   image: r.image_path ? pub(r.image_path) : null, thumb: r.image_path ? pub(r.image_path.replace(/\.jpg$/, '_t.jpg')) : null,
 });
 // Кэш на 60 секунд: каталог открывается мгновенно, данные обновляются в фоне.
@@ -153,7 +165,7 @@ export const api = {
     const { data } = await supabase.from('boutiques').select('id,name,description,city,is_approved').eq('owner_id', userId).limit(1).maybeSingle();
     return data ?? null;
   },
-  async createProduct({ boutiqueId, title, price, category, description, file }) {
+  async createProduct({ boutiqueId, title, price, category, description, file, sizing }) {
     const t = cleanText(title, 120), d = cleanText(description, 2000), p = Number(price);
     if (!isUuid(boutiqueId) || t.length < 2 || !Number.isInteger(p) || p < 1 || p > 10000000 || !CATEGORIES.includes(category)) return { ok: false, error: 'Проверьте поля формы.' };
     let image_path = null;
@@ -167,25 +179,12 @@ export const api = {
       if (a.error || b.error) return { ok: false, error: 'Не удалось загрузить фото.' };
       image_path = base + '.jpg';
     }
-    const { error } = await supabase.from('products').insert({ boutique_id: boutiqueId, title: t, description: d || null, price_rub: p, category, image_path });
+    const { error } = await supabase.from('products').insert({ boutique_id: boutiqueId, title: t, description: d || null, price_rub: p, category, image_path, ...normalizeSizing(sizing) });
     return error ? { ok: false, error: 'Не удалось сохранить товар.' } : { ok: true };
   },
-  // 3D-модель товара (.glb, до 15 МБ). Файл проверяется по сигнатуре glTF, а не только по расширению.
-  async uploadModel(boutiqueId, productId, file) {
-    if (!isUuid(boutiqueId) || !isUuid(productId) || !file) return 'Неверные данные';
-    if (file.size > 15 * 1024 * 1024) return 'Файл больше 15 МБ';
-    const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
-    if (String.fromCharCode(...head) !== 'glTF') return 'Это не файл .glb (glTF binary)';
-    const path = boutiqueId + '/' + productId + '.glb';
-    const up = await supabase.storage.from('product-models').upload(path, file, { upsert: true, contentType: 'model/gltf-binary', cacheControl: '3600' });
-    if (up.error) return 'Не удалось загрузить модель';
-    const { error } = await supabase.from('products').update({ model_path: path }).eq('id', productId);
-    return error ? 'Модель загружена, но не привязана к товару' : '';
-  },
-  async removeModel(productId, path) {
-    if (!isUuid(productId)) return false;
-    if (path) await supabase.storage.from('product-models').remove([path]);
-    const { error } = await supabase.from('products').update({ model_path: null }).eq('id', productId);
+  async setProductSizing(id, sizing) {
+    if (!isUuid(id)) return false;
+    const { error } = await supabase.from('products').update(normalizeSizing(sizing)).eq('id', id);
     return !error;
   },
   async setProductPublished(id, on) {
@@ -265,13 +264,13 @@ export const api = {
   },
   // ===== Мои мерки (видит и меняет только владелец) =====
   async getMeasurements() {
-    const { data, error } = await supabase.from('measurements').select('gender,height_cm,chest_cm,waist_cm,hips_cm,shoe_eu,updated_at').maybeSingle();
+    const { data, error } = await supabase.from('measurements').select('gender,height_cm,chest_cm,waist_cm,hips_cm,shoulder_cm,inseam_cm,shoe_eu,updated_at').maybeSingle();
     return error ? null : data;
   },
   async saveMeasurements(userId, m) {
     if (!isUuid(userId)) return 'Нужно войти';
     const row = { user_id: userId, gender: ['female', 'male'].includes(m.gender) ? m.gender : null, updated_at: new Date().toISOString() };
-    for (const k of ['height_cm', 'chest_cm', 'waist_cm', 'hips_cm']) { const v = Math.round(Number(m[k])); row[k] = m[k] === '' || m[k] == null || !Number.isFinite(v) ? null : v; }
+    for (const k of ['height_cm', 'chest_cm', 'waist_cm', 'hips_cm', 'shoulder_cm', 'inseam_cm']) { const v = Math.round(Number(m[k])); row[k] = m[k] === '' || m[k] == null || !Number.isFinite(v) ? null : v; }
     const shoe = Number(String(m.shoe_eu ?? '').replace(',', '.'));
     row.shoe_eu = m.shoe_eu === '' || m.shoe_eu == null || !Number.isFinite(shoe) ? null : Math.round(shoe * 2) / 2;
     const { error } = await supabase.from('measurements').upsert(row, { onConflict: 'user_id' });

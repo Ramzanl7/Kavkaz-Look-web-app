@@ -8,7 +8,7 @@ export const TABS = [['/catalog', 'Каталог', 'catalog'], ['/boutiques', '
 export function tabIndexOf(path) {
   const exact = TABS.findIndex(([to]) => to === path);
   if (exact >= 0) return exact;
-  if (/^\/(product|nearby|partners)\b/.test(path)) return 0;
+  if (/^\/(product|nearby|partners|tryon|stylist)\b/.test(path)) return 0;
   if (/^\/boutiques\//.test(path)) return 1;
   return 4; // профиль, заказы, настройки, поддержка, вход, админка, кабинет продавца
 }

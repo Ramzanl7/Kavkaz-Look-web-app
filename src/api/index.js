@@ -1,6 +1,15 @@
 import { supabase } from '../lib/supabase.js';
 import { cleanQuery, cleanText, escapeLike, isUuid } from '../lib/sanitize.js';
 import { makeVariants } from '../lib/image.js';
+
+// Ответ сервера «слишком часто» (лимит частоты): показываем понятное сообщение один раз для всего приложения.
+export const RATE_LIMIT_EVENT = 'kl:rate-limited';
+const origFetch = window.fetch.bind(window);
+window.fetch = async (...args) => {
+  const r = await origFetch(...args);
+  if (r.status === 429) window.dispatchEvent(new CustomEvent(RATE_LIMIT_EVENT));
+  return r;
+};
 const CATEGORIES = ['Женское', 'Мужское', 'Национальное', 'Обувь', 'Аксессуары'];
 const PARTNER_CATEGORIES = ['food', 'taxi', 'delivery', 'coffee'];
 const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
@@ -171,10 +180,13 @@ export const api = {
     return error || !data ? [] : data;
   },
   // ===== Покупатель: заказы. Цену и сумму считает сервер =====
-  async createOrder(items) {
+  // idem — ключ одной попытки оформления: повторная отправка (зависшая кнопка, плохой интернет) не создаст второй заказ.
+  async createOrder(items, idem) {
     const payload = items.filter((i) => isUuid(i.id)).map((i) => ({ product_id: i.id, qty: i.qty }));
     if (!payload.length) return null;
-    const { data, error } = await supabase.rpc('create_order', { items: payload });
+    let { data, error } = await supabase.rpc('create_order', { items: payload, idem: isUuid(idem) ? idem : null });
+    // База ещё без новой версии функции (переходный период) — оформляем по-старому
+    if (error?.code === 'PGRST202') ({ data, error } = await supabase.rpc('create_order', { items: payload }));
     return error ? null : data;
   },
   async listMyOrders() {

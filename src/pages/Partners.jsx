@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import EmptyState from '../components/EmptyState.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { api } from '../api/index.js';
+import { useAction } from '../lib/useAction.js';
 const cats = [['food', 'Еда'], ['taxi', 'Такси'], ['delivery', 'Доставка'], ['coffee', 'Кофейни']];
 export default function Partners() {
   const { user, loading } = useAuth();
@@ -10,14 +11,11 @@ export default function Partners() {
   const [category, setCategory] = useState('food');
   const [contact, setContact] = useState('');
   const [msg, setMsg] = useState('');
-  const [busy, setBusy] = useState(false);
-  const submit = async (e) => {
-    e.preventDefault();
-    setBusy(true);
+  const [busy, run] = useAction();
+  const submit = (e) => { e.preventDefault(); return run(async () => {
     const ok = await api.createPartnerRequest({ brand, category, contact });
-    setBusy(false);
     setMsg(ok ? 'Заявка отправлена. Мы свяжемся с вами.' : 'Не получилось. Проверьте данные и попробуйте ещё раз.');
-  };
+  }); };
   if (loading) return <main className="wrap"><p className="lead">Загрузка…</p></main>;
   return (
     <main className="wrap">

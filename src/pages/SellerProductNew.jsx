@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { api } from '../api/index.js';
+import { useAction } from '../lib/useAction.js';
 const cats = ['Женское', 'Мужское', 'Национальное', 'Обувь', 'Аксессуары'];
 export default function SellerProductNew() {
   const { user } = useAuth();
@@ -9,16 +10,14 @@ export default function SellerProductNew() {
   const [f, setF] = useState({ title: '', price: '', category: cats[0], description: '' });
   const [file, setFile] = useState(null);
   const [msg, setMsg] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [busy, run] = useAction();
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
-  const submit = async (e) => {
-    e.preventDefault();
-    setBusy(true); setMsg('');
+  const submit = (e) => { e.preventDefault(); return run(async () => {
+    setMsg('');
     const b = await api.getMyBoutique(user.id);
     const r = b ? await api.createProduct({ boutiqueId: b.id, ...f, price: Number(f.price), file }) : { ok: false, error: 'Бутик не найден.' };
-    setBusy(false);
     if (r.ok) nav('/seller/products'); else setMsg(r.error);
-  };
+  }); };
   return (
     <main className="wrap">
       <h1 className="screen-title">Новый товар</h1>

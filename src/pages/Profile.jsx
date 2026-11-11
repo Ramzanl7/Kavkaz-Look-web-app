@@ -7,6 +7,7 @@ import { useAuth } from '../auth/AuthContext.jsx';
 import { useToast } from '../store/toast.jsx';
 import { api } from '../api/index.js';
 import { buildLabel } from '../lib/updater.js';
+import { useAction } from '../lib/useAction.js';
 
 const ROLES = { buyer: 'Покупатель', seller: 'Продавец', admin: 'Администратор' };
 
@@ -24,7 +25,7 @@ export default function Profile() {
   const nav = useNavigate();
   const [name, setName] = useState('');
   const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [busy, run] = useAction();
   useEffect(() => { if (user) api.getProfileName(user.id).then(setName); }, [user]);
 
   if (loading) return <main className="wrap"><p className="lead">Загрузка…</p></main>;
@@ -38,14 +39,12 @@ export default function Profile() {
 
   const shown = name || user.email?.split('@')[0] || 'Пользователь';
   const isAdmin = role === 'admin';
-  const removeAccount = async () => {
-    setBusy(true);
+  const removeAccount = () => run(async () => {
     const err = await api.deleteMyAccount();
-    setBusy(false);
     if (err) { toast(err); return; }
     toast('Аккаунт удалён');
     nav('/catalog', { replace: true });
-  };
+  });
 
   return (
     <main className="wrap">

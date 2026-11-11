@@ -3,23 +3,23 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { CONSENT_VERSION } from '../lib/consent.js';
 import { api } from '../api/index.js';
+import { useAction } from '../lib/useAction.js';
 
 // Пока нет согласия по текущей версии документа — аккаунтом пользоваться нельзя.
 export function ConsentGate() {
   const { refresh, signOut } = useAuth();
   const [agree, setAgree] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [busy, run] = useAction();
   const [msg, setMsg] = useState('');
-  const accept = async () => {
-    setBusy(true); setMsg('');
+  const accept = () => run(async () => {
+    setMsg('');
     if (await api.giveConsent(CONSENT_VERSION)) await refresh();
     else setMsg('Не удалось сохранить. Попробуйте ещё раз.');
-    setBusy(false);
-  };
+  });
   return (
     <main className="wrap gate">
       <h1 className="screen-title rise">Согласие на обработку данных</h1>
-      <p className="lead">Чтобы пользоваться аккаунтом, нужно согласие на обработку персональных данных: почта, имя, заказы, избранное, отзывы и дни, когда вы заходили в приложение.</p>
+      <p className="lead">Чтобы пользоваться аккаунтом, нужно согласие на обработку персональных данных: почта, имя, заказы, избранное, отзывы, дни, когда вы заходили в приложение, и мерки, если вы их укажете.</p>
       <Link className="link-u" to="/privacy">Прочитать политику конфиденциальности</Link>
       <label className="check">
         <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />

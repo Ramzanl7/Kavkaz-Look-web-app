@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Icon } from '../components/Icons.jsx';
 import { Link } from 'react-router-dom';
 import EmptyState from '../components/EmptyState.jsx';
 import ProductCard from '../components/ProductCard.jsx';
@@ -29,6 +30,11 @@ export default function Catalog() {
           <button key={c} type="button" className={'chip press' + (c === 'Национальное' ? ' nat' : '') + (c === active ? ' on' : '')} onClick={() => setActive(c)}>{c}</button>
         ))}
       </div>
+      <Link className="stylist-card press" to="/stylist">
+        <span className="menu-ic"><Icon name="star" /></span>
+        <span className="grow"><strong className="block">ИИ-стилист</strong><small className="muted">Опишите повод и бюджет — подберём образ</small></span>
+        <Icon name="chevron" />
+      </Link>
       <div className="sec-head"><h2>Популярное сейчас</h2>
         <select className="sort" aria-label="Сортировка" value={sort} onChange={(e) => setSort(e.target.value)}>{sorts.map(([v, n]) => <option key={v} value={v}>{n}</option>)}</select>
       </div>

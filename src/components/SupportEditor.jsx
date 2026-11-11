@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/index.js';
+import { useAction } from '../lib/useAction.js';
 const FIELDS = [
   ['telegram', 'Telegram (username без @)', 'kavkazlook_support', 'text'],
   ['whatsapp', 'WhatsApp (номер)', '+79281234567', 'tel'],
@@ -12,14 +13,10 @@ const FIELDS = [
 export default function SupportEditor() {
   const [v, setV] = useState(null);
   const [msg, setMsg] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [busy, run] = useAction();
   useEffect(() => { api.getSupportContacts().then((c) => setV(Object.fromEntries(FIELDS.map(([k]) => [k, c[k] ?? ''])))); }, []);
   if (!v) return <p className="muted">Загрузка…</p>;
-  const save = async (e) => {
-    e.preventDefault(); setBusy(true); setMsg('');
-    const err = await api.saveSupportContacts(v);
-    setBusy(false); setMsg(err || 'Контакты сохранены');
-  };
+  const save = (e) => { e.preventDefault(); return run(async () => { setMsg(''); setMsg((await api.saveSupportContacts(v)) || 'Контакты сохранены'); }); };
   return (
     <form className="form bcard" onSubmit={save}>
       <span className="muted">Пустое поле — этот способ связи не показывается пользователям. Все заполненные контакты видны всем.</span>

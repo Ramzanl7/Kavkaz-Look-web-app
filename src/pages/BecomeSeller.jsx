@@ -1,16 +1,14 @@
 import { useState } from 'react';
 import { api } from '../api/index.js';
+import { useAction } from '../lib/useAction.js';
 export default function BecomeSeller() {
   const [name, setName] = useState('');
   const [msg, setMsg] = useState('');
-  const [busy, setBusy] = useState(false);
-  const submit = async (e) => {
-    e.preventDefault();
-    setBusy(true);
+  const [busy, run] = useAction();
+  const submit = (e) => { e.preventDefault(); return run(async () => {
     const ok = await api.createRoleRequest(name);
-    setBusy(false);
     setMsg(ok ? 'Заявка отправлена. Мы свяжемся с вами после проверки.' : 'Не получилось. Возможно, заявка уже отправлена.');
-  };
+  }); };
   return (
     <main className="wrap">
       <h1 className="screen-title">Заявка на бутик</h1>

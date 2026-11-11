@@ -4,6 +4,7 @@ import VisitsChart, { SERIES } from '../components/VisitsChart.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useToast } from '../store/toast.jsx';
 import { api } from '../api/index.js';
+import { useAction } from '../lib/useAction.js';
 
 const ROLES = { buyer: 'Покупатель', seller: 'Продавец', admin: 'Админ' };
 const PERIODS = [[7, '7 дней'], [30, '30 дней'], [90, '90 дней']];
@@ -97,21 +98,19 @@ export default function AdminStats() {
   const [showTable, setShowTable] = useState(false);
   const [ban, setBan] = useState(null);
   const [reason, setReason] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [busy, run] = useAction();
 
   const loadStats = useCallback(() => api.adminStats(days).then(setStats), [days]);
   const loadUsers = useCallback(() => api.adminListUsers({ search, limit: 100 }).then(setUsers), [search]);
   useEffect(() => { loadStats(); }, [loadStats]);
   useEffect(() => { const t = setTimeout(loadUsers, 300); return () => clearTimeout(t); }, [loadUsers]);
 
-  const confirmBan = async () => {
-    setBusy(true);
+  const confirmBan = () => run(async () => {
     const err = await api.adminSetBlocked(ban.u.id, ban.block, reason);
-    setBusy(false);
     if (err) { toast(err); return; }
     toast(ban.block ? 'Пользователь заблокирован' : 'Пользователь разблокирован');
     setBan(null); setReason(''); loadUsers(); loadStats();
-  };
+  });
 
   const shown = (users || []).filter((u) => (filter === 'online' ? isOnline(u) : filter === 'blocked' ? u.is_blocked : true));
   const s = stats;

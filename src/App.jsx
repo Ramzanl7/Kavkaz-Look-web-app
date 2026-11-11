@@ -27,6 +27,9 @@ const Support = lazy(() => import('./pages/Support.jsx'));
 const Settings = lazy(() => import('./pages/Settings.jsx'));
 const Privacy = lazy(() => import('./pages/Privacy.jsx'));
 const AdminStats = lazy(() => import('./pages/AdminStats.jsx'));
+const Measurements = lazy(() => import('./pages/Measurements.jsx'));
+const Notifications = lazy(() => import('./pages/Notifications.jsx'));
+const Stylist = lazy(() => import('./pages/Stylist.jsx'));
 
 // Когда главная уже показана и браузер свободен — заранее подгружаем экраны нижнего меню,
 // чтобы переход по вкладкам был мгновенным.
@@ -51,13 +54,14 @@ export default function App() {
         <Route path="/cart" element={<Cart />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/support" element={<Support />} />
+        <Route path="/stylist" element={<Stylist />} />
         <Route element={<RequireRole roles={ANY} />}>
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/become-seller" element={<BecomeSeller />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/measurements" element={<Stub title="Мои мерки" hint="Скоро. Мерки — личные данные, мы включим их после переноса хранения на сервер в России." />} />
-          <Route path="/notifications" element={<Stub title="Уведомления" hint="Скоро здесь появятся уведомления о заказах." />} />
+          <Route path="/measurements" element={<Measurements />} />
+          <Route path="/notifications" element={<Notifications />} />
         </Route>
         <Route element={<RequireRole roles={['seller']} />}>
           <Route path="/seller" element={<SellerHome />} />

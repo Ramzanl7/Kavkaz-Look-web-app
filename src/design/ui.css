@@ -1,7 +1,7 @@
 /* Слой оформления: фон, контраст карточек, навигация, движение */
 :root { --card: #10281A; --edge: rgba(214,181,106,.2); }
 body { background: radial-gradient(120% 55% at 50% -8%, #0F3D1E 0%, transparent 62%), radial-gradient(90% 40% at 100% 100%, #0c2a1c 0%, transparent 70%), #061914; background-attachment: fixed; }
-.bgpattern { position: fixed; inset: 0; z-index: -1; pointer-events: none; color: var(--gold); opacity: .07; }
+.bgpattern { position: fixed; inset: 0; z-index: -1; pointer-events: none; color: var(--gold); opacity: .1; }
 .bcard, .cart-row, .tile, .pcard, .empty { background: var(--card); border: 1px solid var(--edge); box-shadow: 0 8px 24px rgba(0,0,0,.28); }
 .search, .chip, .sort, .field input, .field select { border-color: var(--edge); }
 .photo { background: linear-gradient(160deg, #1b4a2c, #0b1f16); border: 1px solid var(--edge); }
@@ -147,3 +147,37 @@ html[data-nav="back"]::view-transition-new(root) { animation-name: vtInLeft; }
 .doc { gap: var(--s-6); } .doc-sec { display: grid; gap: var(--s-2); } .doc-sec h2 { font-size: var(--fs-card); color: var(--champagne); }
 .doc-sec p, .doc-sec li { color: var(--text-2); } .doc-sec ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
 .version { text-align: center; font-size: var(--fs-caption); color: var(--text-2); opacity: .55; }
+/* Мои мерки */
+.seg { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+.hint { color: var(--text-2); opacity: .75; font-size: var(--fs-caption); }
+.size-card { display: grid; gap: 2px; padding: 14px 16px; border-radius: var(--r-lg); border: 1px solid rgba(214,181,106,.45); background: linear-gradient(135deg, rgba(214,181,106,.14), rgba(214,181,106,.04)); }
+.size-card strong { font-size: 1.25rem; color: var(--champagne); }
+/* Уведомления */
+.menu-item.unread { background: rgba(214,181,106,.07); }
+.dot-new { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); flex: none; box-shadow: 0 0 0 3px rgba(214,181,106,.18); }
+.pill-count { font-style: normal; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px; background: var(--gold); color: var(--bg); font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+.block { display: block; }
+/* Push и переключатель */
+.push-card { display: flex; align-items: center; gap: var(--s-3); padding: 14px 16px; border-radius: var(--r-xl); background: var(--card); border: 1px solid var(--edge); }
+.switch { width: 52px; height: 30px; flex: none; border-radius: 15px; border: 1px solid var(--edge); background: rgba(216,201,156,.18); position: relative; transition: background .25s var(--ease); }
+.switch i { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--champagne); box-shadow: 0 2px 6px rgba(0,0,0,.35); transition: transform .3s cubic-bezier(.3,.7,.35,1.3); }
+.switch.on { background: var(--gold); border-color: var(--gold); }
+.switch.on i { transform: translateX(22px); background: #fff; }
+/* ИИ-стилист */
+.stylist-card { display: flex; align-items: center; gap: var(--s-3); padding: 14px 16px; border-radius: var(--r-xl); border: 1px solid rgba(214,181,106,.5); background: linear-gradient(135deg, rgba(214,181,106,.16), rgba(15,61,30,.5)); color: var(--champagne); }
+.stylist-card > svg { width: 20px; height: 20px; color: var(--gold); }
+.ta { width: 100%; min-height: 90px; resize: vertical; background: var(--card); border: 1px solid var(--edge); border-radius: var(--r-md); color: var(--text); padding: 12px 16px; font: inherit; }
+.wrapchips { flex-wrap: wrap; overflow: visible; }
+.wrapchips .chip { min-height: 36px; text-align: left; }
+.stylist-res { display: grid; gap: var(--s-4); }
+.look { display: grid; gap: var(--s-2); padding: var(--s-4); border-radius: var(--r-xl); background: var(--card); border: 1px solid var(--edge); }
+.look h2 { font-size: var(--fs-card); color: var(--champagne); }
+.look-items { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.look-item { display: grid; gap: 4px; align-content: start; font-size: var(--fs-small); }
+.look-item strong { font-weight: 600; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.look-item .price { font-size: var(--fs-small); }
+/* 3D и AR */
+model-viewer.viewer3d, .viewer3d { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; border-radius: var(--r-lg); background: radial-gradient(80% 70% at 50% 40%, #1b4a2c, #0b1f16); border: 1px solid var(--edge); --poster-color: transparent; }
+.ar-btn { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); min-height: 44px; padding: 0 18px; border-radius: 999px; border: 0; background: var(--gold); color: var(--bg); font-weight: 700; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.act.disabled { opacity: .5; pointer-events: none; }
+label.act { cursor: pointer; }

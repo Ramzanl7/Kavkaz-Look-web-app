@@ -4,18 +4,31 @@ import EmptyState from '../components/EmptyState.jsx';
 import { useCart, rub } from '../store/cart.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { api } from '../api/index.js';
+import { useAction } from '../lib/useAction.js';
+
+// Ключ попытки оформления: тот же состав корзины → тот же ключ, даже после перезагрузки страницы.
+function attemptKey(items) {
+  const sig = items.map((i) => i.id + ':' + i.qty).sort().join(',');
+  try {
+    const saved = JSON.parse(sessionStorage.getItem('kl_order_attempt') || 'null');
+    if (saved?.sig === sig) return saved.key;
+    const key = crypto.randomUUID();
+    sessionStorage.setItem('kl_order_attempt', JSON.stringify({ sig, key }));
+    return key;
+  } catch { return crypto.randomUUID(); }
+}
+const forgetAttempt = () => { try { sessionStorage.removeItem('kl_order_attempt'); } catch { /* приватный режим */ } };
 export default function Cart() {
   const { items, setQty, clear, total } = useCart();
   const { user } = useAuth();
   const nav = useNavigate();
-  const [busy, setBusy] = useState(false);
+  const [busy, run] = useAction(1500);
   const [msg, setMsg] = useState('');
-  const checkout = async () => {
-    setBusy(true); setMsg('');
-    const id = await api.createOrder(items);
-    setBusy(false);
-    if (id) { clear(); nav('/orders'); } else setMsg('Не удалось оформить заказ. Возможно, товар уже недоступен.');
-  };
+  const checkout = () => run(async () => {
+    setMsg('');
+    const id = await api.createOrder(items, attemptKey(items));
+    if (id) { forgetAttempt(); clear(); nav('/orders'); } else setMsg('Не удалось оформить заказ. Проверьте интернет и нажмите ещё раз — повторный заказ не создастся.');
+  });
   return (
     <main className="wrap">
       <h1 className="screen-title rise">Корзина</h1>
@@ -35,7 +48,7 @@ export default function Cart() {
           ))}
           <div className="cart-total"><span>Итого</span><b className="price">{rub(total)}</b></div>
           {msg && <p className="msg" role="status">{msg}</p>}
-          {user ? <button type="button" className="btn btn-primary press" disabled={busy} onClick={checkout}>Оформить заказ</button> : <Link className="btn btn-primary press" to="/login">Войти, чтобы оформить</Link>}
+          {user ? <button type="button" className="btn btn-primary press" disabled={!!busy} onClick={checkout}>{busy ? 'Оформляем…' : 'Оформить заказ'}</button> : <Link className="btn btn-primary press" to="/login">Войти, чтобы оформить</Link>}
           <p className="notice">Тестовый режим: заказ сохраняется без доставки и оплаты. Итоговую сумму пересчитывает сервер.</p>
         </>
       )}

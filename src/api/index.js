@@ -1,15 +1,28 @@
 import { supabase } from '../lib/supabase.js';
 import { cleanQuery, cleanText, escapeLike, isUuid } from '../lib/sanitize.js';
 import { makeVariants } from '../lib/image.js';
+
+// Ответ сервера «слишком часто» (лимит частоты): показываем понятное сообщение один раз для всего приложения.
+export const RATE_LIMIT_EVENT = 'kl:rate-limited';
+const origFetch = window.fetch.bind(window);
+window.fetch = async (...args) => {
+  const r = await origFetch(...args);
+  if (r.status === 429) window.dispatchEvent(new CustomEvent(RATE_LIMIT_EVENT));
+  return r;
+};
 const CATEGORIES = ['Женское', 'Мужское', 'Национальное', 'Обувь', 'Аксессуары'];
 const PARTNER_CATEGORIES = ['food', 'taxi', 'delivery', 'coffee'];
 const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
-const COLS = 'id,title,price_rub,category,image_path,is_published,rating_avg,rating_count,boutique:boutiques(name)';
+const COLS = 'id,title,price_rub,category,image_path,model_path,is_published,rating_avg,rating_count,boutique:boutiques(name)';
+const modelUrl = (path) => supabase.storage.from('product-models').getPublicUrl(path).data.publicUrl;
 const SORTS = { new: ['created_at', false], price_asc: ['price_rub', true], price_desc: ['price_rub', false], rating: ['rating_avg', false] };
 const pub = (path) => supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl;
+// Ссылки на фото товара по пути в хранилище (для ответов, где есть только image_path)
+export const imageUrls = (path) => (path ? { image: pub(path), thumb: pub(path.replace(/\.jpg$/, '_t.jpg')) } : { image: null, thumb: null });
 const toProduct = (r) => ({
   id: r.id, title: r.title, price: r.price_rub, category: r.category, description: r.description ?? '', boutique: r.boutique?.name ?? '', published: r.is_published,
   rating: Number(r.rating_avg) || 0, ratingCount: r.rating_count || 0,
+  model: r.model_path ? modelUrl(r.model_path) : null, modelPath: r.model_path ?? null,
   image: r.image_path ? pub(r.image_path) : null, thumb: r.image_path ? pub(r.image_path.replace(/\.jpg$/, '_t.jpg')) : null,
 });
 // Кэш на 60 секунд: каталог открывается мгновенно, данные обновляются в фоне.
@@ -34,6 +47,7 @@ export function normalizeContacts(c = {}) {
 
 // Слой данных. Запросы строятся только через параметры клиента Supabase, SQL из ввода не собирается.
 export const api = {
+  imageUrls,
   peekList(o = {}) { const v = lists.get(keyOf(o)); return v && Date.now() - v.t < 60000 ? v.data : null; },
   peekProduct(id) { return products.get(id) ?? null; },
   async listProducts({ query = '', category = '', boutiqueId = '', sort = 'new' } = {}) {
@@ -156,6 +170,24 @@ export const api = {
     const { error } = await supabase.from('products').insert({ boutique_id: boutiqueId, title: t, description: d || null, price_rub: p, category, image_path });
     return error ? { ok: false, error: 'Не удалось сохранить товар.' } : { ok: true };
   },
+  // 3D-модель товара (.glb, до 15 МБ). Файл проверяется по сигнатуре glTF, а не только по расширению.
+  async uploadModel(boutiqueId, productId, file) {
+    if (!isUuid(boutiqueId) || !isUuid(productId) || !file) return 'Неверные данные';
+    if (file.size > 15 * 1024 * 1024) return 'Файл больше 15 МБ';
+    const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+    if (String.fromCharCode(...head) !== 'glTF') return 'Это не файл .glb (glTF binary)';
+    const path = boutiqueId + '/' + productId + '.glb';
+    const up = await supabase.storage.from('product-models').upload(path, file, { upsert: true, contentType: 'model/gltf-binary', cacheControl: '3600' });
+    if (up.error) return 'Не удалось загрузить модель';
+    const { error } = await supabase.from('products').update({ model_path: path }).eq('id', productId);
+    return error ? 'Модель загружена, но не привязана к товару' : '';
+  },
+  async removeModel(productId, path) {
+    if (!isUuid(productId)) return false;
+    if (path) await supabase.storage.from('product-models').remove([path]);
+    const { error } = await supabase.from('products').update({ model_path: null }).eq('id', productId);
+    return !error;
+  },
   async setProductPublished(id, on) {
     if (!isUuid(id)) return false;
     const { error } = await supabase.from('products').update({ is_published: !!on }).eq('id', id);
@@ -171,10 +203,13 @@ export const api = {
     return error || !data ? [] : data;
   },
   // ===== Покупатель: заказы. Цену и сумму считает сервер =====
-  async createOrder(items) {
+  // idem — ключ одной попытки оформления: повторная отправка (зависшая кнопка, плохой интернет) не создаст второй заказ.
+  async createOrder(items, idem) {
     const payload = items.filter((i) => isUuid(i.id)).map((i) => ({ product_id: i.id, qty: i.qty }));
     if (!payload.length) return null;
-    const { data, error } = await supabase.rpc('create_order', { items: payload });
+    let { data, error } = await supabase.rpc('create_order', { items: payload, idem: isUuid(idem) ? idem : null });
+    // База ещё без новой версии функции (переходный период) — оформляем по-старому
+    if (error?.code === 'PGRST202') ({ data, error } = await supabase.rpc('create_order', { items: payload }));
     return error ? null : data;
   },
   async listMyOrders() {
@@ -227,6 +262,39 @@ export const api = {
     if (!isUuid(id)) return 'Неверный пользователь';
     const { error } = await supabase.rpc('admin_set_blocked', { target: id, blocked: !!blocked, reason: cleanText(reason, 200) || null });
     return error ? (error.message || 'Не удалось') : '';
+  },
+  // ===== Мои мерки (видит и меняет только владелец) =====
+  async getMeasurements() {
+    const { data, error } = await supabase.from('measurements').select('gender,height_cm,chest_cm,waist_cm,hips_cm,shoe_eu,updated_at').maybeSingle();
+    return error ? null : data;
+  },
+  async saveMeasurements(userId, m) {
+    if (!isUuid(userId)) return 'Нужно войти';
+    const row = { user_id: userId, gender: ['female', 'male'].includes(m.gender) ? m.gender : null, updated_at: new Date().toISOString() };
+    for (const k of ['height_cm', 'chest_cm', 'waist_cm', 'hips_cm']) { const v = Math.round(Number(m[k])); row[k] = m[k] === '' || m[k] == null || !Number.isFinite(v) ? null : v; }
+    const shoe = Number(String(m.shoe_eu ?? '').replace(',', '.'));
+    row.shoe_eu = m.shoe_eu === '' || m.shoe_eu == null || !Number.isFinite(shoe) ? null : Math.round(shoe * 2) / 2;
+    const { error } = await supabase.from('measurements').upsert(row, { onConflict: 'user_id' });
+    if (!error) return '';
+    return error.code === '23514' ? 'Проверьте значения: одно из них вне допустимого диапазона.' : 'Не удалось сохранить. Попробуйте ещё раз.';
+  },
+  async clearMeasurements(userId) {
+    if (!isUuid(userId)) return false;
+    const { error } = await supabase.from('measurements').delete().eq('user_id', userId);
+    return !error;
+  },
+  // ===== Уведомления (создаёт только база; клиент читает свои и отмечает прочитанными) =====
+  async listNotifications() {
+    const { data, error } = await supabase.from('notifications').select('id,kind,title,body,link,created_at,read_at').order('created_at', { ascending: false }).limit(50);
+    return error || !data ? [] : data;
+  },
+  async unreadNotifications() {
+    const { count, error } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null);
+    return error ? 0 : count || 0;
+  },
+  async markNotificationsRead() {
+    const { error } = await supabase.from('notifications').update({ read_at: new Date().toISOString() }).is('read_at', null);
+    return !error;
   },
   // ===== Администратор (права проверяет база) =====
   async listPendingRoleRequests() {

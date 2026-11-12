@@ -60,6 +60,7 @@ export default function Orders() {
             {o.delivery && <span className="muted small">{DELIVERY[o.delivery]}{o.address ? ': ' + o.address : ''} · оплата при получении</span>}
             <div className="order-foot"><span>Итого</span><b className="price">{rub(o.total_rub)}</b></div>
             <div className="acts">
+              {o.boutique?.whatsapp && <a className="act ok press" href={'https://wa.me/' + o.boutique.whatsapp + '?text=' + encodeURIComponent('Здравствуйте! Мой заказ № ' + o.id.slice(0, 8) + ' в Kavkaz Look.')} target="_blank" rel="noopener noreferrer">Написать в WhatsApp</a>}
               {o.boutique?.id && <Link className="act press" to={'/boutiques/' + o.boutique.id}>Бутик</Link>}
               <button type="button" className="act press" disabled={busy === 'r' + o.id} onClick={() => repeat(o)}>Повторить</button>
               {o.status === 'new' && <button type="button" className="act danger press" disabled={busy === o.id} onClick={() => cancel(o.id)}>{busy === o.id ? 'Отменяем…' : 'Отменить'}</button>}

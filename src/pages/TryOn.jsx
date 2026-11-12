@@ -4,6 +4,7 @@ import EmptyState from '../components/EmptyState.jsx';
 import FitQuiz from '../components/FitQuiz.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useToast } from '../store/toast.jsx';
+import { useCart } from '../store/cart.jsx';
 import { useAction } from '../lib/useAction.js';
 import { api } from '../api/index.js';
 import { bodyFrom, guessType, garmentFor, evaluate, bestSize, zoneText, garmentColor, gridFor, STATUS, ZONE_LABEL, TYPES, FIT_PREFS } from '../lib/fit.js';
@@ -23,6 +24,7 @@ export default function TryOn() {
   const { id } = useParams();
   const { user } = useAuth();
   const toast = useToast();
+  const { add } = useCart();
   const [busy, run] = useAction();
   const [p, setP] = useState(() => api.peekProduct(id) ?? undefined);
   const [m, setM] = useState(undefined);
@@ -134,6 +136,14 @@ export default function TryOn() {
         </div>
       </div>
 
+      {(() => {
+        const canBuy = p.sizes?.length ? p.sizes.includes(current) && p.stock?.[current] !== 0 : p.stock?._ !== 0;
+        return canBuy ? (
+          <button type="button" className="btn btn-primary press" onClick={() => { add(p, p.sizes?.length ? current : null); toast(p.sizes?.length ? `Добавлено в корзину, размер ${current}` : 'Добавлено в корзину'); }}>
+            В корзину{p.sizes?.length ? ` · размер ${current}` : ''}
+          </button>
+        ) : p.sizes?.length ? <p className="hint center">Размера {current} нет в наличии у продавца — выберите другой или подпишитесь на поступление на странице товара.</p> : null;
+      })()}
       <section className={'fit-card ' + (worst === 'snug' || worst === 'firm' ? 'loose' : worst)}>
         <strong>{worst === 'tight' ? `Размер ${current} будет мал` : worst === 'snug' ? `Размер ${current} — впритык` : worst === 'firm' ? `Размер ${current} плотнее, чем вы любите` : worst === 'loose' ? (isShoes ? `Размер ${current} будет велик` : body3.some((z) => z.note) ? `Размер ${current} свободнее, чем вы любите` : `Размер ${current} будет свободным`) : `Размер ${current} сядет хорошо`}</strong>
         {best && best !== current && <button type="button" className="link-u" onClick={() => setSize(best)}>Вам лучше подойдёт {best} — примерить</button>}

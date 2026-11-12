@@ -12,7 +12,7 @@ import { BELT } from '../components/ornamentPaths.js';
 
 // Главная (каталог): шапка → поиск → разделы → ИИ-стилист → «Сделано рядом» → «Популярное сейчас» → история → каталог.
 const CATS = ['Для вас', 'Женское', 'Мужское', 'Национальное', 'Обувь', 'Аксессуары'];
-const NOFILTER = { minPrice: '', maxPrice: '', size: '', sort: 'new' };
+const NOFILTER = { minPrice: '', maxPrice: '', size: '', sort: 'new', color: '' };
 
 export default function Catalog() {
   const [cat, setCat] = useState('Для вас');
@@ -25,7 +25,7 @@ export default function Catalog() {
   const [openBrand, brandSheet] = useOpenBrand();
   const chipsRef = useRef(null);
   const opts = { query, category: cat === 'Для вас' ? '' : cat, ...filters, city };
-  const searching = query.trim() !== '' || cat !== 'Для вас' || !!(filters.minPrice || filters.maxPrice || filters.size || filters.sort !== 'new');
+  const searching = query.trim() !== '' || cat !== 'Для вас' || !!(filters.minPrice || filters.maxPrice || filters.size || filters.color || filters.sort !== 'new');
 
   useEffect(() => { api.listLocalBrands().then(setBrands); api.listPopular().then(setPopular); }, []);
 

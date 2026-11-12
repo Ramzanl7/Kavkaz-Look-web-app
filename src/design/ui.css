@@ -532,3 +532,18 @@ button.link-u { background: none; border: 0; border-bottom: 1px solid var(--gold
 .tbl td:first-child { white-space: normal; min-width: 120px; }
 .link-muted svg { width: 15px; height: 15px; vertical-align: -2px; }
 @media (min-width: 600px) { .stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* ===== Неделя 3 ===== */
+.old-price { color: var(--text-2); font-size: .8125rem; font-weight: 400; }
+.price-line { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.price-line .old-price { font-size: 1rem; }
+.share-btn { margin-left: auto; align-self: center; }
+.badge-sale { display: inline-flex; align-items: center; min-height: 22px; padding: 0 8px; border-radius: 6px; font-size: .6875rem; font-weight: 700; background: #b3312f; color: #fff; }
+.pc-row .old-price { white-space: nowrap; }
+.pcard-compact .old-price { color: rgba(255,255,255,.75); }
+.alert-card { gap: 6px; }
+.color-pick { display: flex; flex-wrap: wrap; gap: 10px; }
+.color-dot { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--edge); padding: 0; cursor: pointer; box-shadow: inset 0 0 0 2px rgba(6,26,19,.35); }
+.color-dot.on { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold); }
+.related .hscroll { margin-bottom: 4px; }
+.chip.out { opacity: .55; }

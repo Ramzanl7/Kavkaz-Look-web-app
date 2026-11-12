@@ -11,11 +11,11 @@ import { history, city as cityStore } from '../lib/local.js';
 import { BELT } from '../components/ornamentPaths.js';
 
 // Главная (каталог): шапка → поиск → разделы → ИИ-стилист → «Сделано рядом» → «Популярное сейчас» → история → каталог.
-const CATS = ['Все', 'Женское', 'Мужское', 'Национальное', 'Обувь', 'Аксессуары'];
+const CATS = ['Для вас', 'Женское', 'Мужское', 'Национальное', 'Обувь', 'Аксессуары'];
 const NOFILTER = { minPrice: '', maxPrice: '', size: '', sort: 'new' };
 
 export default function Catalog() {
-  const [cat, setCat] = useState('Все');
+  const [cat, setCat] = useState('Для вас');
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState(NOFILTER);
   const [city, setCity] = useState(cityStore.get);
@@ -24,8 +24,8 @@ export default function Catalog() {
   const [hasHistory] = useState(() => history.list().length > 0);
   const [openBrand, brandSheet] = useOpenBrand();
   const chipsRef = useRef(null);
-  const opts = { query, category: cat === 'Все' ? '' : cat, ...filters, city };
-  const searching = query.trim() !== '' || cat !== 'Все' || !!(filters.minPrice || filters.maxPrice || filters.size || filters.sort !== 'new');
+  const opts = { query, category: cat === 'Для вас' ? '' : cat, ...filters, city };
+  const searching = query.trim() !== '' || cat !== 'Для вас' || !!(filters.minPrice || filters.maxPrice || filters.size || filters.sort !== 'new');
 
   useEffect(() => { api.listLocalBrands().then(setBrands); api.listPopular().then(setPopular); }, []);
 
@@ -127,10 +127,11 @@ export default function Catalog() {
         ) : (
           <EmptyState title={error ? 'Не удалось загрузить' : searching || city ? 'Ничего не найдено' : 'Товаров пока нет'}
             text={error ? 'Проверьте интернет и попробуйте ещё раз.' : searching || city ? 'Попробуйте другой запрос, раздел или город.' : 'Здесь появятся товары, как только бутики их добавят.'}
-            action={(searching || city) && !error ? <button type="button" className="btn btn-secondary press" onClick={() => { setQuery(''); setCat('Все'); setFilters(NOFILTER); changeCity(''); }}>Сбросить всё</button> : null} />
+            action={(searching || city) && !error ? <button type="button" className="btn btn-secondary press" onClick={() => { setQuery(''); setCat('Для вас'); setFilters(NOFILTER); changeCity(''); }}>Сбросить всё</button> : null} />
         )}
       </section>
       {brandSheet}
+      <ToTop />
     </main>
   );
 }
@@ -150,5 +151,21 @@ function Strip({ children }) {
       <div className="hscroll popular" ref={ref}>{children}</div>
       {pages > 1 && <div className="dots" aria-hidden="true">{Array.from({ length: pages }, (_, i) => <i key={i} className={i === page ? 'on' : ''} />)}</div>}
     </>
+  );
+}
+
+// кнопка «Наверх»: появляется, когда пролистали каталог вниз
+function ToTop() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const on = () => setShow(window.scrollY > window.innerHeight * 1.5);
+    window.addEventListener('scroll', on, { passive: true }); on();
+    return () => window.removeEventListener('scroll', on);
+  }, []);
+  return (
+    <button type="button" className={'to-top press' + (show ? ' on' : '')} aria-label="Наверх" tabIndex={show ? 0 : -1}
+      onClick={() => window.scrollTo({ top: 0, behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })}>
+      <Icon name="down" />
+    </button>
   );
 }

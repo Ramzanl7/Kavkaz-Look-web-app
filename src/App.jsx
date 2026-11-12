@@ -98,6 +98,7 @@ export default function App() {
           <Route path="/admin/stats" element={<AdminStats />} />
           <Route path="/admin/promo" element={<AdminPromo />} />
           <Route path="/admin/tools" element={<AdminTools />} />
+          <Route path="/admin/tools/:tab" element={<AdminTools />} />
         </Route>
         <Route path="*" element={<Stub title="Страница не найдена" hint="Проверьте адрес или вернитесь в каталог." />} />
       </Route>

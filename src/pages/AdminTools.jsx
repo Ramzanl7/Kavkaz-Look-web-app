@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { api } from '../api/index.js';
 import { useAction } from '../lib/useAction.js';
 import { useToast } from '../store/toast.jsx';
@@ -13,7 +13,8 @@ const TARGET = { product: 'Товар', review: 'Отзыв', boutique: 'Бут�
 
 // Модерация и управление платформой (только администратор)
 export default function AdminTools() {
-  const [tab, setTab] = useState(() => { const q = new URLSearchParams(location.search).get('tab'); if (q && TABS.some(([v]) => v === q)) return q; try { return sessionStorage.getItem('kl-admin-tab') || 'leads'; } catch { return 'leads'; } });
+  const { tab: urlTab } = useParams();
+  const [tab, setTab] = useState(() => { const q = urlTab || new URLSearchParams(location.search).get('tab'); if (q && TABS.some(([v]) => v === q)) return q; try { return sessionStorage.getItem('kl-admin-tab') || 'leads'; } catch { return 'leads'; } });
   const pick = (t) => { setTab(t); try { sessionStorage.setItem('kl-admin-tab', t); } catch { /* приватный режим */ } };
   return (
     <main className="wrap">

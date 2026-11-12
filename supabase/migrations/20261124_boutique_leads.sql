@@ -52,7 +52,7 @@ begin
           cats, nullif(left(trim(coalesce(p_comment, '')), 500), ''), (select auth.uid()))
   returning id into lid;
   for a in select id from public.profiles where role = 'admin' and not is_blocked loop
-    perform public.notify(a.id, 'boutique_lead', lid, 'Новая заявка бутика', left(trim(p_boutique), 80) || ' · ' || ph, '/admin/tools?tab=leads');
+    perform public.notify(a.id, 'boutique_lead', lid, 'Новая заявка бутика', left(trim(p_boutique), 80) || ' · ' || ph, '/admin/tools/leads');
   end loop;
   return true;
 end $$;

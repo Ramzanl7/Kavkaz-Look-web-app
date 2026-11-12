@@ -20,13 +20,17 @@ const pub = (path) => supabase.storage.from('product-images').getPublicUrl(path)
 export const imageUrls = (path) => (path ? { image: pub(path), thumb: pub(path.replace(/\.jpg$/, '_t.jpg')) } : { image: null, thumb: null });
 // Размеры и посадка товара → вид для базы (только числа в разумных пределах)
 export function normalizeSizing(v = {}) {
-  const types = ['dress', 'top', 'outer', 'pants', 'skirt', 'none'];
+  const types = ['dress', 'top', 'outer', 'pants', 'skirt', 'shoes', 'none'];
   const garment_type = types.includes(v.type) ? v.type : null;
   const sizes = (v.sizes || []).filter((s) => /^[0-9]{2}$/.test(s)).slice(0, 20);
   const chart = {};
   for (const s of sizes) {
     const row = {};
-    for (const k of ['chest', 'waist', 'hips', 'length']) { const n = Number(v.chart?.[s]?.[k]); if (Number.isInteger(n) && n >= 20 && n <= 250) row[k] = n; }
+    for (const k of garment_type === 'shoes' ? ['length'] : ['chest', 'waist', 'hips', 'length']) {
+      const n = Number(String(v.chart?.[s]?.[k] ?? '').replace(',', '.'));
+      if (garment_type === 'shoes') { if (n >= 15 && n <= 35) row[k] = Math.round(n * 2) / 2; } // длина стельки, шаг 0,5 см
+      else if (Number.isInteger(n) && n >= 20 && n <= 250) row[k] = n;
+    }
     if (Object.keys(row).length) chart[s] = row;
   }
   return { garment_type, sizes: garment_type === 'none' ? [] : sizes, size_chart: garment_type !== 'none' && Object.keys(chart).length ? chart : null };
@@ -264,7 +268,7 @@ export const api = {
   },
   // ===== Мои мерки (видит и меняет только владелец) =====
   async getMeasurements() {
-    const { data, error } = await supabase.from('measurements').select('gender,height_cm,chest_cm,waist_cm,hips_cm,shoulder_cm,inseam_cm,shoe_eu,updated_at').maybeSingle();
+    const { data, error } = await supabase.from('measurements').select('gender,height_cm,chest_cm,waist_cm,hips_cm,shoulder_cm,inseam_cm,shoe_eu,fit_pref,updated_at').maybeSingle();
     return error ? null : data;
   },
   async saveMeasurements(userId, m) {
@@ -276,6 +280,15 @@ export const api = {
     const { error } = await supabase.from('measurements').upsert(row, { onConflict: 'user_id' });
     if (!error) return '';
     return error.code === '23514' ? 'Проверьте значения: одно из них вне допустимого диапазона.' : 'Не удалось сохранить. Попробуйте ещё раз.';
+  },
+  // Ответы опросника о посадке (как любит носить, что брать между размерами, любимая длина)
+  async saveFitPref(userId, pref) {
+    if (!isUuid(userId)) return 'Нужно войти';
+    const ok = { fit: ['tight', 'regular', 'loose', 'oversize'], between: ['smaller', 'bigger'], length: ['maxi', 'midi', 'any'] };
+    const fit_pref = {};
+    for (const [k, vals] of Object.entries(ok)) if (vals.includes(pref?.[k])) fit_pref[k] = pref[k];
+    const { error } = await supabase.from('measurements').upsert({ user_id: userId, fit_pref, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+    return error ? 'Не удалось сохранить ответы. Попробуйте ещё раз.' : '';
   },
   async clearMeasurements(userId) {
     if (!isUuid(userId)) return false;

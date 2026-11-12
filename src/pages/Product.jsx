@@ -50,7 +50,7 @@ export default function Product() {
       {guessType(p) !== 'none' && (
         <Link className="tryon-btn press" to={'/tryon/' + p.id}>
           <span className="tryon-ic" aria-hidden="true">◇</span>
-          <span className="grow"><strong className="block">Примерить на себя</strong><small>3D-манекен по вашим меркам покажет, как сядет вещь</small></span>
+          <span className="grow"><strong className="block">Примерить на себя</strong><small>{guessType(p) === 'shoes' ? 'Манекен по вашему размеру покажет, как сядет пара' : '3D-манекен по вашим меркам покажет, как сядет вещь'}</small></span>
         </Link>
       )}
       {p.sizes?.length > 0 && <p className="muted">Размеры в наличии: {p.sizes.join(', ')}</p>}

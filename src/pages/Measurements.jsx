@@ -5,6 +5,7 @@ import { useToast } from '../store/toast.jsx';
 import { useAction } from '../lib/useAction.js';
 import { FIELDS, suggestSize } from '../lib/sizes.js';
 import { api } from '../api/index.js';
+import FitQuiz from '../components/FitQuiz.jsx';
 
 const EMPTY = { gender: '', height_cm: '', chest_cm: '', waist_cm: '', hips_cm: '', shoulder_cm: '', inseam_cm: '', shoe_eu: '' };
 
@@ -18,8 +19,9 @@ export default function Measurements() {
   const [m, setM] = useState(null);
   const [msg, setMsg] = useState('');
   const [busy, run] = useAction();
+  const [pref, setPref] = useState(undefined);
   useEffect(() => {
-    api.getMeasurements().then((r) => setM(r ? Object.fromEntries(Object.keys(EMPTY).map((k) => [k, r[k] == null ? '' : String(r[k]).replace('.', ',')])) : EMPTY));
+    api.getMeasurements().then((r) => (setPref(r?.fit_pref || {}), setM(r ? Object.fromEntries(Object.keys(EMPTY).map((k) => [k, r[k] == null ? '' : String(r[k]).replace('.', ',')])) : EMPTY)));
   }, []);
   if (!m) return <main className="wrap"><h1 className="screen-title">Мои мерки</h1><div className="skeleton" style={{ height: 320, borderRadius: 16 }} /></main>;
 
@@ -32,9 +34,13 @@ export default function Measurements() {
     const err = await api.saveMeasurements(user.id, { ...m, shoe_eu: m.shoe_eu });
     if (err) setMsg(err); else { toast('Мерки сохранены'); if (back) nav(back, { replace: true }); }
   }, 'save'); };
+  const savePref = (a) => run(async () => {
+    const err = await api.saveFitPref(user.id, a);
+    if (err) toast(err); else { setPref(a); toast('Ответы сохранены'); }
+  }, 'pref');
   const clear = () => run(async () => {
     if (!window.confirm('Удалить все мерки?')) return;
-    if (await api.clearMeasurements(user.id)) { setM(EMPTY); toast('Мерки удалены'); }
+    if (await api.clearMeasurements(user.id)) { setM(EMPTY); setPref({}); toast('Мерки удалены'); }
   }, 'clear');
 
   return (
@@ -64,6 +70,8 @@ export default function Measurements() {
         <button type="submit" className="btn btn-primary press" disabled={!!busy}>{busy === 'save' ? 'Сохраняем…' : back ? 'Сохранить и примерить' : 'Сохранить мерки'}</button>
         <button type="button" className="link-muted" disabled={!!busy} onClick={clear}>Удалить мои мерки</button>
       </form>
+      <h2 className="quiz-head">Как вы любите носить</h2>
+      <FitQuiz key={JSON.stringify(pref)} initial={pref} compact busy={busy === 'pref'} onSave={savePref} />
       <p className="notice">Мерки видите только вы. Продавцы их не видят. Они удаляются вместе с аккаунтом или кнопкой выше.</p>
     </main>
   );

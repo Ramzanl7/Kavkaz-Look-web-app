@@ -9,7 +9,8 @@ export const TYPES = {
   outer: { label: 'Верхняя одежда', zones: ['chest', 'waist', 'hips'] },
   pants: { label: 'Брюки', zones: ['waist', 'hips'] },
   skirt: { label: 'Юбка', zones: ['waist', 'hips'] },
-  none: { label: 'Не одежда (обувь, аксессуары)', zones: [] },
+  shoes: { label: 'Обувь', zones: [] },
+  none: { label: 'Не примеряется (аксессуары)', zones: [] },
 };
 export const ZONE_LABEL = { chest: 'Грудь', waist: 'Талия', hips: 'Бёдра', length: 'Длина' };
 
@@ -23,6 +24,19 @@ const EASE = {
 };
 
 export const GRID = { female: ['40', '42', '44', '46', '48', '50', '52', '54', '56'], male: ['44', '46', '48', '50', '52', '54', '56', '58'] };
+export const SHOE_GRID = { female: ['35', '36', '37', '38', '39', '40', '41', '42'], male: ['39', '40', '41', '42', '43', '44', '45', '46'] };
+export const gridFor = (type, gender) => (type === 'shoes' ? SHOE_GRID : GRID)[gender === 'male' ? 'male' : 'female'];
+
+// Предпочтения из опросника: насколько свободнее обычного покупатель любит носить вещи
+export const FIT_PREFS = {
+  tight: { label: 'Облегающе', hint: 'по телу, без лишнего запаса', mult: 0.35, extra: 0 },
+  regular: { label: 'По фигуре', hint: 'обычная посадка', mult: 1, extra: 0 },
+  loose: { label: 'Свободно', hint: 'с запасом, не стесняет', mult: 1.7, extra: 4 },
+  oversize: { label: 'Оверсайз', hint: 'заметно шире фигуры', mult: 2.2, extra: 12 },
+};
+const prefOf = (body) => FIT_PREFS[body?.pref?.fit] || FIT_PREFS.regular;
+// Желаемая свобода по зоне с учётом предпочтения
+const wantOf = (type, zone, body) => { const e = (EASE[type] || {})[zone] || 0; const p = prefOf(body); return zone === 'waist' && (type === 'pants' || type === 'skirt') ? e * Math.min(p.mult, 1.5) : e * p.mult + p.extra; };
 
 // Тело стандартного российского размера N
 export function standardBody(size, gender) {
@@ -44,7 +58,8 @@ function standardLength(type, gender) {
 export function guessType(p) {
   if (p.garmentType) return p.garmentType;
   const t = (p.title || '').toLowerCase();
-  if (p.category === 'Обувь' || p.category === 'Аксессуары') return 'none';
+  if (p.category === 'Обувь' || /туфл|ботин|кроссов|сапог|кед(ы|ов|ах)?(?![а-яё])|сандал|лофер|мокасин|балетк|тапоч|сабо(?![а-яё])|мюли/.test(t)) return 'shoes';
+  if (p.category === 'Аксессуары') return 'none';
   if (/плать|сарафан|абай|туник/.test(t)) return 'dress';
   if (/брюк|штан|джинс|шаровар/.test(t)) return 'pants';
   if (/юбк/.test(t)) return 'skirt';
@@ -65,13 +80,18 @@ export function bodyFrom(m) {
   const hips = num(m?.hips_cm) || (num(m?.chest_cm) ? chest + (gender === 'male' ? 4 : 8) : std.hips);
   const shoulder = num(m?.shoulder_cm) || Math.round(height * (gender === 'male' ? 0.26 : 0.235));
   const inseam = num(m?.inseam_cm) || Math.round(height * (gender === 'male' ? 0.465 : 0.455));
-  return { gender, height, chest, waist, hips, shoulder, inseam, complete: !!(num(m?.chest_cm) && num(m?.hips_cm) && num(m?.height_cm)) };
+  const shoe = num(m?.shoe_eu);
+  // длина стопы: по размеру обуви (EU ≈ длина стельки × 1,5; стелька ≈ стопа + 1,5 см), иначе — по росту
+  const footLen = shoe ? Math.round((shoe / 1.5 - 1.5) * 10) / 10 : Math.round(height * 0.15 * 10) / 10;
+  const pref = m?.fit_pref && typeof m.fit_pref === 'object' ? m.fit_pref : {};
+  return { gender, height, chest, waist, hips, shoulder, inseam, shoe, footLen, pref, complete: !!(num(m?.chest_cm) && num(m?.hips_cm) && num(m?.height_cm)) };
 }
 const num = (v) => { const n = Number(String(v ?? '').replace(',', '.')); return Number.isFinite(n) && n > 0 ? n : 0; };
 
 // Готовая вещь выбранного размера
 export function garmentFor(product, type, size, gender) {
   const chart = product.sizeChart?.[size];
+  if (type === 'shoes') { const eu = Number(size); return { length: num(chart?.length) || Math.round((eu / 1.5) * 10) / 10, fromChart: !!num(chart?.length) }; }
   const base = standardBody(size, gender) || standardBody(gender === 'male' ? 48 : 46, gender);
   const ease = EASE[type] || {};
   const g = {};
@@ -83,19 +103,32 @@ export function garmentFor(product, type, size, gender) {
 
 // Оценка посадки по зонам: разница «вещь − тело» за вычетом нормальной свободы
 export function evaluate(body, garment, type) {
-  const ease = EASE[type] || {};
+  if (type === 'shoes') return [shoeVerdict(body, garment)];
   const zones = TYPES[type].zones.map((z) => {
     const delta = Math.round(garment[z] - body[z]);
-    const over = delta - (ease[z] || 0) * 0.5; // запас сверх половины обычной свободы
+    const want = wantOf(type, z, body);
+    const over = delta - Math.max(want * 0.5, want - 6); // запас сверх желаемой свободы (с допуском)
     let status;
     if (delta < -1) status = 'tight';
-    else if (delta < 2) status = 'snug';
+    else if (delta < 2) status = prefOf(body) === FIT_PREFS.tight ? 'good' : 'snug';
     else if (over <= 10) status = 'good';
     else status = 'loose';
-    return { zone: z, delta, status };
+    // сравнение с тем, как покупатель любит носить
+    const note = !body.pref?.fit || status === 'tight' ? '' : delta > want + 8 ? 'свободнее, чем вы любите' : delta < want - 6 && body.pref?.fit && body.pref.fit !== 'tight' ? 'плотнее, чем вы любите' : '';
+    return { zone: z, delta, status, note };
   });
   zones.push(lengthVerdict(body, garment, type));
   return zones;
+}
+
+// Обувь: запас по длине стельки относительно стопы (норма 1–2 см)
+function shoeVerdict(body, g) {
+  const d = Math.round((g.length - body.footLen) * 10) / 10;
+  const status = d < 0.6 ? 'tight' : d < 1 ? 'snug' : d <= 2.3 ? 'good' : 'loose';
+  const cm = (v) => String(Math.abs(v)).replace('.', ',');
+  const text = status === 'tight' ? (d < 0 ? `меньше стопы на ${cm(d)} см — будет давить` : `запас всего ${cm(d)} см — будет тесно в носке`)
+    : status === 'snug' ? `запас ${cm(d)} см — впритык` : status === 'good' ? `запас ${cm(d)} см — удобно` : `запас ${cm(d)} см — нога будет болтаться`;
+  return { zone: 'length', delta: d, status, text };
 }
 
 function lengthVerdict(body, g, type) {
@@ -110,7 +143,11 @@ function lengthVerdict(body, g, type) {
   let text;
   if (type === 'top' || type === 'outer') text = hem > hip + 4 ? 'до талии' : hem > H * 0.4 ? 'до бёдер' : hem > knee + 6 ? 'до середины бедра' : 'ниже колена';
   else text = hem <= ankle + 3 ? 'в пол' : hem <= mid ? 'макси, до щиколотки' : hem <= knee - 6 ? 'миди, ниже колена' : hem <= knee + 6 ? 'до колена' : 'выше колена';
-  return { zone: 'length', delta: 0, status: 'good', text, hem };
+  // любимая длина из опросника (для платьев и юбок)
+  let status = 'good';
+  if ((type === 'dress' || type === 'skirt') && body.pref?.length === 'maxi' && hem > mid) { status = 'loose'; text += ' — короче, чем вы любите'; }
+  if ((type === 'dress' || type === 'skirt') && body.pref?.length === 'midi' && hem > knee + 6) { status = 'loose'; text += ' — короче, чем вы любите'; }
+  return { zone: 'length', delta: 0, status, text, hem };
 }
 
 export const STATUS = {
@@ -121,24 +158,35 @@ export const STATUS = {
 };
 
 // Подбор лучшего размера из доступных: тесное штрафуем сильнее, чем свободное
+// Подбор лучшего размера из доступных с учётом того, как покупатель любит носить; между размерами — по его выбору
 export function bestSize(product, type, body, sizes) {
-  let best = null;
-  for (const s of sizes) {
+  const scored = sizes.map((s) => {
     const g = garmentFor(product, type, s, body.gender);
-    const score = evaluate(body, g, type).filter((z) => z.zone !== 'length').reduce((acc, z) => acc + (z.status === 'tight' ? 10 + Math.abs(z.delta) : z.status === 'loose' ? 2 + Math.max(0, z.delta - 12) / 2 : z.status === 'snug' ? 1 : 0)
-      + Math.abs(z.delta - ((EASE[type] || {})[z.zone] || 0)) * 0.15, 0); // ближе к нормальной свободе — лучше
-    if (!best || score < best.score) best = { size: s, score };
+    if (type === 'shoes') { const d = g.length - body.footLen; return { size: s, score: d < 0.6 ? 10 + (0.6 - d) * 10 : Math.abs(d - 1.5) * 2 }; }
+    const score = evaluate(body, g, type).filter((z) => z.zone !== 'length').reduce((acc, z) => {
+      const want = wantOf(type, z.zone, body);
+      return acc + (z.status === 'tight' ? 10 + Math.abs(z.delta) : 0) + Math.max(0, z.delta - want - 8) / 2 + Math.abs(z.delta - want) * 0.15;
+    }, 0);
+    return { size: s, score };
+  }).sort((a, b) => a.score - b.score);
+  if (!scored.length) return null;
+  const [a, b] = scored;
+  // почти равные варианты соседних размеров — решает ответ «между размерами»
+  if (b && b.score - a.score < 0.8 && body.pref?.between) {
+    const big = Number(b.size) > Number(a.size) ? b : a, small = big === a ? b : a;
+    return (body.pref.between === 'bigger' ? big : small).size;
   }
-  return best?.size ?? null;
+  return a.size;
 }
 
 // Текст для зоны: «свободно на 6 см», «тесно на 3 см»
 export function zoneText(z) {
   if (z.zone === 'length') return z.text;
+  const tail = z.note ? ' — ' + z.note : '';
   if (z.status === 'tight') return `тесно на ${Math.abs(z.delta)} см`;
-  if (z.status === 'snug') return 'сидит по фигуре';
-  if (z.status === 'loose') return `свободно, запас ${z.delta} см`;
-  return `хорошо, запас ${z.delta} см`;
+  if (z.status === 'snug') return 'сидит по фигуре' + tail;
+  if (z.status === 'loose') return `свободно, запас ${z.delta} см` + tail;
+  return (z.delta < 2 ? 'облегает, как вы любите' : `хорошо, запас ${z.delta} см`) + tail;
 }
 
 // Цвет вещи по названию товара (для манекена)

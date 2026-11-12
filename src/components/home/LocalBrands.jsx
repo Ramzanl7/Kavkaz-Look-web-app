@@ -39,6 +39,7 @@ export function BrandCard({ b, onOpen }) {
     <button type="button" className="brand-card press" onClick={() => onOpen(b)} aria-label={b.name + (b.description ? '. ' + b.description : '')}>
       {b.banner ? <img src={b.banner} alt="" loading="lazy" decoding="async" /> : <span className="brand-bg" aria-hidden="true" />}
       <span className="brand-shade" aria-hidden="true" />
+      <span className="brand-go" aria-hidden="true"><Icon name="arrow" /></span>
       <span className="brand-text">
         {b.logo && <img className="brand-logo" src={b.logo} alt="" loading="lazy" />}
         <strong>{b.name}</strong>

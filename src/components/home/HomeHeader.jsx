@@ -9,9 +9,10 @@ const hero = Object.values(heroes)[0];
 
 export function Mountains() {
   return (
-    <svg className="mark-mountains" viewBox="0 0 64 22" aria-hidden="true">
-      <path d="M1 21 19 4l7 7 8-9 13 13 4-3 12 9" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" />
-      <path d="M15 8l4-4 4 4M30 6l4-4 4 4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round" opacity=".7" />
+    <svg className="mark-mountains" viewBox="0 0 120 40" aria-hidden="true">
+      <defs><linearGradient id="mtn-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#F0D99A" /><stop offset="1" stopColor="#B8913F" /></linearGradient></defs>
+      <path d="M0 39 34 6l12 12L60 0l30 30 8-6 22 15h-9L98 30l-8 6-30-30-14 18L34 14 9 39z" fill="url(#mtn-g)" />
+      <path d="M53 9l7-7 7 7-4-1-3 3-3-3zM29 11l5-5 5 5-3-1-2 2-2-2z" fill="#F7EBC8" />
     </svg>
   );
 }
@@ -26,7 +27,7 @@ export default function HomeHeader({ city, onCity }) {
         <small>Стиль Кавказа</small>
       </div>
       <button type="button" className="city-btn press" onClick={() => setOpen(true)} aria-haspopup="dialog">
-        <Icon name="pin" /><span>{city || 'Вся Чечня'}</span>
+        <Icon name="pin" /><span>{city || 'Вся Чечня'}</span><Icon name="down" />
       </button>
       {open && (
         <div className="sheet-bg" onClick={() => setOpen(false)}>

@@ -27,7 +27,7 @@ export default function ProductCard({ p, i = 0, variant = 'grid', priority = fal
   return (
     <div className={'pcard pcard-' + variant + ' rise'} style={{ '--d': Math.min(i, 8) }}>
       <Link to={'/product/' + encodeURIComponent(p.id)} state={{ p }} className="plink press" aria-label={p.title + ', ' + rub(p.price)}>
-        <PhotoSlot src={p.thumb} fallback={p.image} alt={p.title} ratio="4 / 5" priority={priority} />
+        <PhotoSlot src={p.thumb} fallback={p.image} alt={p.title} ratio={variant === 'compact' ? '31 / 30' : '4 / 5'} priority={priority} />
         <span className="pc-title">{p.title}</span>
         {variant === 'grid' && p.boutique && <span className="pc-shop">{p.boutique}</span>}
         <span className="pc-row">
@@ -37,7 +37,7 @@ export default function ProductCard({ p, i = 0, variant = 'grid', priority = fal
       </Link>
       <div className="pc-badges">
         {p.ad && <button type="button" className="badge-ad" onClick={() => setAdInfo(!adInfo)} aria-expanded={adInfo}>Реклама</button>}
-        {!p.ad && p.isNew && <span className="badge-new">Новинка</span>}
+        {!p.ad && p.isNew && variant === 'grid' && <span className="badge-new">Новинка</span>}
       </div>
       {adInfo && p.ad && (
         <div className="ad-info" role="note">
@@ -45,7 +45,7 @@ export default function ProductCard({ p, i = 0, variant = 'grid', priority = fal
         </div>
       )}
       <button type="button" className={'iconbtn heart' + (on ? ' on' : '') + (pop ? ' pop' : '')} onClick={heart} aria-label={on ? 'Убрать из избранного' : 'В избранное'}><Icon name="heart" /></button>
-      <button type="button" className="cartbtn press" onClick={() => { add(p); toast('Добавлено в корзину'); }} aria-label={'В корзину: ' + p.title}><Icon name="bag" /></button>
+      <button type="button" className="cartbtn press" onClick={() => { add(p); toast('Добавлено в корзину'); }} aria-label={'В корзину: ' + p.title}><Icon name="cart" /></button>
     </div>
   );
 }

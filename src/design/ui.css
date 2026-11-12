@@ -337,3 +337,83 @@ button.link-u { background: none; border: 0; border-bottom: 1px solid var(--gold
 @media (min-width: 960px) { .pgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .plink > *, .pcard .photo { min-width: 0; max-width: 100%; }
 .pcard .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* ===== Главная: внешний вид по макету ===== */
+.home-head { min-height: 0; height: calc(150px + env(safe-area-inset-top)); padding: calc(env(safe-area-inset-top) + 14px) 16px 0; align-items: flex-end; margin-bottom: -4px; }
+.home-head.has-hero { background: linear-gradient(90deg, rgba(6,26,19,.55), rgba(6,26,19,0) 55%), linear-gradient(180deg, rgba(6,26,19,.1) 0%, rgba(6,26,19,0) 55%, var(--bg) 100%), var(--hero) center 40% / cover no-repeat; }
+.home-logo { padding-bottom: 14px; }
+.mark-mountains { width: 96px; height: 32px; margin: 0 0 -6px 2px; filter: drop-shadow(0 2px 6px rgba(0,0,0,.5)); }
+.home-word { font-size: 2.35rem; font-weight: 500; letter-spacing: .3px; text-shadow: 0 2px 10px rgba(0,0,0,.55); color: #F7F1E3; }
+.home-word span { background: linear-gradient(180deg, #F0D99A, #C9A24E); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.home-logo small { font-size: .75rem; letter-spacing: .4em; margin-top: 2px; text-shadow: 0 1px 6px rgba(0,0,0,.7); }
+.city-btn { align-self: center; margin-top: 10px; min-height: 42px; padding: 0 12px; gap: 6px; background: rgba(6,26,19,.6); border-color: rgba(245,242,233,.25); }
+.city-btn svg:last-child { width: 16px; height: 16px; color: var(--text); }
+.search-wrap { margin-top: 0; }
+.search-box { border-color: rgba(217,183,101,.28); background: rgba(11,36,25,.82); backdrop-filter: blur(8px); }
+.search-box > svg { color: var(--text); }
+.cat-row { position: relative; display: flex; align-items: center; margin: 0 -16px; }
+.cat-row .cat-chips { margin: 0; padding: 0 44px 0 16px; flex: 1; }
+.cat-more { position: absolute; right: 0; top: 0; bottom: 0; width: 48px; border: 0; color: var(--gold); display: grid; place-items: center; background: linear-gradient(90deg, rgba(6,26,19,0), var(--bg) 45%); }
+.cat-more svg { width: 22px; height: 22px; }
+.cat-chips .chip { min-height: 44px; padding: 0 22px; border-radius: 22px; }
+
+.stylist-bar { position: relative; overflow: hidden; min-height: 72px; border-color: rgba(217,183,101,.4); background: linear-gradient(100deg, #0f2c1f 0%, #12321f 55%, #1d2a1a 100%); }
+.stylist-bar > * { position: relative; z-index: 1; }
+.stylist-ic { width: 48px; height: 48px; border-radius: 12px; background: #163a27; border-color: rgba(217,183,101,.3); }
+.stylist-ic svg { width: 26px; height: 26px; fill: var(--gold); stroke: none; }
+.stylist-orn { position: absolute !important; z-index: 0 !important; right: -30px; top: -20px; width: 240px; height: 120px; color: var(--gold); opacity: .55; transform: rotate(-24deg);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 45%); mask-image: linear-gradient(90deg, transparent 0%, #000 45%); }
+.stylist-bar strong { font-size: 1.0625rem; }
+
+.sec-head2 h2 { font-size: 1.3rem; }
+.sec-head2 h2 svg { width: 26px; height: 26px; }
+
+/* «Популярное»: фото на всю карточку, название и цена поверх */
+.pcard-compact { width: 152px; padding: 0; border-radius: 16px; overflow: hidden; border: 1px solid rgba(245,242,233,.18); }
+.pcard-compact .plink { position: relative; display: block; }
+.pcard-compact .photo { margin: 0; border-radius: 0; border: 0; }
+.pcard-compact .plink::after { content: ''; position: absolute; inset: 40% 0 0; background: linear-gradient(180deg, rgba(6,26,19,0), rgba(6,26,19,.88)); pointer-events: none; }
+.pcard-compact .pc-title, .pcard-compact .pc-row { position: absolute; z-index: 1; left: 10px; right: 46px; }
+.pcard-compact .pc-title { bottom: 36px; color: #fff; font-weight: 600; -webkit-line-clamp: 1; }
+.pcard-compact .pc-row { bottom: 6px; padding: 0; min-height: 30px; }
+.pcard-compact .price { font-size: 1.125rem; }
+.pcard-compact .cartbtn { right: 8px; bottom: 8px; z-index: 2; }
+.pcard-compact .heart { top: 8px; right: 8px; background: rgba(6,26,19,.35); border-color: transparent; color: #fff; }
+.pcard-compact .pc-badges { top: 8px; left: 8px; }
+.badge-ad { background: #2f7d52; color: #fff; border: 0; }
+.pcard-compact .ad-info { top: 36px; }
+.cartbtn { box-shadow: 0 4px 12px rgba(0,0,0,.35); }
+
+/* бренды: название и описание по центру, стрелка */
+.brand-card { width: 200px; height: 118px; }
+.brand-shade { background: radial-gradient(90% 90% at 50% 50%, rgba(6,26,19,.35), rgba(6,26,19,.8)); }
+.brand-text { inset: 0; left: 0; right: 0; bottom: 0; place-content: center; justify-items: center; text-align: center; padding: 10px 14px; }
+.brand-text strong { font-size: 1rem; letter-spacing: .04em; }
+.brand-go { position: absolute; z-index: 2; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: rgba(6,26,19,.6); border: 1px solid rgba(245,242,233,.3); color: var(--text); }
+.brand-go svg { width: 15px; height: 15px; }
+
+/* нижнее меню: активный раздел — тёмно-зелёная капсула в золотой рамке */
+.tab-blob { background: linear-gradient(180deg, rgba(36,72,46,.95), rgba(16,44,30,.95)); border: 1.5px solid var(--gold);
+  box-shadow: inset 0 1px 0 rgba(240,217,154,.35), 0 6px 18px rgba(0,0,0,.35), 0 0 18px rgba(217,183,101,.18); }
+.tabbar a.active { color: var(--gold); }
+.badge { top: 4px; left: calc(50% + 7px); min-width: 18px; height: 18px; border-radius: 9px; font-size: 11px; }
+/* плотность как в макете */
+.home-word { font-size: 2.05rem; white-space: nowrap; line-height: 1; }
+.mark-mountains { width: 84px; height: 28px; margin-bottom: -2px; }
+.home-logo small { font-size: .6875rem; margin-top: 4px; }
+.home-head { height: calc(132px + env(safe-area-inset-top)); }
+.city-btn { min-height: 36px; font-size: .8125rem; padding: 0 10px; }
+.city-btn svg { width: 16px; height: 16px; }
+.search-box { min-height: 50px; border-radius: 16px; }
+.search-box input { height: 48px; font-size: .9375rem; }
+.cat-chips .chip { min-height: 40px; padding: 0 18px; font-size: .875rem; }
+.stylist-bar > .stylist-orn { width: 230px; height: 115px; }
+.stylist-bar { min-height: 66px; }
+.stylist-bar strong { font-size: 1rem; }
+.stylist-ic { width: 42px; height: 42px; }
+.stylist-ic svg { width: 22px; height: 22px; }
+.sec-head2 h2 { font-size: 1.1875rem; }
+.sec-head2 h2 svg { width: 24px; height: 24px; }
+.home { gap: 14px; }
+.brand-card { width: 190px; height: 100px; }
+.stylist-bar > .stylist-orn { right: -70px; top: -18px; -webkit-mask-image: linear-gradient(90deg, transparent 0%, transparent 25%, #000 60%); mask-image: linear-gradient(90deg, transparent 0%, transparent 25%, #000 60%); }

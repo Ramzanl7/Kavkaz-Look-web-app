@@ -460,3 +460,75 @@ button.link-u { background: none; border: 0; border-bottom: 1px solid var(--gold
 .sec-head2 h2 { font-size: 1.0625rem; } .sec-head2 h2 svg { width: 22px; height: 22px; }
 .sec-link { font-size: .8125rem; }
 .mark-mountains { width: 72px; height: 24px; margin: 0 0 -3px 4px; }
+
+/* ===== Неделя 1: товар, корзина, заказы, продавец ===== */
+.gallery { display: grid; gap: 8px; margin: 0 -20px; }
+.gallery-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.gallery-track::-webkit-scrollbar { display: none; }
+.gallery-item { flex: 0 0 100%; scroll-snap-align: center; padding: 0 20px; }
+.size-pick.need .muted { color: var(--danger); font-weight: 600; }
+.size-pick.need .chips { animation: shakeX .4s; }
+@keyframes shakeX { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.chip.out { opacity: .45; text-decoration: line-through; }
+.field textarea { width: 100%; min-height: 96px; padding: 12px 14px; border-radius: var(--r-md); border: 1px solid var(--edge); background: var(--bg-2); color: var(--text); font: inherit; resize: vertical; }
+
+.cart-row { display: flex; gap: 12px; align-items: stretch; padding: 10px; border-radius: 16px; }
+.cart-thumb { width: 72px; height: 90px; flex: none; border-radius: 10px; overflow: hidden; background: var(--bg-2); }
+.cart-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cart-info { display: grid; gap: 2px; align-content: start; min-width: 0; }
+.cart-info strong { font-size: .9375rem; line-height: 1.3; }
+.cart-side { display: grid; justify-items: end; align-content: space-between; }
+.cart-del { width: 32px; height: 32px; border: 0; background: none; color: var(--text-2); display: grid; place-items: center; }
+.cart-del svg { width: 18px; height: 18px; }
+.pay-card { gap: 2px; }
+
+.order-card { display: grid; gap: 10px; }
+.order-head { display: grid; gap: 2px; }
+.order-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: .875rem; }
+.order-items li { display: flex; justify-content: space-between; gap: 12px; }
+.order-items li span { color: var(--text-2); }
+.order-foot { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid var(--edge); padding-top: 8px; }
+.order-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; font-size: .75rem; color: var(--text-2); }
+.order-steps li { display: grid; gap: 4px; }
+.order-steps i { height: 4px; border-radius: 2px; background: var(--edge); }
+.order-steps li.on { color: var(--gold); } .order-steps li.on i { background: var(--gold); }
+.order-cancel { margin: 0; color: var(--danger); font-size: .875rem; font-weight: 600; }
+.order-contact { display: grid; gap: 6px; padding: 10px 12px; border-radius: 12px; background: var(--bg-2); font-size: .875rem; }
+.row-gap { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.seller-item { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.seller-thumb { width: 56px; height: 70px; border-radius: 8px; object-fit: cover; background: var(--bg-2); flex: none; }
+.seller-item .acts { flex-basis: 100%; }
+.photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.photo-cell { position: relative; aspect-ratio: 4 / 5; border-radius: 12px; overflow: hidden; border: 1px solid var(--edge); background: var(--bg-2); }
+.photo-cell.main { border-color: var(--gold); }
+.photo-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-main, .photo-act { position: absolute; left: 6px; bottom: 6px; padding: 3px 8px; border-radius: 8px; font-size: .6875rem; background: rgba(6,26,19,.85); color: var(--gold); border: 0; }
+.photo-act { color: var(--text); }
+.photo-del { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; border-radius: 50%; border: 0; background: rgba(6,26,19,.85); color: var(--text); display: grid; place-items: center; }
+.photo-del svg { width: 16px; height: 16px; }
+.photo-add { display: grid; place-content: center; justify-items: center; gap: 6px; color: var(--gold); font-size: .8125rem; cursor: pointer; border-style: dashed; }
+.photo-add svg { width: 24px; height: 24px; }
+.stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+
+/* ===== Неделя 2: бутик, статистика, модерация ===== */
+.bq-media { position: relative; margin-bottom: 28px; }
+.bq-cover { display: grid; place-items: center; aspect-ratio: 16 / 7; border-radius: 16px; overflow: hidden; border: 1px dashed var(--edge); background: var(--bg-2); color: var(--text-2); font-size: .8125rem; text-align: center; padding: 8px; cursor: pointer; }
+.bq-cover img { width: 100%; height: 100%; object-fit: cover; }
+.bq-logo { position: absolute; left: 16px; bottom: -26px; width: 72px; height: 72px; border-radius: 18px; overflow: hidden; display: grid; place-items: center; background: var(--card); border: 2px solid var(--gold); color: var(--gold); font-size: .75rem; cursor: pointer; }
+.bq-logo img { width: 100%; height: 100%; object-fit: cover; }
+.bq-hero { position: relative; margin: 0 -20px 30px; height: 150px; background: linear-gradient(135deg, #17402b, #0B2419); }
+.bq-hero.has-cover { background: linear-gradient(180deg, rgba(6,26,19,0) 50%, rgba(6,26,19,.7)), var(--cover) center / cover no-repeat; }
+.bq-hero-logo { position: absolute; left: 20px; bottom: -28px; width: 76px; height: 76px; border-radius: 20px; object-fit: cover; border: 2px solid var(--gold); background: var(--card); }
+.bq-initial { display: grid; place-items: center; font-family: var(--font-display); font-size: 2rem; color: var(--gold); }
+.link-plain { color: var(--gold); justify-self: start; }
+.badge.inline { position: static; margin-left: 6px; }
+.stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.stat { display: grid; gap: 2px; padding: 12px 14px; border-radius: 14px; background: var(--card); border: 1px solid var(--edge); }
+.stat b { font-size: 1.25rem; color: var(--gold); }
+.stat span { font-size: .75rem; color: var(--text-2); }
+.mini-chart { display: flex; align-items: flex-end; gap: 3px; height: 90px; margin-top: 8px; }
+.mini-chart i { flex: 1; min-width: 3px; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, var(--gold), rgba(217,183,101,.35)); }
+.tbl td:first-child { white-space: normal; min-width: 120px; }
+.link-muted svg { width: 15px; height: 15px; vertical-align: -2px; }
+@media (min-width: 600px) { .stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

@@ -13,7 +13,7 @@ window.fetch = async (...args) => {
 const CATEGORIES = ['Женское', 'Мужское', 'Национальное', 'Обувь', 'Аксессуары'];
 const PARTNER_CATEGORIES = ['food', 'taxi', 'delivery', 'coffee'];
 const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
-const COLS = 'id,title,price_rub,category,image_path,garment_type,sizes,size_chart,is_published,rating_avg,rating_count,created_at,boutique_id,boutique:boutiques(name,city)';
+const COLS = 'id,title,price_rub,category,image_path,images,stock,moderation,moderation_reason,garment_type,sizes,size_chart,is_published,rating_avg,rating_count,created_at,boutique_id,boutique:boutiques(name,city)';
 export const PAGE = 20;
 export const CITIES = ['Грозный', 'Аргун', 'Гудермес', 'Урус-Мартан', 'Шали', 'Курчалой', 'Ачхой-Мартан', 'Наурская', 'Ведено'];
 const SORTS = { new: ['created_at', false], price_asc: ['price_rub', true], price_desc: ['price_rub', false], rating: ['rating_avg', false] };
@@ -43,7 +43,11 @@ const toProduct = (r) => ({
   isNew: r.created_at ? Date.now() - new Date(r.created_at).getTime() < 14 * 864e5 : false,
   garmentType: r.garment_type ?? null, sizes: r.sizes ?? [], sizeChart: r.size_chart ?? null,
   image: r.image_path ? pub(r.image_path) : null, thumb: r.image_path ? pub(r.image_path.replace(/\.jpg$/, '_t.jpg')) : null,
+  photos: (r.images?.length ? r.images : r.image_path ? [r.image_path] : []).map((x) => ({ path: x, image: pub(x), thumb: pub(x.replace(/\.jpg$/, '_t.jpg')) })),
+  stock: r.stock && typeof r.stock === 'object' ? r.stock : null, blocked: r.moderation === 'blocked', blockReason: r.moderation_reason || '',
 });
+const BQ_COLS = 'id,name,description,city,logo_path,cover_path,address,hours,phone,whatsapp,telegram,delivery_pickup,delivery_courier,courier_note';
+const toBoutique = (r) => ({ ...r, logo: r.logo_path ? pub(r.logo_path.replace(/\.jpg$/, '_t.jpg')) : null, cover: r.cover_path ? pub(r.cover_path) : null });
 const brandUrl = (path) => (path ? supabase.storage.from('brand-media').getPublicUrl(path).data.publicUrl : null);
 const toBrand = (r) => ({ ...r, banner: brandUrl(r.banner_path), logo: brandUrl(r.logo_path) });
 // Кэш на 60 секунд: каталог открывается мгновенно, данные обновляются в фоне.
@@ -219,8 +223,9 @@ export const api = {
   },
   async getBoutique(id) {
     if (!isUuid(id)) return null;
-    const { data, error } = await supabase.from('boutiques').select('id,name,description,city').eq('id', id).eq('is_approved', true).maybeSingle();
-    return error || !data ? null : data;
+    let { data, error } = await supabase.from('boutiques').select(BQ_COLS).eq('id', id).eq('is_approved', true).maybeSingle();
+    if (error?.code === '42703') ({ data, error } = await supabase.from('boutiques').select('id,name,description,city').eq('id', id).eq('is_approved', true).maybeSingle());
+    return error || !data ? null : toBoutique(data);
   },
   async listWishlist() {
     const { data, error } = await supabase.from('wishlist').select('product:products(' + COLS + ')').limit(100);
@@ -239,7 +244,7 @@ export const api = {
     if (!isUuid(productId) || !Number.isInteger(stars) || stars < 1 || stars > 5) return { ok: false, error: 'Проверьте оценку.' };
     const { error } = await supabase.rpc('add_review', { pid: productId, stars, txt: cleanText(text, 1000) });
     if (!error) return { ok: true };
-    return { ok: false, error: String(error.message).includes('purchase') ? 'Отзыв можно оставить после заказа этого товара.' : 'Не удалось сохранить отзыв.' };
+    return { ok: false, error: String(error.message).includes('purchase') ? 'Отзыв можно оставить после того, как заказ с этим товаром выполнен.' : 'Не удалось сохранить отзыв.' };
   },
   async deleteReview(id) {
     if (!isUuid(id)) return false;
@@ -291,25 +296,143 @@ export const api = {
   // ===== Продавец =====
   async getMyBoutique(userId) {
     if (!isUuid(userId)) return null;
-    const { data } = await supabase.from('boutiques').select('id,name,description,city,is_approved').eq('owner_id', userId).limit(1).maybeSingle();
-    return data ?? null;
+    let { data, error } = await supabase.from('boutiques').select(BQ_COLS + ',is_approved').eq('owner_id', userId).limit(1).maybeSingle();
+    if (error?.code === '42703') ({ data } = await supabase.from('boutiques').select('id,name,description,city,is_approved').eq('owner_id', userId).limit(1).maybeSingle());
+    return data ? toBoutique(data) : null;
+  },
+  // Профиль бутика (владелец): описание, адрес, часы, контакты, доставка, логотип и обложка
+  async saveBoutique(id, b) {
+    if (!isUuid(id)) return 'Бутик не найден.';
+    const digits = (v, min, max) => { const d = String(v || '').replace(/[^0-9]/g, ''); return d ? (d.length >= min && d.length <= max ? d : undefined) : null; };
+    const phone = String(b.phone || '').replace(/[^0-9+]/g, '');
+    const tg = String(b.telegram || '').trim().replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '');
+    const row = {
+      description: cleanText(b.description, 1000) || null, city: CITIES.includes(b.city) ? b.city : null,
+      address: cleanText(b.address, 200) || null, hours: cleanText(b.hours, 100) || null,
+      phone: phone ? (/^\+?[0-9]{10,15}$/.test(phone) ? phone : undefined) : null,
+      whatsapp: digits(b.whatsapp, 10, 15), telegram: tg ? (/^[A-Za-z0-9_]{5,32}$/.test(tg) ? tg : undefined) : null,
+      delivery_pickup: !!b.delivery_pickup, delivery_courier: !!b.delivery_courier, courier_note: cleanText(b.courier_note, 150) || null,
+    };
+    if (row.phone === undefined) return 'Проверьте телефон.';
+    if (row.whatsapp === undefined) return 'WhatsApp — номер из 10–15 цифр.';
+    if (row.telegram === undefined) return 'Telegram — имя пользователя латиницей (5–32 символа).';
+    if (!row.delivery_pickup && !row.delivery_courier) return 'Выберите хотя бы один способ получения.';
+    for (const kind of ['logo', 'cover']) if (b[kind + '_path'] !== undefined) row[kind + '_path'] = /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.jpg$/.test(b[kind + '_path'] || '') ? b[kind + '_path'] : null;
+    const { error } = await supabase.from('boutiques').update(row).eq('id', id);
+    return error ? 'Не удалось сохранить.' : '';
+  },
+  // ===== Статистика продавца =====
+  trackView(id) { if (isUuid(id)) supabase.rpc('track_view', { pid: id }).then(() => {}, () => {}); },
+  async sellerStats(days = 30) {
+    const { data, error } = await supabase.rpc('seller_stats', { days });
+    return error ? null : data;
+  },
+  // ===== Жалобы =====
+  async report(targetType, targetId, reason, body) {
+    if (!['product', 'review', 'boutique'].includes(targetType) || !isUuid(targetId)) return 'Не удалось отправить.';
+    const { error } = await supabase.from('reports').insert({ target_type: targetType, target_id: targetId, reason, body: cleanText(body, 500) || null });
+    return error ? (error.code === '23505' ? 'Вы уже пожаловались — мы рассматриваем.' : 'Не удалось отправить.') : '';
+  },
+  // ===== Админ: модерация, заказы, жалобы, рассылка, обороты =====
+  async adminListProducts({ query = '', blocked = false } = {}) {
+    let req = supabase.from('products').select('id,title,price_rub,image_path,is_published,moderation,moderation_reason,created_at,boutique:boutiques(id,name)').order('created_at', { ascending: false }).limit(60);
+    const q = cleanQuery(query);
+    if (q) req = req.ilike('title', '%' + escapeLike(q) + '%');
+    if (blocked) req = req.eq('moderation', 'blocked');
+    const { data } = await req;
+    return (data || []).map((r) => ({ ...r, ...imageUrls(r.image_path) }));
+  },
+  async adminModerateProduct(id, block, reason) {
+    const { error } = await supabase.rpc('admin_moderate_product', { pid: id, block, reason: cleanText(reason, 300) || null });
+    return !error;
+  },
+  async adminListReviews(onlyHidden = false) {
+    let req = supabase.from('reviews').select('id,rating,body,author_name,hidden,created_at,product:products(id,title)').order('created_at', { ascending: false }).limit(60);
+    if (onlyHidden) req = req.eq('hidden', true);
+    const { data } = await req;
+    return data || [];
+  },
+  async adminHideReview(id, hide) { const { error } = await supabase.rpc('admin_hide_review', { rid: id, hide }); return !error; },
+  async adminListOrders(status = '') {
+    let req = supabase.from('orders').select('id,status,total_rub,created_at,delivery,boutique:boutiques(id,name),items:order_items(title,qty,size)').order('created_at', { ascending: false }).limit(100);
+    if (['new', 'confirmed', 'done', 'cancelled'].includes(status)) req = req.eq('status', status);
+    const { data } = await req;
+    return data || [];
+  },
+  async adminListReports(status = 'open') {
+    const { data } = await supabase.from('reports').select('id,target_type,target_id,reason,body,status,created_at').eq('status', status).order('created_at', { ascending: false }).limit(100);
+    return data || [];
+  },
+  async adminResolveReport(id, status) {
+    const { error } = await supabase.from('reports').update({ status, resolved_at: new Date().toISOString() }).eq('id', id);
+    return !error;
+  },
+  async adminBroadcast(title, body, audience, link) {
+    const { data, error } = await supabase.rpc('admin_broadcast', { title: cleanText(title, 120), body: cleanText(body, 300), audience, link: /^\/[A-Za-z0-9/_-]*$/.test(link || '') ? link : '/catalog' });
+    return error ? null : data;
+  },
+  async adminFinance(days = 30) {
+    const since = new Date(Date.now() - days * 864e5).toISOString();
+    const [{ data: orders }, { data: promos }] = await Promise.all([
+      supabase.from('orders').select('status,total_rub,boutique:boutiques(id,name)').gte('created_at', since).limit(5000),
+      supabase.from('promotions').select('advertiser,starts_at,ends_at,product:products(boutique_id)').gte('ends_at', since).limit(500),
+    ]);
+    const by = new Map();
+    for (const o of orders || []) {
+      const k = o.boutique?.id || '—';
+      const r = by.get(k) || { id: k, name: o.boutique?.name || 'Без бутика', done: 0, revenue: 0, active: 0, cancelled: 0, promos: 0 };
+      if (o.status === 'done') { r.done++; r.revenue += o.total_rub; } else if (o.status === 'cancelled') r.cancelled++; else r.active++;
+      by.set(k, r);
+    }
+    for (const p of promos || []) { const r = by.get(p.product?.boutique_id); if (r) r.promos++; }
+    return [...by.values()].sort((a, b) => b.revenue - a.revenue);
+  },
+  // Фото товара: сжимается на телефоне, основное + превью; путь — в папке бутика
+  async uploadProductPhoto(boutiqueId, file) {
+    if (!isUuid(boutiqueId) || !file) return { error: 'Нет фото.' };
+    if (!IMAGE_TYPES[file.type] || file.size > 25 * 1024 * 1024) return { error: 'Фото: jpeg, png или webp.' };
+    const v = await makeVariants(file);
+    if (!v) return { error: 'Не удалось обработать фото.' };
+    const base = boutiqueId + '/' + crypto.randomUUID();
+    const put = (name, blob) => supabase.storage.from('product-images').upload(name, blob, { contentType: 'image/jpeg', upsert: false });
+    const [a, b] = await Promise.all([put(base + '.jpg', v.main), put(base + '_t.jpg', v.thumb)]);
+    if (a.error || b.error) return { error: 'Не удалось загрузить фото.' };
+    return { path: base + '.jpg' };
+  },
+  async removeProductPhotos(paths) {
+    const ok = (paths || []).filter((x) => /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.jpg$/.test(x));
+    if (ok.length) await supabase.storage.from('product-images').remove(ok.flatMap((x) => [x, x.replace(/\.jpg$/, '_t.jpg')]));
+  },
+  // Создание и правка товара: название, цена, раздел, описание, до 6 фото, размеры и остатки
+  async saveProduct({ id, boutiqueId, title, price, category, description, photos = [], sizing, stock }) {
+    const t = cleanText(title, 120), d = cleanText(description, 2000), p = Number(price);
+    if (!isUuid(boutiqueId) || t.length < 2 || !Number.isInteger(p) || p < 1 || p > 10000000 || !CATEGORIES.includes(category)) return { ok: false, error: 'Проверьте название, цену и раздел.' };
+    const images = photos.filter((x) => /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.jpg$/.test(x)).slice(0, 6);
+    const sz = normalizeSizing(sizing);
+    // остатки: целые 0…9999 по размерам из списка (или «_» без размеров); пустые поля — не ведём
+    let st = null;
+    if (stock && typeof stock === 'object') {
+      const keys = sz.sizes?.length ? sz.sizes : ['_'];
+      const o = {};
+      for (const k of keys) { const v = String(stock[k] ?? '').trim(); if (/^[0-9]{1,4}$/.test(v)) o[k] = Number(v); }
+      st = Object.keys(o).length ? o : null;
+    }
+    const row = { title: t, description: d || null, price_rub: p, category, images, image_path: images[0] || null, stock: st, ...sz };
+    const { error } = isUuid(id) ? await supabase.from('products').update(row).eq('id', id) : await supabase.from('products').insert({ boutique_id: boutiqueId, ...row });
+    if (error) return { ok: false, error: 'Не удалось сохранить товар.' };
+    products.delete(id); lists.clear();
+    return { ok: true };
   },
   async createProduct({ boutiqueId, title, price, category, description, file, sizing }) {
-    const t = cleanText(title, 120), d = cleanText(description, 2000), p = Number(price);
-    if (!isUuid(boutiqueId) || t.length < 2 || !Number.isInteger(p) || p < 1 || p > 10000000 || !CATEGORIES.includes(category)) return { ok: false, error: 'Проверьте поля формы.' };
-    let image_path = null;
-    if (file) {
-      if (!IMAGE_TYPES[file.type] || file.size > 25 * 1024 * 1024) return { ok: false, error: 'Фото: jpeg, png или webp.' };
-      const v = await makeVariants(file);
-      if (!v) return { ok: false, error: 'Не удалось обработать фото.' };
-      const base = boutiqueId + '/' + crypto.randomUUID();
-      const put = (name, blob) => supabase.storage.from('product-images').upload(name, blob, { contentType: 'image/jpeg', upsert: false });
-      const [a, b] = await Promise.all([put(base + '.jpg', v.main), put(base + '_t.jpg', v.thumb)]);
-      if (a.error || b.error) return { ok: false, error: 'Не удалось загрузить фото.' };
-      image_path = base + '.jpg';
-    }
-    const { error } = await supabase.from('products').insert({ boutique_id: boutiqueId, title: t, description: d || null, price_rub: p, category, image_path, ...normalizeSizing(sizing) });
-    return error ? { ok: false, error: 'Не удалось сохранить товар.' } : { ok: true };
+    let photos = [];
+    if (file) { const r = await this.uploadProductPhoto(boutiqueId, file); if (r.error) return { ok: false, error: r.error }; photos = [r.path]; }
+    return this.saveProduct({ boutiqueId, title, price, category, description, photos, sizing });
+  },
+  // Все товары своего бутика (без постраничного ограничения каталога)
+  async listMyProducts(boutiqueId) {
+    if (!isUuid(boutiqueId)) return [];
+    const { data, error } = await supabase.from('products').select(COLS + ',description').eq('boutique_id', boutiqueId).order('created_at', { ascending: false }).limit(500);
+    return error || !data ? [] : data.map(toProduct);
   },
   async setProductSizing(id, sizing) {
     if (!isUuid(id)) return false;
@@ -326,23 +449,42 @@ export const api = {
     const { error } = await supabase.from('products').delete().eq('id', id);
     return !error;
   },
-  async listMyOrderItems() {
-    const { data, error } = await supabase.from('order_items').select('id,title,qty,price_rub,order:orders(id,status,created_at)').limit(100);
+  // Заказы бутика: каждый заказ — один бутик; контакт покупателя виден, пока заказ не выполнен или не отменён
+  async listSellerOrders(boutiqueId) {
+    if (!isUuid(boutiqueId)) return [];
+    const { data, error } = await supabase.from('orders').select('id,status,total_rub,created_at,delivery,phone,address,comment,payment,items:order_items(title,qty,price_rub,size,product_id)').eq('boutique_id', boutiqueId).order('created_at', { ascending: false }).limit(200);
     return error || !data ? [] : data;
   },
-  // ===== Покупатель: заказы. Цену и сумму считает сервер =====
-  // idem — ключ одной попытки оформления: повторная отправка (зависшая кнопка, плохой интернет) не создаст второй заказ.
-  async createOrder(items, idem) {
-    const payload = items.filter((i) => isUuid(i.id)).map((i) => ({ product_id: i.id, qty: i.qty }));
-    if (!payload.length) return null;
-    let { data, error } = await supabase.rpc('create_order', { items: payload, idem: isUuid(idem) ? idem : null });
-    // База ещё без новой версии функции (переходный период) — оформляем по-старому
-    if (error?.code === 'PGRST202') ({ data, error } = await supabase.rpc('create_order', { items: payload }));
-    return error ? null : data;
+  // ===== Покупатель: заказы. Цену, наличие и сумму считает сервер =====
+  // idem — ключ одной попытки оформления: повторная отправка не создаст второй заказ.
+  async placeOrder(items, contact, idem) {
+    const payload = items.filter((i) => isUuid(i.id)).map((i) => ({ product_id: i.id, qty: i.qty, ...(i.size ? { size: String(i.size) } : {}) }));
+    if (!payload.length) return { error: 'Корзина пуста.' };
+    const c = { phone: String(contact.phone || '').replace(/[^0-9+]/g, '').slice(0, 16), delivery: contact.delivery === 'courier' ? 'courier' : 'pickup', address: cleanText(contact.address, 200), comment: cleanText(contact.comment, 300) };
+    const { data, error } = await supabase.rpc('place_order', { items: payload, contact: c, idem: isUuid(idem) ? idem : null });
+    if (!error) return { ids: data || [] };
+    const m = String(error.message || '');
+    return { error: m.includes('out of stock') ? 'Одного из товаров уже нет в нужном количестве. Уменьшите количество или выберите другой размер.'
+      : m.includes('unavailable') ? 'Один из товаров больше не продаётся или выбран размер, которого нет. Обновите корзину.'
+        : m.includes('bad phone') ? 'Проверьте номер телефона.' : m.includes('address') ? 'Укажите адрес доставки.'
+          : 'Не удалось оформить заказ. Проверьте интернет и нажмите ещё раз — повторный заказ не создастся.' };
   },
-  async listMyOrders() {
-    const { data, error } = await supabase.from('orders').select('id,status,total_rub,created_at,items:order_items(title,qty,price_rub)').order('created_at', { ascending: false }).limit(50);
+  async listMyOrders(userId) {
+    if (!isUuid(userId)) return [];
+    const { data, error } = await supabase.from('orders').select('id,status,total_rub,created_at,delivery,address,comment,payment,boutique:boutiques(id,name),items:order_items(title,qty,price_rub,size,product_id)').eq('buyer_id', userId).order('created_at', { ascending: false }).limit(50);
     return error || !data ? [] : data;
+  },
+  // ===== Восстановление пароля =====
+  async resetPassword(email) {
+    const e = String(email || '').trim().slice(0, 120);
+    if (!/^\S+@\S+\.\S+$/.test(e)) return 'Введите почту.';
+    const { error } = await supabase.auth.resetPasswordForEmail(e, { redirectTo: window.location.origin + '/reset-password' });
+    return error ? (error.status === 429 ? 'Слишком часто. Попробуйте через минуту.' : 'Не удалось отправить письмо.') : '';
+  },
+  async updatePassword(pw) {
+    if (String(pw).length < 8 || String(pw).length > 72) return 'Пароль — от 8 до 72 символов.';
+    const { error } = await supabase.auth.updateUser({ password: pw });
+    return error ? (String(error.message).includes('different') ? 'Новый пароль должен отличаться от старого.' : 'Ссылка устарела. Запросите письмо ещё раз.') : '';
   },
   // ===== Поддержка и аккаунт =====
   async getSupportContacts() {

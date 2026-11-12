@@ -1,0 +1,160 @@
+import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { api } from '../api/index.js';
+import { useAction } from '../lib/useAction.js';
+import { useToast } from '../store/toast.jsx';
+import { rub } from '../store/cart.jsx';
+import { STATUS } from './Orders.jsx';
+
+const TABS = [['products', 'Товары'], ['reviews', 'Отзывы'], ['reports', 'Жалобы'], ['orders', 'Заказы'], ['broadcast', 'Рассылка'], ['finance', 'Обороты']];
+const REASON = { fake: 'Подделка/обман', prohibited: 'Запрещённый товар', offensive: 'Оскорбления', fraud: 'Мошенничество', other: 'Другое' };
+const TARGET = { product: 'Товар', review: 'Отзыв', boutique: 'Бутик' };
+
+// Модерация и управление платформой (только администратор)
+export default function AdminTools() {
+  const [tab, setTab] = useState(() => { try { return sessionStorage.getItem('kl-admin-tab') || 'products'; } catch { return 'products'; } });
+  const pick = (t) => { setTab(t); try { sessionStorage.setItem('kl-admin-tab', t); } catch { /* приватный режим */ } };
+  return (
+    <main className="wrap">
+      <h1 className="screen-title rise">Модерация</h1>
+      <div className="chips">{TABS.map(([v, l]) => <button key={v} type="button" className={'chip' + (tab === v ? ' on' : '')} onClick={() => pick(v)}>{l}</button>)}</div>
+      {tab === 'products' && <Products />}
+      {tab === 'reviews' && <Reviews />}
+      {tab === 'reports' && <Reports />}
+      {tab === 'orders' && <Orders />}
+      {tab === 'broadcast' && <Broadcast />}
+      {tab === 'finance' && <Finance />}
+    </main>
+  );
+}
+
+function Products() {
+  const [q, setQ] = useState(''), [onlyBlocked, setOnly] = useState(false), [list, setList] = useState(null);
+  const [busy, run] = useAction(); const toast = useToast();
+  const load = useCallback(() => api.adminListProducts({ query: q, blocked: onlyBlocked }).then(setList), [q, onlyBlocked]);
+  useEffect(() => { const t = setTimeout(load, 300); return () => clearTimeout(t); }, [load]);
+  const mod = (p, block) => run(async () => {
+    let reason = null;
+    if (block) { reason = window.prompt('Причина (её увидит продавец):', 'Не соответствует правилам площадки'); if (reason === null) return; }
+    if (await api.adminModerateProduct(p.id, block, reason)) { toast(block ? 'Товар скрыт, продавец уведомлён' : 'Товар возвращён'); load(); } else toast('Не удалось');
+  }, p.id);
+  return <>
+    <input className="search" type="search" placeholder="Поиск по названию" value={q} onChange={(e) => setQ(e.target.value)} />
+    <label className="check"><input type="checkbox" checked={onlyBlocked} onChange={(e) => setOnly(e.target.checked)} /> Только скрытые модератором</label>
+    {list === null ? <p className="lead">Загрузка…</p> : list.length ? list.map((p) => (
+      <div key={p.id} className="bcard seller-item">
+        {p.thumb ? <img className="seller-thumb" src={p.thumb} alt="" loading="lazy" /> : <span className="seller-thumb" />}
+        <div className="grow">
+          <Link to={'/product/' + p.id}><strong>{p.title}</strong></Link>
+          <span className="muted block small">{p.boutique?.name} · {rub(p.price_rub)} · {p.is_published ? 'опубликован' : 'скрыт продавцом'}</span>
+          {p.moderation === 'blocked' && <span className="msg block">Скрыт модератором{p.moderation_reason ? ': ' + p.moderation_reason : ''}</span>}
+        </div>
+        <div className="acts">{p.moderation === 'blocked'
+          ? <button type="button" className="act ok press" disabled={busy === p.id} onClick={() => mod(p, false)}>Вернуть</button>
+          : <button type="button" className="act danger press" disabled={busy === p.id} onClick={() => mod(p, true)}>Скрыть</button>}</div>
+      </div>
+    )) : <p className="muted">Ничего не найдено.</p>}
+  </>;
+}
+
+function Reviews() {
+  const [hidden, setHidden] = useState(false), [list, setList] = useState(null);
+  const [busy, run] = useAction();
+  const load = useCallback(() => api.adminListReviews(hidden).then(setList), [hidden]);
+  useEffect(() => { load(); }, [load]);
+  return <>
+    <label className="check"><input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} /> Только скрытые</label>
+    {list === null ? <p className="lead">Загрузка…</p> : list.length ? list.map((r) => (
+      <div key={r.id} className="bcard">
+        <span className="stars">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)} <span className="muted small">{r.author_name} · {new Date(r.created_at).toLocaleDateString('ru-RU')}</span></span>
+        {r.product && <Link className="small" to={'/product/' + r.product.id}>{r.product.title}</Link>}
+        {r.body && <span>{r.body}</span>}
+        <div className="acts"><button type="button" className={'act press' + (r.hidden ? ' ok' : ' danger')} disabled={busy === r.id}
+          onClick={() => run(async () => { if (await api.adminHideReview(r.id, !r.hidden)) load(); }, r.id)}>{r.hidden ? 'Показать' : 'Скрыть'}</button></div>
+      </div>
+    )) : <p className="muted">Отзывов нет.</p>}
+  </>;
+}
+
+function Reports() {
+  const [status, setStatus] = useState('open'), [list, setList] = useState(null);
+  const [busy, run] = useAction();
+  const load = useCallback(() => api.adminListReports(status).then(setList), [status]);
+  useEffect(() => { load(); }, [load]);
+  const link = (r) => (r.target_type === 'product' ? '/product/' + r.target_id : r.target_type === 'boutique' ? '/boutiques/' + r.target_id : null);
+  return <>
+    <div className="chips">{[['open', 'Новые'], ['resolved', 'Решённые'], ['rejected', 'Отклонённые']].map(([v, l]) => <button key={v} type="button" className={'chip' + (status === v ? ' on' : '')} onClick={() => setStatus(v)}>{l}</button>)}</div>
+    {list === null ? <p className="lead">Загрузка…</p> : list.length ? list.map((r) => (
+      <div key={r.id} className="bcard">
+        <strong>{TARGET[r.target_type]} · {REASON[r.reason]}</strong>
+        <span className="muted small">{new Date(r.created_at).toLocaleString('ru-RU')}</span>
+        {r.body && <span>«{r.body}»</span>}
+        {link(r) ? <Link className="link-u" to={link(r)}>Открыть</Link> : <span className="muted small">Отзыв — найдите во вкладке «Отзывы»</span>}
+        {status === 'open' && <div className="acts">
+          <button type="button" className="act ok press" disabled={busy === r.id} onClick={() => run(async () => { if (await api.adminResolveReport(r.id, 'resolved')) load(); }, r.id)}>Меры приняты</button>
+          <button type="button" className="act press" disabled={busy === r.id} onClick={() => run(async () => { if (await api.adminResolveReport(r.id, 'rejected')) load(); }, r.id)}>Отклонить</button>
+        </div>}
+      </div>
+    )) : <p className="muted">Жалоб нет.</p>}
+  </>;
+}
+
+function Orders() {
+  const [status, setStatus] = useState(''), [list, setList] = useState(null);
+  const [busy, run] = useAction(); const toast = useToast();
+  const load = useCallback(() => api.adminListOrders(status).then(setList), [status]);
+  useEffect(() => { load(); }, [load]);
+  const set = (o, st) => run(async () => { if (!window.confirm(`Перевести заказ в «${STATUS[st]}»?`)) return; if (await api.setOrderStatus(o.id, st)) load(); else toast('Не удалось'); }, o.id);
+  return <>
+    <div className="chips">{[['', 'Все'], ['new', 'Новые'], ['confirmed', 'Подтверждённые'], ['done', 'Выполненные'], ['cancelled', 'Отменённые']].map(([v, l]) => <button key={v} type="button" className={'chip' + (status === v ? ' on' : '')} onClick={() => setStatus(v)}>{l}</button>)}</div>
+    {list === null ? <p className="lead">Загрузка…</p> : list.length ? list.map((o) => (
+      <div key={o.id} className="bcard">
+        <strong>№ {o.id.slice(0, 8)} · {STATUS[o.status]} · {rub(o.total_rub)}</strong>
+        <span className="muted small">{o.boutique?.name || 'Без бутика'} · {new Date(o.created_at).toLocaleString('ru-RU')}</span>
+        <span className="small">{o.items.map((i) => `${i.title}${i.size ? ' (' + i.size + ')' : ''} × ${i.qty}`).join(', ')}</span>
+        {['new', 'confirmed'].includes(o.status) && <div className="acts">
+          {o.status === 'new' && <button type="button" className="act ok press" disabled={busy === o.id} onClick={() => set(o, 'confirmed')}>Подтвердить</button>}
+          <button type="button" className="act ok press" disabled={busy === o.id} onClick={() => set(o, 'done')}>Выполнен</button>
+          <button type="button" className="act danger press" disabled={busy === o.id} onClick={() => set(o, 'cancelled')}>Отменить</button>
+        </div>}
+      </div>
+    )) : <p className="muted">Заказов нет.</p>}
+  </>;
+}
+
+function Broadcast() {
+  const [f, setF] = useState({ title: '', body: '', audience: 'all', link: '/catalog' });
+  const [busy, run] = useAction(); const toast = useToast();
+  const send = (e) => { e.preventDefault(); return run(async () => {
+    if (!window.confirm('Отправить уведомление получателям: ' + { all: 'всем', buyers: 'покупателям', sellers: 'продавцам' }[f.audience] + '?')) return;
+    const n = await api.adminBroadcast(f.title, f.body, f.audience, f.link);
+    if (n === null) toast('Не удалось отправить'); else { toast(`Отправлено: ${n}`); setF({ ...f, title: '', body: '' }); }
+  }); };
+  return (
+    <form className="form" onSubmit={send}>
+      <div className="seg">{[['all', 'Всем'], ['buyers', 'Покупателям'], ['sellers', 'Продавцам']].map(([v, l]) => <button key={v} type="button" className={'chip' + (f.audience === v ? ' on' : '')} onClick={() => setF({ ...f, audience: v })}>{l}</button>)}</div>
+      <div className="field"><label htmlFor="bt">Заголовок</label><input id="bt" maxLength={120} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="Скидки к Ураза-Байраму" /></div>
+      <div className="field"><label htmlFor="bb">Текст</label><textarea id="bb" rows={3} maxLength={300} value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} /></div>
+      <div className="field"><label htmlFor="bl">Куда ведёт уведомление</label><input id="bl" maxLength={80} value={f.link} onChange={(e) => setF({ ...f, link: e.target.value })} placeholder="/catalog" /></div>
+      <p className="hint">Придёт в «Уведомления» и пушем тем, у кого они включены. Не чаще 5 рассылок в час.</p>
+      <button className="btn btn-primary press" type="submit" disabled={!!busy || f.title.trim().length < 2}>{busy ? 'Отправляем…' : 'Отправить'}</button>
+    </form>
+  );
+}
+
+function Finance() {
+  const [days, setDays] = useState(30), [list, setList] = useState(null);
+  useEffect(() => { setList(null); api.adminFinance(days).then(setList); }, [days]);
+  const sum = (list || []).reduce((a, r) => a + r.revenue, 0);
+  return <>
+    <div className="chips">{[[7, '7 дней'], [30, '30 дней'], [90, '3 месяца']].map(([v, l]) => <button key={v} type="button" className={'chip' + (days === v ? ' on' : '')} onClick={() => setDays(v)}>{l}</button>)}</div>
+    {list === null ? <p className="lead">Загрузка…</p> : <>
+      <div className="stat-grid"><div className="stat"><b>{rub(sum)}</b><span>оборот площадки (выполненные)</span></div><div className="stat"><b>{list.reduce((a, r) => a + r.done, 0)}</b><span>выполнено заказов</span></div></div>
+      <div className="tbl-wrap"><table className="tbl">
+        <thead><tr><th>Бутик</th><th>Выполн.</th><th>Оборот</th><th>В работе</th><th>Отмен.</th><th>Реклама</th></tr></thead>
+        <tbody>{list.map((r) => <tr key={r.id}><td>{r.name}</td><td>{r.done}</td><td>{rub(r.revenue)}</td><td>{r.active}</td><td>{r.cancelled}</td><td>{r.promos}</td></tr>)}</tbody>
+      </table></div>
+      <p className="hint">Комиссию площадки пока не считаем — когда решите её размер, добавлю расчёт «к оплате бутиком».</p>
+    </>}
+  </>;
+}

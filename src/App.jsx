@@ -28,6 +28,10 @@ const Settings = lazy(() => import('./pages/Settings.jsx'));
 const Privacy = lazy(() => import('./pages/Privacy.jsx'));
 const AdminStats = lazy(() => import('./pages/AdminStats.jsx'));
 const AdminPromo = lazy(() => import('./pages/AdminPromo.jsx'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword.jsx'));
+const SellerProfile = lazy(() => import('./pages/SellerProfile.jsx'));
+const SellerStats = lazy(() => import('./pages/SellerStats.jsx'));
+const AdminTools = lazy(() => import('./pages/AdminTools.jsx'));
 const History = lazy(() => import('./pages/History.jsx'));
 const Brands = lazy(() => import('./pages/Brands.jsx'));
 const Measurements = lazy(() => import('./pages/Measurements.jsx'));
@@ -48,6 +52,7 @@ export default function App() {
       <Route path="/" element={<Welcome />} />
       <Route element={<AppLayout />}>
         <Route path="/login" element={<Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/catalog" element={<Catalog />} />
         <Route path="/nearby/:category" element={<Nearby />} />
@@ -74,12 +79,16 @@ export default function App() {
           <Route path="/seller" element={<SellerHome />} />
           <Route path="/seller/products" element={<SellerProducts />} />
           <Route path="/seller/products/new" element={<SellerProductNew />} />
+          <Route path="/seller/products/:id/edit" element={<SellerProductNew />} />
           <Route path="/seller/orders" element={<SellerOrders />} />
+          <Route path="/seller/profile" element={<SellerProfile />} />
+          <Route path="/seller/stats" element={<SellerStats />} />
         </Route>
         <Route element={<RequireRole roles={['admin']} />}>
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/stats" element={<AdminStats />} />
           <Route path="/admin/promo" element={<AdminPromo />} />
+          <Route path="/admin/tools" element={<AdminTools />} />
         </Route>
         <Route path="*" element={<Stub title="Страница не найдена" hint="Проверьте адрес или вернитесь в каталог." />} />
       </Route>

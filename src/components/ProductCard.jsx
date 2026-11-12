@@ -45,7 +45,7 @@ export default function ProductCard({ p, i = 0, variant = 'grid', priority = fal
         </div>
       )}
       <button type="button" className={'iconbtn heart' + (on ? ' on' : '') + (pop ? ' pop' : '')} onClick={heart} aria-label={on ? 'Убрать из избранного' : 'В избранное'}><Icon name="heart" /></button>
-      <button type="button" className="cartbtn press" onClick={() => { add(p); toast('Добавлено в корзину'); }} aria-label={'В корзину: ' + p.title}><Icon name="cart" /></button>
+      <button type="button" className="cartbtn press" onClick={() => { if (p.sizes?.length) { nav('/product/' + encodeURIComponent(p.id), { state: { p, pickSize: true } }); return; } add(p); toast('Добавлено в корзину'); }} aria-label={'В корзину: ' + p.title}><Icon name="cart" /></button>
     </div>
   );
 }

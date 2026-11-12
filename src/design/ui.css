@@ -183,8 +183,25 @@ html[data-nav="back"]::view-transition-new(root) { animation-name: vtInLeft; }
 .tryon-btn small { color: var(--text-2); font-size: var(--fs-caption); }
 .tryon-ic { width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--gold); color: var(--bg); font-size: 1.3rem; }
 .mannequin-wrap { position: relative; }
-.mannequin { width: 100%; aspect-ratio: 3 / 4; border-radius: var(--r-xl); overflow: hidden; touch-action: pan-y; background: radial-gradient(70% 60% at 50% 35%, rgba(30,122,60,.35), rgba(6,25,20,.2)); border: 1px solid var(--edge); }
+.mannequin { width: 100%; aspect-ratio: 3 / 4; border-radius: var(--r-xl); overflow: hidden; touch-action: pan-y; background: radial-gradient(70% 60% at 50% 35%, #15452c, #08201a 75%); border: 1px solid var(--edge); }
 .mannequin canvas { display: block; width: 100% !important; height: 100% !important; }
+.mannequin { position: relative; }
+.mannequin-busy { position: absolute; inset: auto 0 16px; margin: auto; width: max-content; display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: rgba(6,25,20,.8); color: var(--champagne); font-size: var(--fs-small); pointer-events: none; }
+.mannequin-busy .spinner { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(214,181,106,.35); border-top-color: var(--gold); animation: mspin .8s linear infinite; }
+@keyframes mspin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .mannequin-busy .spinner { animation: none; } }
+/* Опросник посадки и внешность манекена */
+.fit-quiz { display: grid; gap: var(--s-3); padding: var(--s-4); border-radius: var(--r-xl); background: var(--card); border: 1px solid var(--gold); }
+.fit-quiz h2 { margin: 0; font-size: var(--fs-card); color: var(--champagne); }
+.fit-quiz fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
+.fit-quiz legend { padding: 0; margin-bottom: 6px; font-weight: 600; }
+.quiz-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.quiz-opt { display: grid; gap: 2px; text-align: left; padding: 10px 12px; border-radius: var(--r-lg); border: 1px solid var(--edge); background: rgba(6,25,20,.35); color: var(--text); min-height: 44px; }
+.quiz-opt small { color: var(--text-2); font-size: var(--fs-caption); }
+.quiz-opt.on { border-color: var(--gold); background: rgba(214,181,106,.18); }
+.quiz-actions { display: flex; gap: var(--s-3); flex-wrap: wrap; align-items: center; }
+.look-pick { display: grid; gap: 6px; }
+.pref-line { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: var(--fs-small); color: var(--text-2); }
 .heat-btn { position: absolute; top: 12px; right: 12px; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--edge); background: rgba(6,25,20,.75); color: var(--champagne); font-size: var(--fs-small); font-weight: 600; backdrop-filter: blur(6px); }
 .heat-btn.on { background: var(--gold); color: var(--bg); border-color: var(--gold); }
 .heat-legend { position: absolute; left: 12px; bottom: 12px; display: flex; gap: 10px; padding: 6px 10px; border-radius: 999px; background: rgba(6,25,20,.75); font-size: var(--fs-caption); color: var(--text-2); }
@@ -207,3 +224,5 @@ html[data-nav="back"]::view-transition-new(root) { animation-name: vtInLeft; }
 .chart-table b { color: var(--text-2); font-weight: 600; }
 .chart-table input { min-height: 40px; width: 100%; background: var(--card); border: 1px solid var(--edge); border-radius: 10px; color: var(--text); padding: 0 8px; font: inherit; text-align: center; }
 .sheet { max-height: 90vh; overflow-y: auto; }
+.quiz-head { margin: var(--s-5) 0 0; font-size: var(--fs-card); color: var(--champagne); }
+button.link-u { background: none; border: 0; border-bottom: 1px solid var(--gold); border-radius: 0; color: var(--gold); padding: 0 0 2px; min-height: 0; cursor: pointer; font: inherit; font-size: var(--fs-small); }

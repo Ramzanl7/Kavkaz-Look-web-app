@@ -67,6 +67,7 @@ export default function Orders() {
                 <span className="muted small">Примерите — оплатите в бутике, если подойдёт.</span>
               </div>
             ) : o.delivery && <span className="muted small">{DELIVERY[o.delivery]}{o.address ? ': ' + o.address : ''} · оплата при получении</span>}
+            {o.discount_rub > 0 && <span className="muted small">Промокод {o.promo_code}: −{rub(o.discount_rub)}</span>}
             <div className="order-foot"><span>Итого</span><b className="price">{rub(o.total_rub)}</b></div>
             <div className="acts">
               {o.boutique?.whatsapp && <a className="act ok press" href={'https://wa.me/' + o.boutique.whatsapp + '?text=' + encodeURIComponent('Здравствуйте! Мой заказ № ' + o.id.slice(0, 8) + ' в Kavkaz Look.')} target="_blank" rel="noopener noreferrer">Написать в WhatsApp</a>}

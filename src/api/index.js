@@ -53,11 +53,13 @@ const toProduct = (r) => ({
 });
 const BQ_COLS_BASE = 'id,name,description,city,logo_path,cover_path,address,hours,phone,whatsapp,telegram,delivery_pickup,delivery_courier,courier_note';
 let BQ_COLS = BQ_COLS_BASE + ',allow_reserve';
-let ORDER_EXTRA = ',hold_until';
+const ORDER_LEVELS = [',hold_until,subtotal_rub,discount_rub,promo_code,discount_by', ',hold_until', ''];
+let ORDER_EXTRA = ORDER_LEVELS[0];
 // новые поля могут ещё отсутствовать в базе — тогда работаем без них
 const downgradeBq = (error) => { if (error?.code === '42703' && BQ_COLS !== BQ_COLS_BASE) { BQ_COLS = BQ_COLS_BASE; return true; } return false; };
-const downgradeOrders = (error) => { if (error?.code === '42703' && ORDER_EXTRA) { ORDER_EXTRA = ''; return true; } return false; };
+const downgradeOrders = (error) => { const i = ORDER_LEVELS.indexOf(ORDER_EXTRA); if (error?.code === '42703' && i < ORDER_LEVELS.length - 1) { ORDER_EXTRA = ORDER_LEVELS[i + 1]; return true; } return false; };
 const toBoutique = (r) => ({ ...r, logo: r.logo_path ? pub(r.logo_path.replace(/\.jpg$/, '_t.jpg')) : null, cover: r.cover_path ? pub(r.cover_path) : null });
+const PROMO_ERR = { invalid: 'Такого промокода нет или он закончился.', not_applicable: 'Промокод не действует на эти товары.', exhausted: 'Промокод закончился.', used: 'Вы уже использовали этот промокод.', first_order: 'Промокод только для первого заказа.', login: 'Войдите, чтобы применить промокод.' };
 const toCollection = (r) => ({ ...r, cover: r.cover_path ? supabase.storage.from('brand-media').getPublicUrl(r.cover_path).data.publicUrl : null });
 const brandUrl = (path) => (path ? supabase.storage.from('brand-media').getPublicUrl(path).data.publicUrl : null);
 const toBrand = (r) => ({ ...r, banner: brandUrl(r.banner_path), logo: brandUrl(r.logo_path) });
@@ -395,14 +397,14 @@ export const api = {
   async adminFinance(days = 30) {
     const since = new Date(Date.now() - days * 864e5).toISOString();
     const [{ data: orders }, { data: promos }] = await Promise.all([
-      supabase.from('orders').select('status,total_rub,boutique:boutiques(id,name)').gte('created_at', since).limit(5000),
+      supabase.from('orders').select('status,total_rub' + (ORDER_EXTRA.includes('discount') ? ',discount_rub,discount_by' : '') + ',boutique:boutiques(id,name)').gte('created_at', since).limit(5000),
       supabase.from('promotions').select('advertiser,starts_at,ends_at,product:products(boutique_id)').gte('ends_at', since).limit(500),
     ]);
     const by = new Map();
     for (const o of orders || []) {
       const k = o.boutique?.id || '—';
-      const r = by.get(k) || { id: k, name: o.boutique?.name || 'Без бутика', done: 0, revenue: 0, active: 0, cancelled: 0, promos: 0 };
-      if (o.status === 'done') { r.done++; r.revenue += o.total_rub; } else if (o.status === 'cancelled') r.cancelled++; else r.active++;
+      const r = by.get(k) || { id: k, name: o.boutique?.name || 'Без бутика', done: 0, revenue: 0, active: 0, cancelled: 0, promos: 0, owed: 0 };
+      if (o.status === 'done') { r.done++; r.revenue += o.total_rub; if (o.discount_by === 'platform') r.owed += o.discount_rub || 0; } else if (o.status === 'cancelled') r.cancelled++; else r.active++;
       by.set(k, r);
     }
     for (const p of promos || []) { const r = by.get(p.product?.boutique_id); if (r) r.promos++; }
@@ -455,6 +457,46 @@ export const api = {
     if (file) { const r = await this.uploadProductPhoto(boutiqueId, file); if (r.error) return { ok: false, error: r.error }; photos = [r.path]; }
     return this.saveProduct({ boutiqueId, title, price, category, description, photos, sizing });
   },
+  // ===== Промокоды =====
+  // проверка кода для корзины: { discount, by, title } или { error }
+  async promoQuote(code, items) {
+    const c = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
+    if (c.length < 4) return { error: 'Введите промокод.' };
+    const payload = items.filter((i) => isUuid(i.id)).map((i) => ({ product_id: i.id, qty: i.qty }));
+    const { data, error } = await supabase.rpc('promo_quote', { code: c, items: payload });
+    if (error) return { error: error.code === 'PGRST202' ? 'Промокоды скоро заработают.' : 'Не удалось проверить промокод.' };
+    if (!data?.ok) return { error: data?.error === 'min_order' ? `Промокод действует от ${data.min_order} ₽` : PROMO_ERR[data?.error] || 'Промокод не подходит.' };
+    return { code: c, discount: data.discount, by: data.by, title: data.title, kind: data.kind, value: data.value };
+  },
+  async listPromos(boutiqueId) {
+    let req = supabase.from('promo_codes').select('*').order('created_at', { ascending: false }).limit(100);
+    req = isUuid(boutiqueId) ? req.eq('boutique_id', boutiqueId) : req.is('boutique_id', null);
+    const { data } = await req;
+    return data || [];
+  },
+  async promoStats(id) { const { data } = await supabase.rpc('promo_stats', { pid: id }); return data || null; },
+  async savePromo(p, boutiqueId) {
+    const code = String(p.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const num = (v) => (v === '' || v == null ? null : Math.round(Number(v)));
+    const row = {
+      title: cleanText(p.title, 80) || null, kind: p.kind === 'fixed' ? 'fixed' : 'percent', value: num(p.value),
+      min_order: num(p.min_order) || 0, max_discount: p.kind === 'percent' ? num(p.max_discount) : null,
+      starts_at: p.starts_at ? new Date(p.starts_at + 'T00:00:00').toISOString() : new Date().toISOString(),
+      ends_at: p.ends_at ? new Date(p.ends_at + 'T23:59:59').toISOString() : null,
+      usage_limit: num(p.usage_limit), per_user: Math.max(1, num(p.per_user) || 1), first_order_only: !!p.first_order_only, is_active: p.is_active !== false,
+    };
+    if (!isUuid(p.id) && !/^[A-Z0-9]{4,20}$/.test(code)) return 'Код — 4–20 латинских букв и цифр.';
+    if (!row.value || row.value < 1 || (row.kind === 'percent' && row.value > 90)) return row.kind === 'percent' ? 'Скидка — от 1 до 90%.' : 'Укажите сумму скидки.';
+    const { error } = isUuid(p.id) ? await supabase.from('promo_codes').update(row).eq('id', p.id)
+      : await supabase.from('promo_codes').insert({ ...row, code, boutique_id: isUuid(boutiqueId) ? boutiqueId : null });
+    return error ? (error.code === '23505' ? 'Такой код уже есть — придумайте другой.' : error.code === '23514' ? 'Проверьте значения и даты.' : 'Не удалось сохранить.') : '';
+  },
+  async deletePromo(id) { if (!isUuid(id)) return false; const { error } = await supabase.from('promo_codes').delete().eq('id', id); return !error; },
+  // ===== Приглашения друзей =====
+  async myReferralCode() { const { data, error } = await supabase.rpc('my_referral_code'); return error ? null : data; },
+  async myReferrals() { const { data, error } = await supabase.rpc('my_referrals'); return error ? null : data; },
+  async claimReferral(code) { const { data } = await supabase.rpc('claim_referral', { code: String(code).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10) }); return !!data; },
+  async adminReferralTop() { const { data } = await supabase.rpc('admin_referral_top', { lim: 50 }); return data || []; },
   // ===== Подборки =====
   async listCollections() {
     const { data, error } = await supabase.from('collections').select('id,title,subtitle,cover_path,sort').order('sort').order('created_at', { ascending: false }).limit(20);
@@ -576,10 +618,11 @@ export const api = {
   async placeOrder(items, contact, idem) {
     const payload = items.filter((i) => isUuid(i.id)).map((i) => ({ product_id: i.id, qty: i.qty, ...(i.size ? { size: String(i.size) } : {}) }));
     if (!payload.length) return { error: 'Корзина пуста.' };
-    const c = { phone: String(contact.phone || '').replace(/[^0-9+]/g, '').slice(0, 16), delivery: ['courier', 'reserve'].includes(contact.delivery) ? contact.delivery : 'pickup', address: cleanText(contact.address, 200), comment: cleanText(contact.comment, 300), day: contact.day === 'tomorrow' ? 'tomorrow' : 'today' };
+    const c = { phone: String(contact.phone || '').replace(/[^0-9+]/g, '').slice(0, 16), delivery: ['courier', 'reserve'].includes(contact.delivery) ? contact.delivery : 'pickup', address: cleanText(contact.address, 200), comment: cleanText(contact.comment, 300), day: contact.day === 'tomorrow' ? 'tomorrow' : 'today', ...(contact.promo ? { promo: String(contact.promo).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20) } : {}) };
     const { data, error } = await supabase.rpc('place_order', { items: payload, contact: c, idem: isUuid(idem) ? idem : null });
     if (!error) return { ids: data || [] };
     const m = String(error.message || '');
+    if (m.startsWith('promo ')) return { error: PROMO_ERR[m.slice(6)] || 'Промокод не применился. Уберите его и попробуйте снова.', promo: true };
     return { error: m.includes('reserve limit') ? 'Можно отложить не больше 3 вещей одного бутика и держать не больше 3 броней одновременно.' : m.includes('bad delivery') ? 'Бронь пока недоступна. Попробуйте позже.' : m.includes('out of stock') ? 'Одного из товаров уже нет в нужном количестве. Уменьшите количество или выберите другой размер.'
       : m.includes('unavailable') ? 'Один из товаров больше не продаётся или выбран размер, которого нет. Обновите корзину.'
         : m.includes('bad phone') ? 'Проверьте номер телефона.' : m.includes('address') ? 'Укажите адрес доставки.'

@@ -11,6 +11,9 @@ export function AuthProvider({ children }) {
   const load = useCallback(async (session) => {
     const user = session?.user ?? null;
     if (!user) { setState(EMPTY); return; }
+    // Приглашение: код из ссылки ?ref= засчитываем один раз (база примет только для нового аккаунта)
+    let ref = null; try { ref = localStorage.getItem('kl-ref'); } catch { /* приватный режим */ }
+    if (ref) supabase.rpc('claim_referral', { code: ref }).then(({ error }) => { if (!error || error.code !== 'PGRST202') try { localStorage.removeItem('kl-ref'); } catch { /* */ } });
     let { data, error } = await supabase.from('profiles').select('role,is_blocked,blocked_reason,consent_version').eq('id', user.id).maybeSingle();
     if (error) ({ data } = await supabase.from('profiles').select('role,is_blocked').eq('id', user.id).maybeSingle());
     setState({

@@ -28,6 +28,7 @@ export default function SellerHome() {
         <Tile to="/seller/orders" icon="box" title="Заказы" sub={orders ? `Новых: ${fresh} · в работе: ${work}` : ''} badge={fresh} />
         <Tile to="/seller/products" icon="catalog" title="Мои товары" sub="Добавить, изменить, остатки" />
         <Tile to="/seller/products/new" icon="star" title="Добавить товар" />
+        <Tile to="/seller/promos" icon="sparkles" title="Промокоды" sub="Скидки для ваших покупателей" />
         <Tile to="/seller/stats" icon="chart" title="Статистика" sub="Просмотры, избранное, продажи, выручка" />
         <Tile to="/seller/profile" icon="store" title="Профиль бутика" sub="Логотип, адрес, часы, контакты, доставка" />
         {b.is_approved && <Tile to={'/boutiques/' + b.id} icon="shop" title="Мой бутик глазами покупателя" />}

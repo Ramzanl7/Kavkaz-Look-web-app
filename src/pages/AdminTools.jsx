@@ -5,8 +5,9 @@ import { useAction } from '../lib/useAction.js';
 import { useToast } from '../store/toast.jsx';
 import { rub } from '../store/cart.jsx';
 import { STATUS } from './Orders.jsx';
+import PromoManager from '../components/PromoManager.jsx';
 
-const TABS = [['collections', 'Подборки'], ['products', 'Товары'], ['reviews', 'Отзывы'], ['reports', 'Жалобы'], ['orders', 'Заказы'], ['broadcast', 'Рассылка'], ['finance', 'Обороты']];
+const TABS = [['collections', 'Подборки'], ['products', 'Товары'], ['reviews', 'Отзывы'], ['reports', 'Жалобы'], ['orders', 'Заказы'], ['broadcast', 'Рассылка'], ['promos', 'Промокоды'], ['invites', 'Приглашения'], ['finance', 'Обороты']];
 const REASON = { fake: 'Подделка/обман', prohibited: 'Запрещённый товар', offensive: 'Оскорбления', fraud: 'Мошенничество', other: 'Другое' };
 const TARGET = { product: 'Товар', review: 'Отзыв', boutique: 'Бутик' };
 
@@ -24,6 +25,8 @@ export default function AdminTools() {
       {tab === 'reports' && <Reports />}
       {tab === 'orders' && <Orders />}
       {tab === 'broadcast' && <Broadcast />}
+      {tab === 'promos' && <PromoManager />}
+      {tab === 'invites' && <Invites />}
       {tab === 'finance' && <Finance />}
     </main>
   );
@@ -143,6 +146,18 @@ function Broadcast() {
   );
 }
 
+function Invites() {
+  const [list, setList] = useState(null);
+  useEffect(() => { api.adminReferralTop().then(setList); }, []);
+  return list === null ? <p className="lead">Загрузка…</p> : <>
+    <p className="hint">Кто больше всех пригласил друзей. «С покупкой» — друзья, у которых есть выполненный заказ: по этому числу честнее разыгрывать призы.</p>
+    {list.length ? <div className="tbl-wrap"><table className="tbl">
+      <thead><tr><th>#</th><th>Пользователь</th><th>Пригласил</th><th>С покупкой</th></tr></thead>
+      <tbody>{list.map((r, i) => <tr key={r.user_id}><td>{i + 1}</td><td>{r.name || '—'}<br /><small className="muted">{r.email}</small></td><td>{r.invited}</td><td><b>{r.qualified}</b></td></tr>)}</tbody>
+    </table></div> : <p className="muted">Пока никто никого не пригласил.</p>}
+  </>;
+}
+
 function Finance() {
   const [days, setDays] = useState(30), [list, setList] = useState(null);
   useEffect(() => { setList(null); api.adminFinance(days).then(setList); }, [days]);
@@ -152,9 +167,10 @@ function Finance() {
     {list === null ? <p className="lead">Загрузка…</p> : <>
       <div className="stat-grid"><div className="stat"><b>{rub(sum)}</b><span>оборот площадки (выполненные)</span></div><div className="stat"><b>{list.reduce((a, r) => a + r.done, 0)}</b><span>выполнено заказов</span></div></div>
       <div className="tbl-wrap"><table className="tbl">
-        <thead><tr><th>Бутик</th><th>Выполн.</th><th>Оборот</th><th>В работе</th><th>Отмен.</th><th>Реклама</th></tr></thead>
-        <tbody>{list.map((r) => <tr key={r.id}><td>{r.name}</td><td>{r.done}</td><td>{rub(r.revenue)}</td><td>{r.active}</td><td>{r.cancelled}</td><td>{r.promos}</td></tr>)}</tbody>
+        <thead><tr><th>Бутик</th><th>Выполн.</th><th>Оборот</th><th>В работе</th><th>Отмен.</th><th>Реклама</th><th>К возмещению</th></tr></thead>
+        <tbody>{list.map((r) => <tr key={r.id}><td>{r.name}</td><td>{r.done}</td><td>{rub(r.revenue)}</td><td>{r.active}</td><td>{r.cancelled}</td><td>{r.promos}</td><td>{r.owed ? rub(r.owed) : '—'}</td></tr>)}</tbody>
       </table></div>
+      {list.some((r) => r.owed) && <p className="hint">«К возмещению» — скидки по промокодам площадки в выполненных заказах: эти деньги площадка должна бутику.</p>}
       <p className="hint">Комиссию площадки пока не считаем — когда решите её размер, добавлю расчёт «к оплате бутиком».</p>
     </>}
   </>;

@@ -58,7 +58,8 @@ export default function SellerOrders() {
               ) : ['new', 'confirmed'].includes(o.status) ? null : <span className="muted small">Контакт покупателя удалён после закрытия заказа.</span>}
               <span className="muted small">Оплата при получении</span>
             </div>
-            <div className="order-foot"><span>Сумма</span><b className="price">{rub(o.total_rub)}</b></div>
+            {o.discount_rub > 0 && <span className="promo-note">Промокод {o.promo_code}: −{rub(o.discount_rub)} · {o.discount_by === 'platform' ? 'скидку возмещает площадка' : 'скидка вашего бутика'}</span>}
+            <div className="order-foot"><span>К оплате покупателем</span><b className="price">{rub(o.total_rub)}</b></div>
             <div className="acts" aria-busy={busy === o.id}>
               {o.status === 'new' && <button type="button" className="act ok press" disabled={busy === o.id} onClick={() => act(o.id, 'confirmed')}>{o.delivery === 'reserve' ? 'Отложил' : 'Подтвердить'}</button>}
               {o.status === 'confirmed' && <button type="button" className="act ok press" disabled={busy === o.id} onClick={() => act(o.id, 'done', o.delivery === 'reserve' ? 'Покупатель примерил и купил?' : 'Покупатель получил заказ и оплатил его?')}>{o.delivery === 'reserve' ? 'Купил' : 'Выполнен'}</button>}

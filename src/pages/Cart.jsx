@@ -31,6 +31,10 @@ export default function Cart() {
   const nav = useNavigate();
   const [busy, run] = useAction(1500);
   const [msg, setMsg] = useState('');
+  const [promoIn, setPromoIn] = useState(''), [promo, setPromo] = useState(null), [promoMsg, setPromoMsg] = useState('');
+  const [promoBusy, runPromo] = useAction(300);
+  const applyPromo = () => runPromo(async () => { setPromoMsg(''); const r = await api.promoQuote(promoIn, items); if (r.error) { setPromo(null); setPromoMsg(r.error); } else setPromo(r); });
+  const pay = Math.max(0, total - (promo?.discount || 0));
   const [step, setStep] = useState('cart');
   const [c, setC] = useState(() => ({ phone: '', delivery: 'pickup', address: '', comment: '', remember: true, ...readContact() }));
   const shops = new Set(items.map((i) => i.boutique || '?')).size;
@@ -38,8 +42,8 @@ export default function Cart() {
   const ready = phoneOk && (c.delivery === 'pickup' || c.address.trim().length >= 5);
   const checkout = (e) => { e.preventDefault(); return run(async () => {
     setMsg('');
-    const r = await api.placeOrder(items, c, attemptKey(items));
-    if (r.error) { setMsg(r.error); return; }
+    const r = await api.placeOrder(items, { ...c, promo: promo?.code }, attemptKey(items));
+    if (r.error) { setMsg(r.error); if (r.promo) setPromo(null); return; }
     try { if (c.remember) localStorage.setItem(CONTACT_KEY, JSON.stringify({ phone: c.phone, address: c.address, delivery: c.delivery })); else localStorage.removeItem(CONTACT_KEY); } catch { /* приватный режим */ }
     forgetAttempt(); clear(); toast(r.ids.length > 1 ? `Оформлено заказов: ${r.ids.length} — по одному на бутик` : 'Заказ оформлен'); nav('/orders');
   }); };
@@ -94,9 +98,22 @@ export default function Cart() {
           <div className="bcard pay-card"><strong>Оплата при получении</strong><span className="muted small">Наличными или переводом продавцу. Онлайн-оплата появится позже.</span></div>
           <label className="check"><input type="checkbox" checked={c.remember} onChange={(e) => setC({ ...c, remember: e.target.checked })} /> Запомнить телефон и адрес на этом устройстве</label>
           <p className="hint">Телефон и адрес увидит только продавец вашего заказа. После выполнения или отмены заказа они удаляются.</p>
-          <div className="cart-total"><span>К оплате</span><b className="price">{rub(total)}</b></div>
+          <div className="promo-box">
+            {promo ? (
+              <div className="promo-on"><span><b>{promo.code}</b> — скидка {rub(promo.discount)}{promo.title ? ` · ${promo.title}` : ''}</span>
+                <button type="button" className="link-muted" onClick={() => { setPromo(null); setPromoIn(''); }}>Убрать</button></div>
+            ) : (
+              <div className="promo-row-in">
+                <input aria-label="Промокод" placeholder="Промокод" maxLength={20} value={promoIn} onChange={(e) => setPromoIn(e.target.value.toUpperCase())} autoCapitalize="characters" />
+                <button type="button" className="btn btn-secondary press" disabled={promoIn.trim().length < 4 || !!promoBusy} onClick={applyPromo}>{promoBusy ? '…' : 'Применить'}</button>
+              </div>
+            )}
+            {promoMsg && <small className="msg">{promoMsg}</small>}
+          </div>
+          {promo && <div className="cart-total small"><span>Без скидки</span><s className="muted">{rub(total)}</s></div>}
+          <div className="cart-total"><span>К оплате</span><b className="price">{rub(pay)}</b></div>
           {msg && <p className="msg" role="status">{msg}</p>}
-          <button type="submit" className="btn btn-primary press" disabled={!!busy || !ready}>{busy ? 'Оформляем…' : 'Оформить заказ'}</button>
+          <button type="submit" className="btn btn-primary press" disabled={!!busy || !!promoBusy || !ready}>{busy ? 'Оформляем…' : 'Оформить заказ'}</button>
           <button type="button" className="btn btn-secondary press" onClick={() => setStep('cart')}>Назад к корзине</button>
         </form>
       )}

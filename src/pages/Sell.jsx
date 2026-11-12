@@ -12,11 +12,11 @@ const HERO = Object.values(heroes)[0];
 const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 const BENEFITS = [
-  ['store', 'Витрина 24/7', 'Покупатели смотрят ваши вещи вечером из дома, а приходят в бутик утром.'],
-  ['box', 'Заказы и брони', 'Заказ или «Отложить и примерить» — вам приходит уведомление, дальше звонок или WhatsApp.'],
-  ['pin', 'Покупатели рядом', 'Поиск по городам Чечни: вас находят те, кому до вас 10 минут.'],
-  ['sparkles', 'Свои промокоды', 'Код для вашего Instagram — и видно, сколько покупателей он привёл.'],
-  ['chart', 'Статистика', 'Просмотры, избранное, заказы и выручка по дням.'],
+  ['store', 'Магазин, который не закрывается', 'Ваш ассортимент виден 24/7. Люди выбирают вечером из дома — и приходят к вам уже за конкретной вещью.'],
+  ['box', 'Заказы и брони', 'Заказ или «Отложить и примерить» — сразу уведомление с телефоном клиента. Дальше звонок или WhatsApp.'],
+  ['pin', 'Клиенты из вашего города', 'Поиск по городам Чечни: вас находят те, кому до вас 10 минут, а не 1000 км.'],
+  ['sparkles', 'Промокоды под вашу рекламу', 'Свой код для Instagram и WhatsApp-статусов — и точно видно, сколько покупателей он привёл.'],
+  ['chart', 'Понятные цифры', 'Что смотрят, что сохраняют, что покупают. Видно, какой товар заказать ещё, а какой убрать.'],
   ['phone', 'Без сайта и программиста', 'Товар добавляется с телефона за 2 минуты: фото, цена, размеры, остатки.'],
 ];
 const STEPS = [
@@ -31,11 +31,12 @@ const FAQ = [
   ['Как покупатель платит?', 'Сейчас — при получении: наличными или переводом вам. Онлайн-оплату добавим позже.'],
   ['Кто доставляет?', 'Вы решаете сами: самовывоз, ваш курьер или «Отложить и примерить» — покупатель бронирует вещь на сегодня или завтра и приходит в бутик.'],
   ['А если вещь закончилась?', 'Укажите остатки по размерам — больше, чем есть, не продадут. Покупатель может подписаться на поступление.'],
-  ['Можно продавать национальную одежду?', 'Да, для неё есть отдельный раздел «Национальное». Пошив на заказ опишите в карточке товара.'],
+  ['Что можно продавать?', 'Мужскую, женскую и детскую одежду, национальные костюмы, обувь и аксессуары. Подходит и большой бутик, и небольшой магазин, и мастер, который шьёт на заказ.'],
+  ['У меня нет своего магазина. Можно?', 'Да. Если вы продаёте из дома, через Instagram или шьёте на заказ — укажите в заявке, подскажем, как лучше оформить.'],
   ['Кто видит телефон покупателя?', 'Только вы, и только пока заказ активен. После выполнения или отмены контакт удаляется.'],
 ];
-const KINDS = ['Женское', 'Мужское', 'Национальное', 'Обувь', 'Аксессуары', 'Детское'];
-const STORY = [['Вечером'], ['покупательница'], ['листает'], ['Kavkaz'], ['Look.'], ['Видит'], ['ваше'], ['платье'], ['и'], ['нажимает'], ['«Отложить'], ['и'], ['примерить».'], ['Утром', 1], ['она', 1], ['уже', 1], ['в', 1], ['вашем', 1], ['бутике.', 1]];
+const KINDS = ['Мужское', 'Женское', 'Детское', 'Национальное', 'Обувь', 'Аксессуары'];
+const STORY = 'Вечер. Ваш будущий клиент листает Kavkaz Look. Находит у вас костюм, платье или кроссовки. Одно нажатие — «Отложить и примерить».'.split(' ').map((w) => [w]).concat('Утром клиент уже у вас в бутике.'.split(' ').map((w) => [w, 1]));
 
 // Телефон в виде +7 (928) 000-00-00 по мере ввода
 const maskPhone = (v) => {
@@ -89,9 +90,9 @@ function CabinetPreview() {
         <div><b>214</b><small>просмотров</small></div>
         <div><b>18</b><small>в избранном</small></div>
       </div>
-      <div className="sell-cab-row new"><span><b>Отложить и примерить</b><small>Платье «Седа», размер 44 · до 19:00</small></span><i>Новый</i></div>
-      <div className="sell-cab-row"><span><b>Самовывоз</b><small>Рубашка белая, 50 · 3 900 ₽</small></span><i className="ok">Подтверждён</i></div>
-      <div className="sell-cab-row"><span><b>Промокод SEDA10</b><small>использован 12 раз</small></span><i className="ok">Действует</i></div>
+      <div className="sell-cab-row new"><span><b>Отложить и примерить</b><small>Костюм классический, 50 · до 19:00</small></span><i>Новый</i></div>
+      <div className="sell-cab-row"><span><b>Самовывоз</b><small>Платье вечернее, 44 · 6 900 ₽</small></span><i className="ok">Подтверждён</i></div>
+      <div className="sell-cab-row"><span><b>Промокод STYLE10</b><small>использован 12 раз</small></span><i className="ok">Действует</i></div>
       <small className="sell-cab-note">Пример. Цифры условные.</small>
     </div>
   );
@@ -116,7 +117,7 @@ function LeadForm() {
     <div className="sell-done" role="status">
       <span className="sell-done-ic"><Icon name="star" /></span>
       <h3>Заявка отправлена</h3>
-      <p>Позвоним на {f.phone} в течение дня и поможем открыть кабинет. Пока можно посмотреть, как выглядят бутики в приложении.</p>
+      <p>Позвоним на {f.phone} в течение дня и поможем всё настроить. А пока посмотрите, как бутики выглядят в приложении.</p>
       <Link className="btn btn-secondary press" to="/boutiques">Посмотреть бутики</Link>
     </div>
   );
@@ -124,18 +125,18 @@ function LeadForm() {
     <form className="sell-form" onSubmit={submit}>
       <h3>Подключить бутик</h3>
       <p className="muted small">Перезвоним в течение дня. Регистрироваться не нужно.</p>
-      <div className="field"><label htmlFor="ld-b">Название бутика *</label><input id="ld-b" maxLength={80} value={f.boutique} onChange={set('boutique')} placeholder="Например, Седа" autoComplete="organization" /></div>
+      <div className="field"><label htmlFor="ld-b">Название бутика *</label><input id="ld-b" maxLength={80} value={f.boutique} onChange={set('boutique')} placeholder="Как на вывеске или в Instagram" autoComplete="organization" /></div>
       <div className="field"><label htmlFor="ld-p">Телефон *</label><input id="ld-p" type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 (900) 000-00-00" value={f.phone} onChange={(e) => setF({ ...f, phone: maskPhone(e.target.value) })} /></div>
       <div className="sell-2">
         <div className="field"><label htmlFor="ld-n">Ваше имя</label><input id="ld-n" maxLength={60} value={f.contact} onChange={set('contact')} autoComplete="given-name" /></div>
         <div className="field"><label htmlFor="ld-c">Город</label><select id="ld-c" value={f.city} onChange={set('city')}>{CITIES.map((c) => <option key={c}>{c}</option>)}</select></div>
       </div>
-      <div className="field"><label htmlFor="ld-i">Instagram бутика</label><input id="ld-i" maxLength={60} value={f.instagram} onChange={set('instagram')} placeholder="@seda.boutique" autoCapitalize="none" /></div>
+      <div className="field"><label htmlFor="ld-i">Instagram бутика</label><input id="ld-i" maxLength={60} value={f.instagram} onChange={set('instagram')} placeholder="@vash.butik" autoCapitalize="none" /></div>
       <fieldset className="sell-kinds"><legend>Что продаёте</legend>
         {KINDS.map((k) => { const on = f.kinds.includes(k); return <button key={k} type="button" aria-pressed={on} className={'chip' + (on ? ' on' : '')} onClick={() => setF({ ...f, kinds: on ? f.kinds.filter((x) => x !== k) : [...f.kinds, k] })}>{k}</button>; })}
       </fieldset>
       <div className="field"><label htmlFor="ld-m">Комментарий</label><input id="ld-m" maxLength={500} value={f.comment} onChange={set('comment')} placeholder="Удобное время для звонка, вопросы" /></div>
-      <label className="check"><input type="checkbox" checked={f.agree} onChange={(e) => setF({ ...f, agree: e.target.checked })} /> <span>Согласен на обработку данных по <Link className="link-u" to="/privacy">политике конфиденциальности</Link></span></label>
+      <label className="check"><input type="checkbox" checked={f.agree} onChange={(e) => setF({ ...f, agree: e.target.checked })} /> <span>Даю согласие на обработку данных по <Link className="link-u" to="/privacy">политике конфиденциальности</Link></span></label>
       {msg && <p className="msg" role="alert">{msg}</p>}
       <button type="submit" className="btn btn-primary press" disabled={!!busy || !ready}>{busy ? 'Отправляем…' : 'Отправить заявку'}</button>
     </form>
@@ -165,9 +166,9 @@ export default function Sell() {
     <main className="sell" ref={rootRef}>
       <section className="sell-hero" style={HERO ? { '--hero': `url(${HERO})` } : undefined}>
         <div className="sell-wrap">
-          <span className="sell-eyebrow rise"><i />Для бутиков Чечни</span>
-          <h1 className="sell-h1 rise" style={{ '--d': 1 }}>Ваш бутик — в&nbsp;телефоне у&nbsp;каждого покупателя <em>Грозного</em></h1>
-          <p className="sell-lead rise" style={{ '--d': 2 }}>Kavkaz Look собирает местные бутики в одном приложении. Покупатели находят ваши вещи, откладывают на примерку и заказывают — а вы получаете уведомление.</p>
+          <span className="sell-eyebrow rise"><i />Для продавцов одежды Чечни</span>
+          <h1 className="sell-h1 rise" style={{ '--d': 1 }}>Новые покупатели для&nbsp;вашего бутика&nbsp;— <em>каждый день</em></h1>
+          <p className="sell-lead rise" style={{ '--d': 2 }}>Мужская и женская одежда, национальные костюмы, обувь, аксессуары — люди ищут их в Kavkaz&nbsp;Look. Покажите им свой ассортимент: они выберут, отложат на примерку или закажут, а вам придёт уведомление.</p>
           <div className="sell-cta rise" style={{ '--d': 3 }}>
             <button type="button" className="btn btn-primary press" onClick={toForm}>Подключить бутик <Icon name="arrow" /></button>
             <Link className="btn btn-secondary press" to="/catalog">Как видят покупатели</Link>
@@ -231,8 +232,8 @@ export default function Sell() {
 
       <section className="sell-final">
         <OrnamentBand height={24} />
-        <h2 className="sell-h2">Сейчас подключаем первые бутики Грозного</h2>
-        <p className="sell-lead">Места в подборках на главной пока свободны.</p>
+        <h2 className="sell-h2">Сейчас подключаем <em>первые бутики</em> Чечни</h2>
+        <p className="sell-lead">Мужские, женские, национальные — первые партнёры первыми попадают к покупателям. Места в подборках на главной пока свободны.</p>
         <button type="button" className="btn btn-primary press" onClick={toForm}>Оставить заявку</button>
         <Link className="link-muted" to="/support">Есть вопрос? Напишите в поддержку</Link>
       </section>

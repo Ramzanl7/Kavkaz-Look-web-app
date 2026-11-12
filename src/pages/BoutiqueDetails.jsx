@@ -10,7 +10,7 @@ export default function BoutiqueDetails() {
   useEffect(() => {
     let on = true;
     api.getBoutique(id).then((r) => { if (on) setB(r); });
-    api.listProducts({ boutiqueId: id }).then((r) => { if (on) setProducts(r); });
+    api.listProducts({ boutiqueId: id }).then((r) => { if (on) setProducts(r || []); });
     return () => { on = false; };
   }, [id]);
   if (b === undefined) return <main className="wrap"><p className="lead">Загрузка…</p></main>;

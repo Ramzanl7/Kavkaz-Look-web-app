@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { CONSENT_VERSION } from '../lib/consent.js';
 import { useAction } from '../lib/useAction.js';
 import { supabase } from '../lib/supabase.js';
+import { api } from '../api/index.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 export default function Login() {
   const nav = useNavigate();
@@ -41,6 +42,11 @@ export default function Login() {
         {msg && <p className="msg" role="status">{msg}{/заблокирован/.test(msg) && <> <Link className="link-u" to="/support">Поддержка</Link></>}</p>}
         <button className="btn btn-primary press" type="submit" disabled={busy}>Войти</button>
         <button className="btn btn-secondary press" type="button" disabled={busy || !agree} onClick={() => go('up')}>Создать аккаунт</button>
+        <button className="link-u" type="button" style={{ justifySelf: 'center' }} disabled={!!busy} onClick={() => run(async () => {
+          setMsg('');
+          const err = await api.resetPassword(email);
+          setMsg(err || 'Если такой аккаунт есть, мы отправили на почту ссылку для нового пароля. Проверьте и папку «Спам».');
+        })}>Забыли пароль?</button>
       </form>
     </main>
   );

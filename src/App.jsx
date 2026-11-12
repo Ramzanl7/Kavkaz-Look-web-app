@@ -28,6 +28,7 @@ const Settings = lazy(() => import('./pages/Settings.jsx'));
 const Privacy = lazy(() => import('./pages/Privacy.jsx'));
 const AdminStats = lazy(() => import('./pages/AdminStats.jsx'));
 const AdminPromo = lazy(() => import('./pages/AdminPromo.jsx'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword.jsx'));
 const History = lazy(() => import('./pages/History.jsx'));
 const Brands = lazy(() => import('./pages/Brands.jsx'));
 const Measurements = lazy(() => import('./pages/Measurements.jsx'));
@@ -48,6 +49,7 @@ export default function App() {
       <Route path="/" element={<Welcome />} />
       <Route element={<AppLayout />}>
         <Route path="/login" element={<Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/catalog" element={<Catalog />} />
         <Route path="/nearby/:category" element={<Nearby />} />
@@ -74,6 +76,7 @@ export default function App() {
           <Route path="/seller" element={<SellerHome />} />
           <Route path="/seller/products" element={<SellerProducts />} />
           <Route path="/seller/products/new" element={<SellerProductNew />} />
+          <Route path="/seller/products/:id/edit" element={<SellerProductNew />} />
           <Route path="/seller/orders" element={<SellerOrders />} />
         </Route>
         <Route element={<RequireRole roles={['admin']} />}>

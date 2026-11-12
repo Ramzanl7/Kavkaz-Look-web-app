@@ -17,7 +17,7 @@ export default function SellerProducts() {
   const load = useCallback(async () => {
     const b = user ? await api.getMyBoutique(user.id) : null;
     setBoutique(b);
-    setItems(b ? await api.listProducts({ boutiqueId: b.id }) : []);
+    setItems(b ? await api.listMyProducts(b.id) : []);
   }, [user]);
   useEffect(() => { load(); }, [load]);
   const [busy, run] = useAction();
@@ -32,10 +32,15 @@ export default function SellerProducts() {
       <Link className="btn btn-primary press" to="/seller/products/new">Добавить товар</Link>
       {items === null ? <p className="lead">Загрузка…</p> : items.length ? (
         <div className="list">{items.map((p) => (
-          <div key={p.id} className="bcard">
-            <strong>{p.title}</strong>
-            <span className="muted">{rub(p.price)} · {p.category} · {p.published ? 'опубликован' : 'скрыт'}</span>
+          <div key={p.id} className="bcard seller-item">
+            {p.thumb ? <img className="seller-thumb" src={p.thumb} alt="" loading="lazy" /> : <span className="seller-thumb" />}
+            <div className="grow">
+              <strong>{p.title}</strong>
+              <span className="muted block">{rub(p.price)} · {p.category} · {p.published ? 'опубликован' : 'скрыт'} · фото: {p.photos.length}</span>
+              {p.stock && <span className="muted small block">Остатки: {Object.entries(p.stock).map(([k, v]) => (k === '_' ? v + ' шт.' : `${k}: ${v}`)).join(', ')}</span>}
+            </div>
             <div className="acts">
+              <Link className="act ok press" to={'/seller/products/' + p.id + '/edit'}>Изменить</Link>
               <button type="button" className="act press" disabled={busy === p.id} onClick={() => toggle(p)}>{p.published ? 'Скрыть' : 'Опубликовать'}</button>
               <button type="button" className="act press" onClick={() => setEditing({ p, sizing: { type: p.garmentType || '', sizes: p.sizes || [], chart: p.sizeChart || {} } })}>Размеры{p.sizes?.length ? ` (${p.sizes.length})` : ''}</button>
               <button type="button" className="act danger press" disabled={busy === p.id} onClick={() => remove(p)}>Удалить</button>

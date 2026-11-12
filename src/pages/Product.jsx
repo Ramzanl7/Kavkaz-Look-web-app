@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { history } from '../lib/local.js';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/index.js';
 import PhotoSlot from '../components/PhotoSlot.jsx';
@@ -26,7 +27,7 @@ export default function Product() {
   const [p, setP] = useState(() => loc.state?.p ?? api.peekProduct(id) ?? undefined);
   useEffect(() => {
     let on = true;
-    api.getProduct(id).then((r) => { if (on) setP((prev) => r ?? prev ?? null); });
+    api.getProduct(id).then((r) => { if (r) history.add(r.id); if (on) setP((prev) => r ?? prev ?? null); });
     return () => { on = false; };
   }, [id]);
   if (p === undefined) return <main className="wrap"><div className="photo skeleton" style={{ aspectRatio: '4 / 5' }} /><div className="skeleton" style={{ height: 24, borderRadius: 6 }} /></main>;

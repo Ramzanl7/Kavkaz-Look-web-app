@@ -27,6 +27,9 @@ const Support = lazy(() => import('./pages/Support.jsx'));
 const Settings = lazy(() => import('./pages/Settings.jsx'));
 const Privacy = lazy(() => import('./pages/Privacy.jsx'));
 const AdminStats = lazy(() => import('./pages/AdminStats.jsx'));
+const AdminPromo = lazy(() => import('./pages/AdminPromo.jsx'));
+const History = lazy(() => import('./pages/History.jsx'));
+const Brands = lazy(() => import('./pages/Brands.jsx'));
 const Measurements = lazy(() => import('./pages/Measurements.jsx'));
 const Notifications = lazy(() => import('./pages/Notifications.jsx'));
 const Stylist = lazy(() => import('./pages/Stylist.jsx'));
@@ -56,6 +59,8 @@ export default function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/support" element={<Support />} />
         <Route path="/stylist" element={<Stylist />} />
+        <Route path="/history" element={<History />} />
+        <Route path="/brands" element={<Brands />} />
         <Route path="/tryon/:id" element={<TryOn />} />
         <Route element={<RequireRole roles={ANY} />}>
           <Route path="/wishlist" element={<Wishlist />} />
@@ -74,6 +79,7 @@ export default function App() {
         <Route element={<RequireRole roles={['admin']} />}>
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/stats" element={<AdminStats />} />
+          <Route path="/admin/promo" element={<AdminPromo />} />
         </Route>
         <Route path="*" element={<Stub title="Страница не найдена" hint="Проверьте адрес или вернитесь в каталог." />} />
       </Route>

@@ -25,6 +25,11 @@ export default function Admin() {
         <span className="grow"><strong>Статистика и пользователи</strong><small>Посещения, кто был в сети, блокировка</small></span>
         <Icon name="chevron" />
       </Link>
+      <Link className="admin-card press rise" to="/admin/promo">
+        <span className="menu-ic"><Icon name="star" /></span>
+        <span className="grow"><strong>Реклама на главной</strong><small>«Сделано рядом» и «Популярное сейчас»: баннеры, сроки, ссылки</small></span>
+        <Icon name="chevron" />
+      </Link>
       {msg && <p className="msg" role="status">{msg}</p>}
       <div className="sec-head"><h2>Заявки на бутик</h2></div>
       {roles.length ? roles.map((r) => (

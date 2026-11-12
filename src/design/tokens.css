@@ -1,16 +1,19 @@
 /* Единственный источник цветов, шрифтов, отступов и радиусов (Kavkaz Look Design System v1.0). Одна тёмная тема. */
 :root {
-  --bg: #061914;
-  --card: #14261A;
+  --bg: #061A13;
+  --bg-2: #0B2419;
+  --card: #102C1E;
   --surface: #16301F;
   --forest: #0F3D1E;
   --green: #1E7A3C;
-  --gold: #D6B56A;
+  --gold: #D9B765;
+  --gold-2: #E8CD8C;
   --bronze: #B38B45;
-  --champagne: #F4E7C0;
-  --text: #FFFFFF;
-  --text-2: #D8C99C;
-  --border: #16301F;
+  --champagne: #F5F2E9;
+  --text: #F5F2E9;
+  --text-2: #B8B5A8;
+  --border: #344B38;
+  --success: #32875A;
   --danger: #D9534F;
 
   --font: 'Noto Sans', system-ui, sans-serif;

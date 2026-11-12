@@ -77,7 +77,7 @@ export default function Profile() {
         <Item to="/privacy" icon="shield" label="Политика конфиденциальности" />
         {role === 'seller'
           ? <Item to="/seller" icon="store" label="Кабинет продавца" />
-          : !isAdmin && <Item to="/become-seller" icon="store" label="Стать партнёром" />}
+          : !isAdmin && <Item to="/sell" icon="store" label="Подключить свой бутик" />}
       </nav>
 
       <div className="profile-foot rise" style={{ '--d': 3 }}>

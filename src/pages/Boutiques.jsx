@@ -12,7 +12,7 @@ export default function Boutiques() {
         <div className="list">{items.map((b) => (
           <Link key={b.id} to={'/boutiques/' + b.id} className="bcard press"><strong>{b.name}</strong><span className="muted">{b.city}</span></Link>
         ))}</div>
-      ) : <EmptyState title="Бутиков пока нет" text="Они появятся после одобрения заявок." action={<Link className="link-u" to="/become-seller">Я представляю бутик</Link>} />}
+      ) : <EmptyState title="Бутиков пока нет" text="Они появятся после одобрения заявок." action={<Link className="link-u" to="/sell">Я представляю бутик</Link>} />}
     </main>
   );
 }

@@ -1,0 +1,125 @@
+/* Лендинг для бутиков /sell */
+.sell { display: grid; gap: 0; padding-bottom: calc(var(--nav-h) + 40px); overflow-x: clip; }
+.sell-wrap { width: 100%; max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+.sell-sec { padding-top: 56px; padding-bottom: 8px; display: grid; gap: 18px; align-content: start; }
+.sell-eyebrow { display: inline-flex; align-items: center; gap: 10px; color: var(--gold); font-size: .75rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+.sell-eyebrow i { width: 26px; height: 1px; background: var(--gold); }
+.sell em { font-style: normal; color: var(--gold); }
+.sell-h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(2.1rem, 8.4vw, 3.6rem); line-height: 1.08; letter-spacing: -.01em; margin: 0; text-wrap: balance; }
+.sell-h2 { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.6rem, 6vw, 2.4rem); line-height: 1.15; margin: 0; text-wrap: balance; }
+.sell-lead { color: var(--text-2); font-size: 1.0625rem; line-height: 1.55; margin: 0; max-width: 560px; }
+
+/* Первый экран */
+.sell-hero { position: relative; padding: max(28px, env(safe-area-inset-top)) 0 44px; isolation: isolate; }
+.sell-hero::before { content: ''; position: absolute; inset: 0; z-index: -1; background:
+  linear-gradient(180deg, rgba(6,26,19,.1) 0%, rgba(6,26,19,.7) 45%, var(--bg) 100%),
+  var(--hero, radial-gradient(120% 90% at 80% 0%, #1b4a32, var(--bg))) center top / cover no-repeat; }
+.sell-hero .sell-wrap { display: grid; gap: 16px; padding-top: min(9vh, 90px); }
+.sell-cta { display: flex; flex-wrap: wrap; gap: 10px; }
+.sell-cta .btn { width: auto; display: inline-flex; align-items: center; gap: 8px; padding-inline: 22px; }
+.sell-cta .btn svg { width: 18px; height: 18px; }
+.sell-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 8px; }
+.sell-stats div { border-top: 1px solid var(--edge); padding-top: 12px; display: grid; gap: 4px; }
+.sell-stats b { font-size: clamp(1.25rem, 5vw, 1.75rem); color: var(--gold); font-weight: 700; }
+.sell-stats small { color: var(--text-2); font-size: .75rem; line-height: 1.35; }
+
+/* Живой орнамент */
+.oband { display: flex; align-items: center; gap: 14px; padding: 28px 20px 4px; max-width: 1040px; width: 100%; margin: 0 auto; }
+.oband i { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(217,183,101,.7)); transform: scaleX(0); transform-origin: right; transition: transform 1.2s var(--ease) calc(var(--od) + .5s); }
+.oband i:last-child { background: linear-gradient(270deg, transparent, rgba(217,183,101,.7)); transform-origin: left; }
+.oband svg { flex: none; overflow: visible; }
+.oband-reveal { transform: scaleX(0); transform-box: fill-box; transform-origin: center; transition: transform 1.4s var(--ease) var(--od); }
+.oband.on .oband-reveal, .oband.on i { transform: none; }
+
+/* Преимущества */
+.sell-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 12px; }
+.sell-card { background: var(--card); border: 1px solid var(--edge); border-radius: 20px; padding: 20px; display: grid; gap: 8px; align-content: start; transition: border-color .25s, transform .25s var(--ease); }
+.sell-card:hover { border-color: rgba(217,183,101,.55); transform: translateY(-2px); }
+.sell-card h3 { margin: 4px 0 0; font-size: 1.0625rem; }
+.sell-card p { margin: 0; color: var(--text-2); font-size: .9375rem; line-height: 1.5; }
+.sell-ic { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; color: var(--gold); background: rgba(217,183,101,.1); border: 1px solid rgba(217,183,101,.25); }
+.sell-ic svg { width: 22px; height: 22px; }
+
+/* Сцена-история */
+.sell-story { height: 280vh; margin-top: 40px; }
+.sell-story-stage { position: sticky; top: 0; height: 100vh; height: 100svh; display: grid; place-items: center; padding: 0 22px calc(var(--nav-h) + 20px);
+  background: radial-gradient(60% 45% at 50% 50%, rgba(217,183,101,.09), transparent 70%); }
+.sell-story-text { margin: 0; max-width: 760px; text-align: center; font-family: var(--font-display); font-size: clamp(1.75rem, 7.4vw, 3.2rem); line-height: 1.18; text-wrap: balance; }
+.sell-story-text span { color: var(--text); opacity: .16; transition: opacity .45s var(--ease), color .45s; }
+.sell-story-text span.lit { opacity: 1; }
+.sell-story-text span.gold.lit { color: var(--gold); }
+
+/* Кабинет */
+.sell-split { grid-template-columns: 1fr; gap: 28px; align-items: center; }
+.sell-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.sell-list li { display: grid; grid-template-columns: 24px 1fr; gap: 12px; color: var(--text-2); line-height: 1.45; }
+.sell-list li svg { width: 22px; height: 22px; color: var(--gold); margin-top: 1px; }
+.sell-list b { color: var(--text); font-weight: 600; }
+.sell-cab { background: linear-gradient(180deg, #123323, #0c261a); border: 1px solid rgba(217,183,101,.35); border-radius: 22px; padding: 18px; display: grid; gap: 10px; box-shadow: 0 24px 60px rgba(0,0,0,.45); transform: rotate(-1.2deg); }
+.sell-cab-head { display: flex; justify-content: space-between; font-size: .8125rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--gold); padding-bottom: 8px; border-bottom: 2px solid var(--gold); }
+.sell-cab-head .muted { color: var(--text-2); font-weight: 400; text-transform: none; letter-spacing: 0; }
+.sell-cab-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.sell-cab-stats div { background: rgba(255,255,255,.04); border-radius: 12px; padding: 10px; display: grid; gap: 2px; }
+.sell-cab-stats b { font-size: 1.375rem; color: var(--text); }
+.sell-cab-stats small { font-size: .6875rem; color: var(--text-2); }
+.sell-cab-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.03); border-left: 3px solid var(--edge); }
+.sell-cab-row.new { border-left-color: var(--gold); background: rgba(217,183,101,.08); }
+.sell-cab-row span { display: grid; gap: 2px; min-width: 0; }
+.sell-cab-row b { font-size: .875rem; }
+.sell-cab-row small { font-size: .75rem; color: var(--text-2); }
+.sell-cab-row i { font-style: normal; font-size: .6875rem; font-weight: 700; padding: 4px 8px; border-radius: 999px; background: var(--gold); color: #1a1406; flex: none; }
+.sell-cab-row i.ok { background: rgba(30,122,60,.25); color: #7FD79B; }
+.sell-cab-note { color: var(--text-2); font-size: .6875rem; text-align: center; opacity: .7; }
+
+/* Шаги */
+.sell-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; counter-reset: s; }
+.sell-steps li { position: relative; display: grid; gap: 4px; padding: 18px 18px 18px 64px; border: 1px solid var(--edge); border-radius: 18px; background: var(--card); min-height: 84px; align-content: center; }
+.sell-steps span { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; color: #1a1406; background: linear-gradient(135deg, #F4E7C0, #C9A55A); }
+.sell-steps small { color: var(--text-2); }
+
+/* Форма */
+.sell-form, .sell-done { background: linear-gradient(180deg, #123323, var(--card)); border: 1px solid rgba(217,183,101,.4); border-radius: 24px; padding: 22px 18px; display: grid; gap: 14px; max-width: 620px; width: 100%; margin: 0 auto; box-shadow: 0 0 0 6px rgba(217,183,101,.05), 0 24px 60px rgba(0,0,0,.35); scroll-margin-top: 16px; }
+.sell-form h3, .sell-done h3 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.75rem; }
+.sell-form > .muted { margin: -8px 0 0; }
+.sell-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.sell-2 .field { min-width: 0; }
+.sell-kinds { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.sell-kinds legend { font-size: var(--fs-small); color: var(--text-2); margin-bottom: 8px; padding: 0; }
+.sell-done { text-align: center; justify-items: center; }
+.sell-done p { margin: 0; color: var(--text-2); line-height: 1.5; }
+.sell-done .btn { width: auto; padding-inline: 22px; }
+.sell-done-ic { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--gold); color: #1a1406; animation: popIn .5s var(--ease) both; }
+.sell-done-ic svg { width: 28px; height: 28px; }
+@keyframes popIn { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Вопросы */
+.sell-faq { display: grid; gap: 8px; }
+.sell-faq details { border: 1px solid var(--edge); border-radius: 16px; background: var(--card); overflow: hidden; }
+.sell-faq summary { list-style: none; cursor: pointer; padding: 16px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; font-weight: 600; }
+.sell-faq summary::-webkit-details-marker { display: none; }
+.sell-faq summary svg { width: 20px; height: 20px; color: var(--gold); flex: none; transition: transform .25s var(--ease); }
+.sell-faq details[open] summary svg { transform: rotate(180deg); }
+.sell-faq details[open] { border-color: rgba(217,183,101,.45); }
+.sell-faq p { margin: 0; padding: 0 18px 16px; color: var(--text-2); line-height: 1.55; }
+
+/* Финал */
+.sell-final { display: grid; justify-items: center; text-align: center; gap: 14px; padding: 48px 20px 8px; }
+.sell-final .oband { padding-top: 0; }
+.sell-final .btn { width: auto; padding-inline: 28px; }
+
+/* Появление карточек при прокрутке — где браузер это умеет */
+.js-reveal .reveal { opacity: 0; transform: translateY(24px); transition: opacity .6s var(--ease) calc(var(--d, 0) * 70ms), transform .6s var(--ease) calc(var(--d, 0) * 70ms); }
+.js-reveal .reveal.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .oband-reveal, .oband i { transform: none !important; transition: none !important; }
+  .sell-story { height: auto; }
+  .sell-story-stage { position: static; height: auto; padding: 48px 22px; }
+}
+
+@media (min-width: 860px) {
+  .sell-split { grid-template-columns: 1.1fr .9fr; }
+  .sell-sec { padding-top: 80px; }
+  .sell-form { padding: 30px; }
+}
+@media (max-width: 380px) { .sell-2 { grid-template-columns: 1fr; } .sell-stats { gap: 8px; } }

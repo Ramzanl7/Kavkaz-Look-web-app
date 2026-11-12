@@ -24,6 +24,12 @@ import { startUpdater } from './lib/updater.js';
 import { keepPushWorker } from './lib/push.js';
 
 startUpdater();
+// Если у фото товара нет уменьшенной копии (_t.jpg — например, товар загружен до появления превью),
+// на любом экране подставляем основное фото.
+addEventListener('error', (e) => {
+  const img = e.target;
+  if (img?.tagName === 'IMG' && /_t\.jpg(\?|$)/.test(img.src)) img.src = img.src.replace(/_t\.jpg(\?|$)/, '.jpg$1');
+}, true);
 // Ссылка-приглашение ?ref=КОД: запоминаем код до входа, засчитываем после (AuthContext)
 try { const ref = new URLSearchParams(location.search).get('ref'); if (ref && /^[A-Za-z0-9]{6,10}$/.test(ref)) localStorage.setItem('kl-ref', ref.toUpperCase()); } catch { /* приватный режим */ }
 keepPushWorker();

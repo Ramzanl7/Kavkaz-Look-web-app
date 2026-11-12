@@ -7,7 +7,7 @@ import { rub } from '../store/cart.jsx';
 // Админка рекламы на главной: местные бренды («Сделано рядом») и оплаченные размещения товаров («Популярное сейчас»).
 const day = (d) => (d ? new Date(d).toISOString().slice(0, 10) : '');
 const live = (s, e) => { const n = Date.now(); return new Date(s).getTime() <= n && (!e || new Date(e).getTime() > n); };
-const EMPTY_BRAND = { name: '', description: '', site_url: '', ios_url: '', android_url: '', boutique_id: '', starts_at: day(new Date()), ends_at: '', is_approved: false, sort: 0 };
+const EMPTY_BRAND = { name: '', description: '', site_url: '', ios_url: '', android_url: '', boutique_id: '', starts_at: day(new Date()), ends_at: '', is_approved: true, sort: 0 };
 const EMPTY_PROMO = { product_id: '', advertiser: '', advertiser_inn: '', erid: '', starts_at: day(new Date()), ends_at: '', sort: 0 };
 
 export default function AdminPromo() {
@@ -54,7 +54,7 @@ export default function AdminPromo() {
       )) : <p className="muted">Брендов пока нет.</p>}
 
       <div className="sec-head"><h2>Популярное сейчас — реклама товаров</h2><button type="button" className="link-u" onClick={() => { setPr(EMPTY_PROMO); setQ(''); }}>Добавить</button></div>
-      <p className="hint">Продвижение не меняет цену. На карточке — пометка «Реклама» с рекламодателем и токеном erid (по закону о рекламе токен выдаёт оператор рекламных данных). Снятый с продажи товар из выдачи пропадает сам.</p>
+      <p className="hint">Продвижение не меняет цену. Снятый с продажи товар из выдачи пропадает сам.</p>
       {promos === null ? <div className="skeleton" style={{ height: 80, borderRadius: 16 }} /> : promos.length ? promos.map((x) => (
         <div key={x.id} className="bcard promo-row">
           <div className="grow"><strong>{x.product?.title || 'Товар удалён'}</strong>

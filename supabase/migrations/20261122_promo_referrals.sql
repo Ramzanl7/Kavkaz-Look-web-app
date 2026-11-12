@@ -22,10 +22,14 @@ create unique index if not exists promo_codes_code_uniq on public.promo_codes (c
 create index if not exists promo_codes_boutique_idx on public.promo_codes (boutique_id);
 alter table public.promo_codes enable row level security;
 -- список кодов видят только их владельцы (бутик — свои, админ — все); покупатель проверяет код через функцию
+drop policy if exists promo_codes_select on public.promo_codes;
 create policy promo_codes_select on public.promo_codes for select using (public.is_admin() or (boutique_id is not null and public.owns_boutique(boutique_id)));
+drop policy if exists promo_codes_insert on public.promo_codes;
 create policy promo_codes_insert on public.promo_codes for insert with check ((boutique_id is null and public.is_admin()) or (boutique_id is not null and public.owns_boutique(boutique_id)));
+drop policy if exists promo_codes_update on public.promo_codes;
 create policy promo_codes_update on public.promo_codes for update using (public.is_admin() or (boutique_id is not null and public.owns_boutique(boutique_id)))
   with check ((boutique_id is null and public.is_admin()) or (boutique_id is not null and public.owns_boutique(boutique_id)));
+drop policy if exists promo_codes_delete on public.promo_codes;
 create policy promo_codes_delete on public.promo_codes for delete using (public.is_admin() or (boutique_id is not null and public.owns_boutique(boutique_id)));
 grant select, delete on public.promo_codes to authenticated;
 grant insert (code, boutique_id, title, kind, value, min_order, max_discount, starts_at, ends_at, usage_limit, per_user, first_order_only, is_active) on public.promo_codes to authenticated;
@@ -258,3 +262,8 @@ begin
 end $$;
 revoke all on function public.admin_referral_top(integer) from public, anon;
 grant execute on function public.admin_referral_top(integer) to authenticated;
+
+-- Баннеры брендов и обложки подборок: замена файла (upsert) требует права чтения для админа
+drop policy if exists brand_media_select on storage.objects;
+create policy brand_media_select on storage.objects for select to authenticated
+  using (bucket_id = 'brand-media' and public.is_admin());

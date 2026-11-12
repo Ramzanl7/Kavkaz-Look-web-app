@@ -29,6 +29,8 @@ const Privacy = lazy(() => import('./pages/Privacy.jsx'));
 const AdminStats = lazy(() => import('./pages/AdminStats.jsx'));
 const AdminPromo = lazy(() => import('./pages/AdminPromo.jsx'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword.jsx'));
+const CollectionPage = lazy(() => import('./pages/CollectionPage.jsx'));
+const Following = lazy(() => import('./pages/Following.jsx'));
 const SellerProfile = lazy(() => import('./pages/SellerProfile.jsx'));
 const SellerStats = lazy(() => import('./pages/SellerStats.jsx'));
 const AdminTools = lazy(() => import('./pages/AdminTools.jsx'));
@@ -66,6 +68,7 @@ export default function App() {
         <Route path="/stylist" element={<Stylist />} />
         <Route path="/history" element={<History />} />
         <Route path="/brands" element={<Brands />} />
+        <Route path="/collections/:id" element={<CollectionPage />} />
         <Route path="/tryon/:id" element={<TryOn />} />
         <Route element={<RequireRole roles={ANY} />}>
           <Route path="/wishlist" element={<Wishlist />} />
@@ -74,6 +77,7 @@ export default function App() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/measurements" element={<Measurements />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route path="/following" element={<Following />} />
         </Route>
         <Route element={<RequireRole roles={['seller']} />}>
           <Route path="/seller" element={<SellerHome />} />

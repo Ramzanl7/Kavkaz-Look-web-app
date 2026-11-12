@@ -8,7 +8,8 @@ import { api } from '../api/index.js';
 import { useAction } from '../lib/useAction.js';
 
 export const STATUS = { new: 'Новый', confirmed: 'Подтверждён', done: 'Выполнен', cancelled: 'Отменён' };
-export const DELIVERY = { pickup: 'Самовывоз из бутика', courier: 'Доставка курьером' };
+export const DELIVERY = { pickup: 'Самовывоз из бутика', courier: 'Доставка курьером', reserve: 'Отложено для примерки в бутике' };
+export const holdText = (o) => (o.delivery === 'reserve' && o.hold_until ? 'Отложено до ' + new Date(o.hold_until).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : '');
 const STEPS = ['new', 'confirmed', 'done'];
 
 // Шаги заказа: принят → подтверждён продавцом → выполнен
@@ -57,7 +58,15 @@ export default function Orders() {
             <ul className="order-items">
               {o.items.map((i, n) => <li key={n}><span>{i.title}{i.size ? `, размер ${i.size}` : ''} × {i.qty}</span><b>{rub(i.price_rub * i.qty)}</b></li>)}
             </ul>
-            {o.delivery && <span className="muted small">{DELIVERY[o.delivery]}{o.address ? ': ' + o.address : ''} · оплата при получении</span>}
+            {o.delivery === 'reserve' ? (
+              <div className="order-contact">
+                <b>{DELIVERY.reserve}</b>
+                {['new', 'confirmed'].includes(o.status) && o.hold_until && <span>{holdText(o)}</span>}
+                {o.boutique?.address && <span className="muted">{[o.boutique.city, o.boutique.address].filter(Boolean).join(', ')}{o.boutique.hours ? ' · ' + o.boutique.hours : ''}</span>}
+                {o.boutique?.address && ['new', 'confirmed'].includes(o.status) && <a className="link-u small" href={'https://yandex.ru/maps/?text=' + encodeURIComponent([o.boutique.city, o.boutique.address].filter(Boolean).join(', '))} target="_blank" rel="noopener noreferrer">Как добраться</a>}
+                <span className="muted small">Примерите — оплатите в бутике, если подойдёт.</span>
+              </div>
+            ) : o.delivery && <span className="muted small">{DELIVERY[o.delivery]}{o.address ? ': ' + o.address : ''} · оплата при получении</span>}
             <div className="order-foot"><span>Итого</span><b className="price">{rub(o.total_rub)}</b></div>
             <div className="acts">
               {o.boutique?.whatsapp && <a className="act ok press" href={'https://wa.me/' + o.boutique.whatsapp + '?text=' + encodeURIComponent('Здравствуйте! Мой заказ № ' + o.id.slice(0, 8) + ' в Kavkaz Look.')} target="_blank" rel="noopener noreferrer">Написать в WhatsApp</a>}

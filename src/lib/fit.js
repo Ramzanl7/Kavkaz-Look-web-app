@@ -84,7 +84,8 @@ export function bodyFrom(m) {
   // длина стопы: по размеру обуви (EU ≈ длина стельки × 1,5; стелька ≈ стопа + 1,5 см), иначе — по росту
   const footLen = shoe ? Math.round((shoe / 1.5 - 1.5) * 10) / 10 : Math.round(height * 0.15 * 10) / 10;
   const pref = m?.fit_pref && typeof m.fit_pref === 'object' ? m.fit_pref : {};
-  return { gender, height, chest, waist, hips, shoulder, inseam, shoe, footLen, pref, complete: !!(num(m?.chest_cm) && num(m?.hips_cm) && num(m?.height_cm)) };
+  const weight = num(m?.weight_kg) || null;
+  return { gender, height, weight, chest, waist, hips, shoulder, inseam, shoe, footLen, pref, complete: !!(num(m?.chest_cm) && num(m?.hips_cm) && num(m?.height_cm)) };
 }
 const num = (v) => { const n = Number(String(v ?? '').replace(',', '.')); return Number.isFinite(n) && n > 0 ? n : 0; };
 
@@ -135,6 +136,11 @@ function lengthVerdict(body, g, type) {
   const H = body.height;
   if (type === 'pants') {
     const d = Math.round(g.length - body.inseam);
+    const cropped = body.pref?.trousers === 'cropped', long = body.pref?.trousers === 'long';
+    // любимая длина брюк из опросника
+    if (cropped && d >= -2) return { zone: 'length', delta: d, status: 'loose', text: d > 4 ? `длиннее на ${d} см — длиннее, чем вы любите` : 'до обуви — длиннее, чем вы любите' };
+    if (cropped && d >= -9) return { zone: 'length', delta: d, status: 'good', text: `короче на ${-d} см — укороченные, как вы любите` };
+    if (long && d < -2) return { zone: 'length', delta: d, status: 'tight', text: `короче на ${-d} см — откроют щиколотку, а вы любите длинные` };
     return { zone: 'length', delta: d, status: d > 4 ? 'loose' : d < -4 ? 'tight' : 'good', text: d > 4 ? `длиннее на ${d} см — будут складки внизу` : d < -4 ? `короче на ${-d} см — откроют щиколотку` : 'по длине в самый раз' };
   }
   const top = type === 'skirt' ? H * 0.62 : H * 0.82; // от талии или от плеч

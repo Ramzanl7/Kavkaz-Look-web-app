@@ -457,6 +457,33 @@ export const api = {
     if (file) { const r = await this.uploadProductPhoto(boutiqueId, file); if (r.error) return { ok: false, error: r.error }; photos = [r.path]; }
     return this.saveProduct({ boutiqueId, title, price, category, description, photos, sizing });
   },
+  // ===== Заявки бутиков с лендинга /sell (без регистрации) =====
+  async submitBoutiqueLead(f) {
+    const phone = String(f.phone || '').replace(/[^0-9+]/g, '');
+    if (cleanText(f.boutique, 80).length < 2) return 'Укажите название бутика.';
+    if (!/^\+?[0-9]{10,15}$/.test(phone)) return 'Проверьте номер телефона.';
+    const { error } = await supabase.rpc('submit_boutique_lead', {
+      p_boutique: cleanText(f.boutique, 80), p_contact: cleanText(f.contact, 60), p_phone: phone,
+      p_instagram: cleanText(f.instagram, 60), p_city: CITIES.includes(f.city) ? f.city : null,
+      p_categories: Array.isArray(f.kinds) ? f.kinds.slice(0, 6) : [], p_comment: cleanText(f.comment, 500),
+    });
+    if (!error) return '';
+    if (/too many/.test(error.message || '')) return 'Слишком много заявок подряд. Попробуйте через час или напишите в поддержку.';
+    return 'Не удалось отправить заявку. Проверьте интернет и попробуйте ещё раз.';
+  },
+  async platformCounts() { const { data, error } = await supabase.rpc('platform_counts'); return error ? null : data; },
+  async adminListLeads() {
+    const { data, error } = await supabase.from('boutique_leads').select('*').order('created_at', { ascending: false }).limit(200);
+    return error || !data ? [] : data;
+  },
+  async adminSetLead(id, patch) {
+    if (!isUuid(id)) return false;
+    const row = {};
+    if (['new', 'contacted', 'done', 'rejected'].includes(patch.status)) row.status = patch.status;
+    if (patch.admin_note !== undefined) row.admin_note = cleanText(patch.admin_note, 300) || null;
+    const { error } = await supabase.from('boutique_leads').update(row).eq('id', id);
+    return !error;
+  },
   // ===== Промокоды =====
   // проверка кода для корзины: { discount, by, title } или { error }
   async promoQuote(code, items) {

@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import AppLayout from './layouts/AppLayout.jsx';
 import RequireRole from './auth/RequireRole.jsx';
 import Welcome from './pages/Welcome.jsx';
@@ -15,7 +15,6 @@ const Profile = lazy(() => import('./pages/Profile.jsx'));
 const Boutiques = lazy(() => import('./pages/Boutiques.jsx'));
 const BoutiqueDetails = lazy(() => import('./pages/BoutiqueDetails.jsx'));
 const Wishlist = lazy(() => import('./pages/Wishlist.jsx'));
-const BecomeSeller = lazy(() => import('./pages/BecomeSeller.jsx'));
 const Partners = lazy(() => import('./pages/Partners.jsx'));
 const Orders = lazy(() => import('./pages/Orders.jsx'));
 const SellerHome = lazy(() => import('./pages/SellerHome.jsx'));
@@ -40,6 +39,7 @@ const Measurements = lazy(() => import('./pages/Measurements.jsx'));
 const Notifications = lazy(() => import('./pages/Notifications.jsx'));
 const Stylist = lazy(() => import('./pages/Stylist.jsx'));
 const SellerPromos = lazy(() => import('./pages/SellerPromos.jsx'));
+const Sell = lazy(() => import('./pages/Sell.jsx'));
 const Invite = lazy(() => import('./pages/Invite.jsx'));
 const TryOn = lazy(() => import('./pages/TryOn.jsx'));
 
@@ -61,6 +61,8 @@ export default function App() {
         <Route path="/catalog" element={<Catalog />} />
         <Route path="/nearby/:category" element={<Nearby />} />
         <Route path="/partners" element={<Partners />} />
+        <Route path="/sell" element={<Sell />} />
+        <Route path="/become-seller" element={<Navigate to="/sell" replace />} />
         <Route path="/boutiques" element={<Boutiques />} />
         <Route path="/boutiques/:id" element={<BoutiqueDetails />} />
         <Route path="/product/:id" element={<Product />} />
@@ -75,7 +77,6 @@ export default function App() {
         <Route element={<RequireRole roles={ANY} />}>
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/orders" element={<Orders />} />
-          <Route path="/become-seller" element={<BecomeSeller />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/measurements" element={<Measurements />} />
           <Route path="/notifications" element={<Notifications />} />

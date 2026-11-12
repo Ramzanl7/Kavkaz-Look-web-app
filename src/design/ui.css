@@ -584,3 +584,4 @@ button.link-u { background: none; border: 0; border-bottom: 1px solid var(--gold
 .pm-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; align-items: end; }
 .pm-row .field { min-width: 0; }
 .pm-row input { width: 100%; min-width: 0; box-sizing: border-box; }
+.lead-status { min-height: 40px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--edge); background: var(--bg-2); color: var(--text); font: inherit; font-size: var(--fs-small); }

@@ -7,18 +7,19 @@ import { rub } from '../store/cart.jsx';
 import { STATUS } from './Orders.jsx';
 import PromoManager from '../components/PromoManager.jsx';
 
-const TABS = [['collections', 'Подборки'], ['products', 'Товары'], ['reviews', 'Отзывы'], ['reports', 'Жалобы'], ['orders', 'Заказы'], ['broadcast', 'Рассылка'], ['promos', 'Промокоды'], ['invites', 'Приглашения'], ['finance', 'Обороты']];
+const TABS = [['leads', 'Заявки бутиков'], ['collections', 'Подборки'], ['products', 'Товары'], ['reviews', 'Отзывы'], ['reports', 'Жалобы'], ['orders', 'Заказы'], ['broadcast', 'Рассылка'], ['promos', 'Промокоды'], ['invites', 'Приглашения'], ['finance', 'Обороты']];
 const REASON = { fake: 'Подделка/обман', prohibited: 'Запрещённый товар', offensive: 'Оскорбления', fraud: 'Мошенничество', other: 'Другое' };
 const TARGET = { product: 'Товар', review: 'Отзыв', boutique: 'Бутик' };
 
 // Модерация и управление платформой (только администратор)
 export default function AdminTools() {
-  const [tab, setTab] = useState(() => { try { return sessionStorage.getItem('kl-admin-tab') || 'products'; } catch { return 'products'; } });
+  const [tab, setTab] = useState(() => { const q = new URLSearchParams(location.search).get('tab'); if (q && TABS.some(([v]) => v === q)) return q; try { return sessionStorage.getItem('kl-admin-tab') || 'leads'; } catch { return 'leads'; } });
   const pick = (t) => { setTab(t); try { sessionStorage.setItem('kl-admin-tab', t); } catch { /* приватный режим */ } };
   return (
     <main className="wrap">
       <h1 className="screen-title rise">Модерация</h1>
       <div className="chips">{TABS.map(([v, l]) => <button key={v} type="button" className={'chip' + (tab === v ? ' on' : '')} onClick={() => pick(v)}>{l}</button>)}</div>
+      {tab === 'leads' && <Leads />}
       {tab === 'collections' && <CollectionsAdmin />}
       {tab === 'products' && <Products />}
       {tab === 'reviews' && <Reviews />}
@@ -144,6 +145,36 @@ function Broadcast() {
       <button className="btn btn-primary press" type="submit" disabled={!!busy || f.title.trim().length < 2}>{busy ? 'Отправляем…' : 'Отправить'}</button>
     </form>
   );
+}
+
+const LEAD_ST = { new: 'Новая', contacted: 'Связались', done: 'Подключён', rejected: 'Отказ' };
+function Leads() {
+  const [list, setList] = useState(null), [f, setF] = useState('new');
+  const [busy, run] = useAction();
+  const load = () => api.adminListLeads().then(setList);
+  useEffect(() => { load(); }, []);
+  const wa = (ph) => { const d = String(ph).replace(/\D/g, ''); return d.length === 11 && d[0] === '8' ? '7' + d.slice(1) : d; };
+  const shown = (list || []).filter((l) => f === 'all' || l.status === f);
+  return <>
+    <p className="hint">Заявки с лендинга <Link className="link-u" to="/sell">/sell</Link> — ссылку можно отправлять владельцам бутиков. Позвоните, помогите зарегистрироваться и одобрите бутик в «Заявках на бутик» на панели администратора.</p>
+    <div className="chips">{[['new', 'Новые'], ['contacted', 'Связались'], ['done', 'Подключены'], ['rejected', 'Отказ'], ['all', 'Все']].map(([v, l]) => <button key={v} type="button" className={'chip' + (f === v ? ' on' : '')} onClick={() => setF(v)}>{l}{v === 'new' && list ? ` · ${list.filter((x) => x.status === 'new').length}` : ''}</button>)}</div>
+    {list === null ? <p className="lead">Загрузка…</p> : shown.length ? shown.map((l) => (
+      <div key={l.id} className="bcard">
+        <strong>{l.boutique_name} <span className={'status' + (l.status === 'done' ? ' ok' : '')}>{LEAD_ST[l.status]}</span></strong>
+        <span className="small">{[l.contact_name, l.city, l.categories?.join(', ')].filter(Boolean).join(' · ')}</span>
+        {l.instagram && <a className="link-u small" href={'https://instagram.com/' + l.instagram} target="_blank" rel="noopener noreferrer">@{l.instagram}</a>}
+        {l.comment && <span className="muted small">«{l.comment}»</span>}
+        <span className="muted small">{new Date(l.created_at).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}{l.user_id ? ' · есть аккаунт' : ''}</span>
+        <div className="acts">
+          <a className="act ok press" href={'tel:' + l.phone}>Позвонить</a>
+          <a className="act press" href={'https://wa.me/' + wa(l.phone) + '?text=' + encodeURIComponent('Здравствуйте! Это Kavkaz Look, вы оставили заявку на подключение бутика «' + l.boutique_name + '».')} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+          <select className="lead-status" aria-label="Статус заявки" value={l.status} disabled={!!busy} onChange={(e) => run(async () => { if (await api.adminSetLead(l.id, { status: e.target.value })) load(); })}>
+            {Object.entries(LEAD_ST).map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+          </select>
+        </div>
+      </div>
+    )) : <p className="muted">{f === 'new' ? 'Новых заявок нет. Отправьте владельцам бутиков ссылку на /sell.' : 'Пусто.'}</p>}
+  </>;
 }
 
 function Invites() {

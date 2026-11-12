@@ -11,7 +11,7 @@ export default function Welcome() {
       <p className="lead rise" style={{ '--d': 3 }}>Открывайте местные бутики, находите новые образы и выбирайте одежду рядом.</p>
       <div className="row rise" style={{ '--d': 4 }}>
         <Link className="btn btn-cream press" to="/catalog">Смотреть каталог ↗</Link>
-        <Link className="link-u" to="/partners">Я представляю бутик</Link>
+        <Link className="link-u" to="/sell">Я представляю бутик</Link>
       </div>
       <div className="rise" style={{ '--d': 5 }}><PhotoSlot ratio="4 / 3" /></div>
       <p className="caption">Местные магазины • Грозный</p>

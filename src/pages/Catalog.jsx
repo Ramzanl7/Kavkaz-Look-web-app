@@ -1,56 +1,132 @@
-import { useEffect, useState } from 'react';
-import { Icon } from '../components/Icons.jsx';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Icon } from '../components/Icons.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import ProductCard from '../components/ProductCard.jsx';
-import { api } from '../api/index.js';
-const chips = ['Всё', 'Женское', 'Мужское', 'Национальное', 'Обувь', 'Аксессуары'];
-const nearby = [['food', 'Еда'], ['taxi', 'Такси'], ['delivery', 'Доставка'], ['coffee', 'Кофейни']];
-const sorts = [['new', 'Новинки'], ['price_asc', 'Сначала дешёвые'], ['price_desc', 'Сначала дорогие'], ['rating', 'По рейтингу']];
+import HomeHeader from '../components/home/HomeHeader.jsx';
+import SearchBar from '../components/home/SearchBar.jsx';
+import LocalBrands, { useOpenBrand } from '../components/home/LocalBrands.jsx';
+import { api, PAGE } from '../api/index.js';
+import { history, city as cityStore } from '../lib/local.js';
+
+// Главная (каталог): шапка → поиск → разделы → ИИ-стилист → «Сделано рядом» → «Популярное сейчас» → история → каталог.
+const CATS = ['Все', 'Женское', 'Мужское', 'Национальное', 'Обувь', 'Аксессуары'];
+const NOFILTER = { minPrice: '', maxPrice: '', size: '', sort: 'new' };
+
 export default function Catalog() {
-  const [active, setActive] = useState('Всё');
-  const [sort, setSort] = useState('new');
+  const [cat, setCat] = useState('Все');
   const [query, setQuery] = useState('');
-  const opts = { query, category: active === 'Всё' ? '' : active, sort };
-  const [products, setProducts] = useState(() => api.peekList({ query: '', category: '', boutiqueId: '', sort: 'new' }));
+  const [filters, setFilters] = useState(NOFILTER);
+  const [city, setCity] = useState(cityStore.get);
+  const [brands, setBrands] = useState([]);
+  const [popular, setPopular] = useState(null);
+  const [hasHistory] = useState(() => history.list().length > 0);
+  const [openBrand, brandSheet] = useOpenBrand();
+  const opts = { query, category: cat === 'Все' ? '' : cat, ...filters, city };
+  const searching = query.trim() !== '' || cat !== 'Все' || !!(filters.minPrice || filters.maxPrice || filters.size || filters.sort !== 'new');
+
+  useEffect(() => { api.listLocalBrands().then(setBrands); api.listPopular().then(setPopular); }, []);
+
+  // каталог: первая страница сразу (из кэша, если есть), следующие — при прокрутке
+  const [items, setItems] = useState(() => api.peekList({ ...opts, boutiqueId: '' }));
+  const [page, setPage] = useState(0);
+  const [more, setMore] = useState(true);
+  const [error, setError] = useState(false);
+  const loading = useRef(false), req = useRef(0);
+  const key = JSON.stringify(opts);
   useEffect(() => {
-    let on = true;
+    const id = ++req.current;
     const cached = api.peekList({ ...opts, boutiqueId: '' });
-    if (cached) setProducts(cached);
-    const t = setTimeout(() => { api.listProducts(opts).then((r) => on && setProducts(r)); }, query ? 300 : 0);
-    return () => { on = false; clearTimeout(t); };
-  }, [query, active, sort]); // eslint-disable-line react-hooks/exhaustive-deps
-  const filtered = query.trim() !== '' || active !== 'Всё';
+    setItems(cached ?? null); setPage(0); setMore(true); setError(false);
+    loading.current = true;
+    const t = setTimeout(() => api.listProducts({ ...opts, page: 0 }).then((r) => {
+      if (id !== req.current) return;
+      loading.current = false;
+      if (r === null) { setError(true); setItems((v) => v ?? []); return; }
+      setItems(r); setMore(r.length === PAGE);
+    }), query ? 300 : 0);
+    return () => clearTimeout(t);
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const loadMore = useCallback(() => {
+    if (loading.current || !more || !items) return;
+    loading.current = true;
+    const id = req.current, next = page + 1;
+    api.listProducts({ ...opts, page: next }).then((r) => {
+      if (id !== req.current) return;
+      loading.current = false;
+      const list = r || [];
+      setItems((v) => { const have = new Set(v.map((p) => p.id)); return [...v, ...list.filter((p) => !have.has(p.id))]; });
+      setPage(next); setMore(list.length === PAGE);
+    });
+  }, [items, more, page, key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const sentinel = useRef(null);
+  useEffect(() => {
+    const el = sentinel.current; if (!el) return undefined;
+    const io = new IntersectionObserver((e) => { if (e[0].isIntersecting) loadMore(); }, { rootMargin: '600px 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [loadMore]);
+
+  const toCatalog = () => document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const changeCity = (c) => { setCity(c); cityStore.set(c); };
+
   return (
-    <main className="wrap">
-      <div className="topbar rise"><span className="wordmark wordmark-sans">Kavkaz <span>Look</span></span><span className="pill">ЧР | Грозный</span></div>
-      <input className="search rise" style={{ '--d': 1 }} type="search" aria-label="Поиск" placeholder="Найти одежду, бутик или бренд" value={query} onChange={(e) => setQuery(e.target.value)} maxLength={80} />
-      <div className="chips rise" style={{ '--d': 2 }}>
-        {chips.map((c) => (
-          <button key={c} type="button" className={'chip press' + (c === 'Национальное' ? ' nat' : '') + (c === active ? ' on' : '')} onClick={() => setActive(c)}>{c}</button>
+    <main className="wrap home">
+      <HomeHeader city={city} onCity={changeCity} />
+      <SearchBar value={query} onChange={setQuery} filters={filters} onFilters={setFilters}
+        onBrand={(id) => openBrand(brands.find((b) => b.id === id))} />
+      <div className="chips cat-chips" role="tablist" aria-label="Разделы">
+        {CATS.map((c) => (
+          <button key={c} type="button" role="tab" aria-selected={c === cat} className={'chip press' + (c === cat ? ' on' : '')} onClick={() => setCat(c)}>{c}</button>
         ))}
       </div>
-      <Link className="stylist-card press" to="/stylist">
-        <span className="menu-ic"><Icon name="star" /></span>
-        <span className="grow"><strong className="block">ИИ-стилист</strong><small className="muted">Опишите повод и бюджет — подберём образ</small></span>
-        <Icon name="chevron" />
-      </Link>
-      <div className="sec-head"><h2>Популярное сейчас</h2>
-        <select className="sort" aria-label="Сортировка" value={sort} onChange={(e) => setSort(e.target.value)}>{sorts.map(([v, n]) => <option key={v} value={v}>{n}</option>)}</select>
-      </div>
-      {products === null ? (
-        <div className="pgrid">{[0, 1, 2, 3].map((n) => <div key={n} className="pcard"><div className="photo skeleton" style={{ aspectRatio: '4 / 5' }} /><div className="skeleton" style={{ height: 14, borderRadius: 6 }} /><div className="skeleton" style={{ height: 14, width: '60%', borderRadius: 6 }} /></div>)}</div>
-      ) : products.length ? (
-        <div className="pgrid">{products.map((p, i) => <ProductCard key={p.id} p={p} i={i} />)}</div>
-      ) : (
-        <EmptyState title={filtered ? 'Ничего не найдено' : 'Товаров пока нет'} text={filtered ? 'Попробуйте другой запрос или раздел.' : 'Здесь появятся товары, как только бутики их добавят.'} />
-      )}
-      <div className="sec-head"><h2>Сделано рядом</h2></div>
-      <p className="lead">Наши чеченские бренды и сервисы.</p>
-      <div className="nearby">
-        {nearby.map(([slug, name]) => <Link key={slug} className="tile press" to={'/nearby/' + slug}>{name}</Link>)}
-      </div>
-      <Link className="link-u" to="/partners" style={{ justifySelf: 'start' }}>Стать партнёром</Link>
+
+      {!searching && <>
+        <Link className="stylist-bar press" to="/stylist">
+          <span className="stylist-ic"><Icon name="star" /></span>
+          <span className="grow"><strong>ИИ-стилист</strong><small>Подберём образ под твой бюджет</small></span>
+          <Icon name="chevron" />
+        </Link>
+
+        <LocalBrands brands={brands} onOpen={openBrand} />
+
+        {popular && popular.length > 0 && (
+          <section className="home-sec" aria-labelledby="pop-h">
+            <div className="sec-head2">
+              <h2 id="pop-h"><Icon name="flame" />Популярное сейчас</h2>
+              <button type="button" className="sec-link" onClick={toCatalog}>Все товары <Icon name="arrow" /></button>
+            </div>
+            <div className="hscroll popular">
+              {popular.map((p, i) => <ProductCard key={p.id} p={p} i={i} variant="compact" priority={i < 2} />)}
+            </div>
+          </section>
+        )}
+        {popular === null && <div className="hscroll popular">{[0, 1, 2].map((n) => <div key={n} className="pcard pcard-compact"><div className="photo skeleton" style={{ aspectRatio: '4 / 5' }} /></div>)}</div>}
+
+        {hasHistory && (
+          <Link className="history-link press" to="/history"><Icon name="clock" /><span className="grow">История просмотров</span><Icon name="chevron" /></Link>
+        )}
+      </>}
+
+      <section className="home-sec" id="catalog" aria-labelledby="cat-h">
+        <div className="sec-head2">
+          <h2 id="cat-h"><Icon name="catalog" />{searching ? 'Результаты' : 'Каталог'}</h2>
+          {city && <span className="muted small">{city}</span>}
+        </div>
+        {items === null ? (
+          <div className="pgrid">{[0, 1, 2, 3].map((n) => <div key={n} className="pcard"><div className="photo skeleton" style={{ aspectRatio: '4 / 5' }} /><div className="skeleton" style={{ height: 14, borderRadius: 6 }} /><div className="skeleton" style={{ height: 14, width: '60%', borderRadius: 6 }} /></div>)}</div>
+        ) : items.length ? (
+          <>
+            <div className="pgrid">{items.map((p, i) => <ProductCard key={p.id} p={p} i={i % PAGE} />)}</div>
+            <div ref={sentinel} className="load-more" aria-hidden={!more}>{more ? <span className="spinner" /> : null}</div>
+          </>
+        ) : (
+          <EmptyState title={error ? 'Не удалось загрузить' : searching || city ? 'Ничего не найдено' : 'Товаров пока нет'}
+            text={error ? 'Проверьте интернет и попробуйте ещё раз.' : searching || city ? 'Попробуйте другой запрос, раздел или город.' : 'Здесь появятся товары, как только бутики их добавят.'}
+            action={(searching || city) && !error ? <button type="button" className="btn btn-secondary press" onClick={() => { setQuery(''); setCat('Все'); setFilters(NOFILTER); changeCity(''); }}>Сбросить всё</button> : null} />
+        )}
+      </section>
+      {brandSheet}
     </main>
   );
 }

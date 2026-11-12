@@ -13,7 +13,9 @@ window.fetch = async (...args) => {
 const CATEGORIES = ['Женское', 'Мужское', 'Национальное', 'Обувь', 'Аксессуары'];
 const PARTNER_CATEGORIES = ['food', 'taxi', 'delivery', 'coffee'];
 const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
-const COLS = 'id,title,price_rub,category,image_path,garment_type,sizes,size_chart,is_published,rating_avg,rating_count,boutique:boutiques(name)';
+const COLS = 'id,title,price_rub,category,image_path,garment_type,sizes,size_chart,is_published,rating_avg,rating_count,created_at,boutique_id,boutique:boutiques(name,city)';
+export const PAGE = 20;
+export const CITIES = ['Грозный', 'Аргун', 'Гудермес', 'Урус-Мартан', 'Шали', 'Курчалой', 'Ачхой-Мартан', 'Наурская', 'Ведено'];
 const SORTS = { new: ['created_at', false], price_asc: ['price_rub', true], price_desc: ['price_rub', false], rating: ['rating_avg', false] };
 const pub = (path) => supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl;
 // Ссылки на фото товара по пути в хранилище (для ответов, где есть только image_path)
@@ -37,13 +39,16 @@ export function normalizeSizing(v = {}) {
 }
 const toProduct = (r) => ({
   id: r.id, title: r.title, price: r.price_rub, category: r.category, description: r.description ?? '', boutique: r.boutique?.name ?? '', published: r.is_published,
-  rating: Number(r.rating_avg) || 0, ratingCount: r.rating_count || 0,
+  rating: Number(r.rating_avg) || 0, ratingCount: r.rating_count || 0, boutiqueId: r.boutique_id ?? null, city: r.boutique?.city ?? '',
+  isNew: r.created_at ? Date.now() - new Date(r.created_at).getTime() < 14 * 864e5 : false,
   garmentType: r.garment_type ?? null, sizes: r.sizes ?? [], sizeChart: r.size_chart ?? null,
   image: r.image_path ? pub(r.image_path) : null, thumb: r.image_path ? pub(r.image_path.replace(/\.jpg$/, '_t.jpg')) : null,
 });
+const brandUrl = (path) => (path ? supabase.storage.from('brand-media').getPublicUrl(path).data.publicUrl : null);
+const toBrand = (r) => ({ ...r, banner: brandUrl(r.banner_path), logo: brandUrl(r.logo_path) });
 // Кэш на 60 секунд: каталог открывается мгновенно, данные обновляются в фоне.
 const lists = new Map(), products = new Map();
-const keyOf = (o) => [o.query ?? '', o.category ?? '', o.boutiqueId ?? '', o.sort ?? 'new'].join('|');
+const keyOf = (o) => [o.query ?? '', o.category ?? '', o.boutiqueId ?? '', o.sort ?? 'new', o.minPrice ?? '', o.maxPrice ?? '', o.size ?? '', o.city ?? ''].join('|');
 
 // Приводит контакты поддержки к виду, который принимает база. Пустое поле = канал скрыт.
 const PHONE = /^\+?[0-9]{10,15}$/;
@@ -66,17 +71,137 @@ export const api = {
   imageUrls,
   peekList(o = {}) { const v = lists.get(keyOf(o)); return v && Date.now() - v.t < 60000 ? v.data : null; },
   peekProduct(id) { return products.get(id) ?? null; },
-  async listProducts({ query = '', category = '', boutiqueId = '', sort = 'new' } = {}) {
+  // Каталог: постранично (по PAGE), фильтры — раздел, цена, размер, город бутика; поиск — по названию товара и по бутику
+  async listProducts({ query = '', category = '', boutiqueId = '', sort = 'new', page = 0, minPrice = '', maxPrice = '', size = '', city = '' } = {}) {
     const [col, asc] = SORTS[sort] || SORTS.new;
-    let req = supabase.from('products').select(COLS).order(col, { ascending: asc }).limit(50);
+    const byCity = CITIES.includes(city);
+    let req = supabase.from('products').select(byCity ? COLS.replace('boutique:boutiques(name,city)', 'boutique:boutiques!inner(name,city)') : COLS)
+      .order(col, { ascending: asc }).order('id').range(page * PAGE, page * PAGE + PAGE - 1);
     const q = cleanQuery(query);
-    if (q) req = req.ilike('title', '%' + escapeLike(q) + '%');
+    if (q) {
+      const like = '%' + escapeLike(q) + '%';
+      const { data: bs } = await supabase.from('boutiques').select('id').eq('is_approved', true).ilike('name', like).limit(20);
+      const ids = (bs || []).map((b) => b.id).filter(isUuid);
+      req = ids.length ? req.or(`title.ilike.${JSON.stringify(like)},boutique_id.in.(${ids.join(',')})`) : req.ilike('title', like);
+    }
     if (CATEGORIES.includes(category)) req = req.eq('category', category);
     if (isUuid(boutiqueId)) req = req.eq('boutique_id', boutiqueId);
+    const lo = Math.max(0, Math.round(Number(minPrice) || 0)), hi = Math.round(Number(maxPrice) || 0);
+    if (lo) req = req.gte('price_rub', lo);
+    if (hi > 0) req = req.lte('price_rub', hi);
+    if (/^[0-9]{2}$/.test(String(size))) req = req.contains('sizes', [String(size)]);
+    if (byCity) req = req.eq('boutique.city', city);
     const { data, error } = await req;
-    if (error || !data) return [];
+    if (error || !data) return page ? [] : null;
     const list = data.map(toProduct);
-    lists.set(keyOf({ query, category, boutiqueId, sort }), { t: Date.now(), data: list });
+    if (!page) lists.set(keyOf({ query, category, boutiqueId, sort, minPrice, maxPrice, size, city }), { t: Date.now(), data: list });
+    list.forEach((p) => products.set(p.id, p));
+    return list;
+  },
+  // Подсказки поиска: товары, бутики и местные бренды по началу/части названия
+  async suggest(query) {
+    const q = cleanQuery(query);
+    if (q.length < 2) return [];
+    const like = '%' + escapeLike(q) + '%';
+    const [p, b, l] = await Promise.all([
+      supabase.from('products').select('id,title').ilike('title', like).limit(5),
+      supabase.from('boutiques').select('id,name').eq('is_approved', true).ilike('name', like).limit(3),
+      supabase.from('local_brands').select('id,name').ilike('name', like).limit(3),
+    ]);
+    return [
+      ...(p.data || []).map((x) => ({ kind: 'product', id: x.id, label: x.title })),
+      ...(b.data || []).map((x) => ({ kind: 'boutique', id: x.id, label: x.name })),
+      ...(l.data || []).map((x) => ({ kind: 'brand', id: x.id, label: x.name })),
+    ];
+  },
+  async listProductsByIds(ids) {
+    const ok = (ids || []).filter(isUuid).slice(0, 50);
+    if (!ok.length) return [];
+    const { data, error } = await supabase.from('products').select(COLS).in('id', ok);
+    if (error || !data) return [];
+    const map = new Map(data.map((r) => [r.id, toProduct(r)]));
+    return ok.map((id) => map.get(id)).filter(Boolean);
+  },
+  // ===== Админка: местные бренды и рекламные размещения =====
+  async adminListBrands() {
+    const { data, error } = await supabase.from('local_brands').select('*').order('sort').order('created_at', { ascending: false }).limit(100);
+    return error || !data ? [] : data.map(toBrand);
+  },
+  async adminSaveBrand(b, files = {}) {
+    const url = (v) => { const t = cleanText(v, 300); return t ? (/^https:\/\/[^\s<>"]{3,300}$/.test(t) ? t : undefined) : null; };
+    const row = {
+      name: cleanText(b.name, 60), description: cleanText(b.description, 140) || null,
+      boutique_id: isUuid(b.boutique_id) ? b.boutique_id : null,
+      site_url: url(b.site_url), ios_url: url(b.ios_url), android_url: url(b.android_url),
+      starts_at: b.starts_at ? new Date(String(b.starts_at).length === 10 ? b.starts_at + 'T00:00:00' : b.starts_at).toISOString() : new Date().toISOString(),
+      ends_at: b.ends_at ? new Date(String(b.ends_at).length === 10 ? b.ends_at + 'T23:59:59' : b.ends_at).toISOString() : null,
+      is_approved: !!b.is_approved, sort: Math.max(-99, Math.min(99, Math.round(Number(b.sort) || 0))),
+    };
+    if (row.name.length < 2) return 'Укажите название бренда.';
+    if ([row.site_url, row.ios_url, row.android_url].includes(undefined)) return 'Ссылки должны начинаться с https://';
+    const id = isUuid(b.id) ? b.id : crypto.randomUUID();
+    for (const kind of ['banner', 'logo']) {
+      const f = files[kind];
+      if (!f) continue;
+      const v = await makeVariants(f);
+      if (!v) return 'Не удалось обработать изображение.';
+      const path = `brands/${id}-${kind}.jpg`;
+      const { error } = await supabase.storage.from('brand-media').upload(path, kind === 'banner' ? v.main : v.thumb, { contentType: 'image/jpeg', upsert: true });
+      if (error) return 'Не удалось загрузить изображение.';
+      row[kind + '_path'] = path;
+    }
+    const { error } = isUuid(b.id) ? await supabase.from('local_brands').update(row).eq('id', b.id) : await supabase.from('local_brands').insert({ id, ...row });
+    return error ? (error.code === '23514' ? 'Проверьте даты и ссылки.' : 'Не удалось сохранить бренд.') : '';
+  },
+  async adminDeleteBrand(id) {
+    if (!isUuid(id)) return false;
+    await supabase.storage.from('brand-media').remove([`brands/${id}-banner.jpg`, `brands/${id}-logo.jpg`]);
+    const { error } = await supabase.from('local_brands').delete().eq('id', id);
+    return !error;
+  },
+  async adminListPromotions() {
+    const { data, error } = await supabase.from('promotions').select('*,product:products(id,title,price_rub,is_published)').order('ends_at', { ascending: false }).limit(100);
+    return error || !data ? [] : data;
+  },
+  async adminSavePromotion(p) {
+    const row = {
+      product_id: p.product_id, advertiser: cleanText(p.advertiser, 120), advertiser_inn: cleanText(p.advertiser_inn, 12) || null,
+      erid: cleanText(p.erid, 40) || null, starts_at: p.starts_at ? new Date(String(p.starts_at).length === 10 ? p.starts_at + 'T00:00:00' : p.starts_at).toISOString() : new Date().toISOString(),
+      ends_at: p.ends_at ? new Date(String(p.ends_at).length === 10 ? p.ends_at + 'T23:59:59' : p.ends_at).toISOString() : null, sort: Math.max(-99, Math.min(99, Math.round(Number(p.sort) || 0))),
+    };
+    if (!isUuid(row.product_id)) return 'Выберите товар.';
+    if (row.advertiser.length < 2) return 'Укажите рекламодателя.';
+    if (!row.ends_at) return 'Укажите дату окончания.';
+    if (row.advertiser_inn && !/^[0-9]{10}([0-9]{2})?$/.test(row.advertiser_inn)) return 'ИНН — 10 или 12 цифр.';
+    if (row.erid && !/^[A-Za-z0-9]{6,40}$/.test(row.erid)) return 'Токен erid — латинские буквы и цифры.';
+    const { error } = isUuid(p.id) ? await supabase.from('promotions').update(row).eq('id', p.id) : await supabase.from('promotions').insert(row);
+    return error ? (error.code === '23514' ? 'Дата окончания должна быть позже начала.' : 'Не удалось сохранить размещение.') : '';
+  },
+  async adminDeletePromotion(id) {
+    if (!isUuid(id)) return false;
+    const { error } = await supabase.from('promotions').delete().eq('id', id);
+    return !error;
+  },
+  async adminFindProducts(query) {
+    const q = cleanQuery(query);
+    let req = supabase.from('products').select('id,title,price_rub,boutique:boutiques(name)').eq('is_published', true).order('created_at', { ascending: false }).limit(20);
+    if (q) req = req.ilike('title', '%' + escapeLike(q) + '%');
+    const { data } = await req;
+    return data || [];
+  },
+  // «Сделано рядом»: одобренные бренды в сроке показа (сроки и модерацию проверяет база)
+  async listLocalBrands() {
+    const { data, error } = await supabase.from('local_brands').select('id,name,description,banner_path,logo_path,boutique_id,site_url,ios_url,android_url,sort').order('sort').order('created_at', { ascending: false }).limit(30);
+    return error || !data ? [] : data.map(toBrand);
+  },
+  // «Популярное сейчас»: сначала оплаченные размещения (с маркировкой), затем самые популярные товары без рекламы
+  async listPopular() {
+    const { data } = await supabase.from('promotions').select('id,advertiser,advertiser_inn,erid,sort,product:products!inner(' + COLS + ')').order('sort').limit(10);
+    const ads = (data || []).filter((r) => r.product?.is_published === true).map((r) => ({ ...toProduct(r.product), ad: { advertiser: r.advertiser, inn: r.advertiser_inn, erid: r.erid } }));
+    const seen = new Set(ads.map((p) => p.id));
+    const { data: top } = await supabase.from('products').select(COLS).eq('is_published', true).order('rating_count', { ascending: false }).order('created_at', { ascending: false }).limit(12);
+    const organic = (top || []).map(toProduct).filter((p) => !seen.has(p.id));
+    const list = [...ads, ...organic].slice(0, 12);
     list.forEach((p) => products.set(p.id, p));
     return list;
   },

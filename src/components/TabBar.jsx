@@ -8,7 +8,7 @@ export const TABS = [['/catalog', 'Каталог', 'catalog'], ['/boutiques', '
 export function tabIndexOf(path) {
   const exact = TABS.findIndex(([to]) => to === path);
   if (exact >= 0) return exact;
-  if (/^\/(product|nearby|partners|tryon|stylist)\b/.test(path)) return 0;
+  if (/^\/(product|nearby|partners|tryon|stylist|history|brands)\b/.test(path)) return 0;
   if (/^\/boutiques\//.test(path)) return 1;
   return 4; // профиль, заказы, настройки, поддержка, вход, админка, кабинет продавца
 }
@@ -17,7 +17,7 @@ const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').ma
 
 // «Жидкая» капля: при смене вкладки вытягивается в сторону движения, перетекает,
 // слегка проскакивает цель и упруго садится на место.
-export default function TabBar({ active, count, unread = 0 }) {
+export default function TabBar({ active, count, unread = 0, wished = 0 }) {
   const bar = useRef(null);
   const blob = useRef(null);
   const tabs = useRef([]);
@@ -70,7 +70,8 @@ export default function TabBar({ active, count, unread = 0 }) {
           className={i === active ? 'active' : ''} aria-current={i === active ? 'page' : undefined}>
           <span className="tab-ic" key={i === active ? 'on' : 'off'}><Icon name={ic} /></span>
           <span className="tab-label">{label}</span>
-          {to === '/cart' && count > 0 && <i className="badge">{count}</i>}
+          {to === '/cart' && count > 0 && <i className="badge">{count > 99 ? '99+' : count}</i>}
+          {to === '/wishlist' && wished > 0 && <i className="badge">{wished > 99 ? '99+' : wished}</i>}
           {to === '/profile' && unread > 0 && <i className="badge" aria-label={unread + ' новых уведомлений'}>{unread > 9 ? '9+' : unread}</i>}
         </NavLink>
       ))}

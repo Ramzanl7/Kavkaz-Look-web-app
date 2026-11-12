@@ -5,6 +5,7 @@ import TabBar, { TABS, tabIndexOf } from '../components/TabBar.jsx';
 import PageStage from '../components/PageStage.jsx';
 import { BackgroundPattern } from '../components/Ornament.jsx';
 import { useCart } from '../store/cart.jsx';
+import { useWishlist } from '../store/wishlist.jsx';
 import { useNotifications } from '../store/notifications.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { ConsentGate, BlockedScreen } from '../components/Gates.jsx';
@@ -24,6 +25,7 @@ export default function AppLayout() {
   const outlet = useOutlet();
   const { items } = useCart();
   const count = items.reduce((s, i) => s + i.qty, 0);
+  const { ids: wished } = useWishlist();
   const { unread } = useNotifications();
   const root = ROOTS.includes(pathname);
   const { user, blocked, needsConsent } = useAuth();
@@ -55,7 +57,7 @@ export default function AppLayout() {
         <rect width="100%" height="100%" fill="url(#bgp)" />
       </svg>
       <PageStage pageKey={pathname} dir={dirRef.current}>{screen}</PageStage>
-      <TabBar active={tabIndexOf(tabPath)} count={count} unread={unread} />
+      <TabBar active={tabIndexOf(tabPath)} count={count} unread={unread} wished={wished.size} />
     </>
   );
 }

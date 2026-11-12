@@ -70,6 +70,7 @@ export default function Profile() {
         <Item to="/measurements" icon="ruler" label="Мои мерки" />
         <Item to="/wishlist" icon="heart" label="Избранное" />
         <Item to="/following" icon="store" label="Мои бутики" />
+        <Item to="/invite" icon="send" label="Пригласить друзей" />
         <Item to="/support" icon="chat" label="Поддержка" />
         <Item to="/notifications" icon="bell" label="Уведомления" badge={unread} />
         <Item to="/settings" icon="sliders" label="Настройки" />

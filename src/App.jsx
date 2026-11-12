@@ -39,6 +39,8 @@ const Brands = lazy(() => import('./pages/Brands.jsx'));
 const Measurements = lazy(() => import('./pages/Measurements.jsx'));
 const Notifications = lazy(() => import('./pages/Notifications.jsx'));
 const Stylist = lazy(() => import('./pages/Stylist.jsx'));
+const SellerPromos = lazy(() => import('./pages/SellerPromos.jsx'));
+const Invite = lazy(() => import('./pages/Invite.jsx'));
 const TryOn = lazy(() => import('./pages/TryOn.jsx'));
 
 // Когда главная уже показана и браузер свободен — заранее подгружаем экраны нижнего меню,
@@ -78,6 +80,7 @@ export default function App() {
           <Route path="/measurements" element={<Measurements />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/following" element={<Following />} />
+          <Route path="/invite" element={<Invite />} />
         </Route>
         <Route element={<RequireRole roles={['seller']} />}>
           <Route path="/seller" element={<SellerHome />} />
@@ -87,6 +90,7 @@ export default function App() {
           <Route path="/seller/orders" element={<SellerOrders />} />
           <Route path="/seller/profile" element={<SellerProfile />} />
           <Route path="/seller/stats" element={<SellerStats />} />
+          <Route path="/seller/promos" element={<SellerPromos />} />
         </Route>
         <Route element={<RequireRole roles={['admin']} />}>
           <Route path="/admin" element={<Admin />} />

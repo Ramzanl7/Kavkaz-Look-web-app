@@ -24,6 +24,8 @@ import { startUpdater } from './lib/updater.js';
 import { keepPushWorker } from './lib/push.js';
 
 startUpdater();
+// Ссылка-приглашение ?ref=КОД: запоминаем код до входа, засчитываем после (AuthContext)
+try { const ref = new URLSearchParams(location.search).get('ref'); if (ref && /^[A-Za-z0-9]{6,10}$/.test(ref)) localStorage.setItem('kl-ref', ref.toUpperCase()); } catch { /* приватный режим */ }
 keepPushWorker();
 
 createRoot(document.getElementById('root')).render(

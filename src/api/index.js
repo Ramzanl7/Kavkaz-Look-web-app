@@ -13,7 +13,7 @@ window.fetch = async (...args) => {
 const CATEGORIES = ['Женское', 'Мужское', 'Национальное', 'Обувь', 'Аксессуары'];
 const PARTNER_CATEGORIES = ['food', 'taxi', 'delivery', 'coffee'];
 const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
-const COLS = 'id,title,price_rub,category,image_path,images,stock,garment_type,sizes,size_chart,is_published,rating_avg,rating_count,created_at,boutique_id,boutique:boutiques(name,city)';
+const COLS = 'id,title,price_rub,category,image_path,images,stock,moderation,moderation_reason,garment_type,sizes,size_chart,is_published,rating_avg,rating_count,created_at,boutique_id,boutique:boutiques(name,city)';
 export const PAGE = 20;
 export const CITIES = ['Грозный', 'Аргун', 'Гудермес', 'Урус-Мартан', 'Шали', 'Курчалой', 'Ачхой-Мартан', 'Наурская', 'Ведено'];
 const SORTS = { new: ['created_at', false], price_asc: ['price_rub', true], price_desc: ['price_rub', false], rating: ['rating_avg', false] };
@@ -44,8 +44,10 @@ const toProduct = (r) => ({
   garmentType: r.garment_type ?? null, sizes: r.sizes ?? [], sizeChart: r.size_chart ?? null,
   image: r.image_path ? pub(r.image_path) : null, thumb: r.image_path ? pub(r.image_path.replace(/\.jpg$/, '_t.jpg')) : null,
   photos: (r.images?.length ? r.images : r.image_path ? [r.image_path] : []).map((x) => ({ path: x, image: pub(x), thumb: pub(x.replace(/\.jpg$/, '_t.jpg')) })),
-  stock: r.stock && typeof r.stock === 'object' ? r.stock : null,
+  stock: r.stock && typeof r.stock === 'object' ? r.stock : null, blocked: r.moderation === 'blocked', blockReason: r.moderation_reason || '',
 });
+const BQ_COLS = 'id,name,description,city,logo_path,cover_path,address,hours,phone,whatsapp,telegram,delivery_pickup,delivery_courier,courier_note';
+const toBoutique = (r) => ({ ...r, logo: r.logo_path ? pub(r.logo_path.replace(/\.jpg$/, '_t.jpg')) : null, cover: r.cover_path ? pub(r.cover_path) : null });
 const brandUrl = (path) => (path ? supabase.storage.from('brand-media').getPublicUrl(path).data.publicUrl : null);
 const toBrand = (r) => ({ ...r, banner: brandUrl(r.banner_path), logo: brandUrl(r.logo_path) });
 // Кэш на 60 секунд: каталог открывается мгновенно, данные обновляются в фоне.
@@ -221,8 +223,9 @@ export const api = {
   },
   async getBoutique(id) {
     if (!isUuid(id)) return null;
-    const { data, error } = await supabase.from('boutiques').select('id,name,description,city').eq('id', id).eq('is_approved', true).maybeSingle();
-    return error || !data ? null : data;
+    let { data, error } = await supabase.from('boutiques').select(BQ_COLS).eq('id', id).eq('is_approved', true).maybeSingle();
+    if (error?.code === '42703') ({ data, error } = await supabase.from('boutiques').select('id,name,description,city').eq('id', id).eq('is_approved', true).maybeSingle());
+    return error || !data ? null : toBoutique(data);
   },
   async listWishlist() {
     const { data, error } = await supabase.from('wishlist').select('product:products(' + COLS + ')').limit(100);
@@ -293,8 +296,96 @@ export const api = {
   // ===== Продавец =====
   async getMyBoutique(userId) {
     if (!isUuid(userId)) return null;
-    const { data } = await supabase.from('boutiques').select('id,name,description,city,is_approved').eq('owner_id', userId).limit(1).maybeSingle();
-    return data ?? null;
+    let { data, error } = await supabase.from('boutiques').select(BQ_COLS + ',is_approved').eq('owner_id', userId).limit(1).maybeSingle();
+    if (error?.code === '42703') ({ data } = await supabase.from('boutiques').select('id,name,description,city,is_approved').eq('owner_id', userId).limit(1).maybeSingle());
+    return data ? toBoutique(data) : null;
+  },
+  // Профиль бутика (владелец): описание, адрес, часы, контакты, доставка, логотип и обложка
+  async saveBoutique(id, b) {
+    if (!isUuid(id)) return 'Бутик не найден.';
+    const digits = (v, min, max) => { const d = String(v || '').replace(/[^0-9]/g, ''); return d ? (d.length >= min && d.length <= max ? d : undefined) : null; };
+    const phone = String(b.phone || '').replace(/[^0-9+]/g, '');
+    const tg = String(b.telegram || '').trim().replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '');
+    const row = {
+      description: cleanText(b.description, 1000) || null, city: CITIES.includes(b.city) ? b.city : null,
+      address: cleanText(b.address, 200) || null, hours: cleanText(b.hours, 100) || null,
+      phone: phone ? (/^\+?[0-9]{10,15}$/.test(phone) ? phone : undefined) : null,
+      whatsapp: digits(b.whatsapp, 10, 15), telegram: tg ? (/^[A-Za-z0-9_]{5,32}$/.test(tg) ? tg : undefined) : null,
+      delivery_pickup: !!b.delivery_pickup, delivery_courier: !!b.delivery_courier, courier_note: cleanText(b.courier_note, 150) || null,
+    };
+    if (row.phone === undefined) return 'Проверьте телефон.';
+    if (row.whatsapp === undefined) return 'WhatsApp — номер из 10–15 цифр.';
+    if (row.telegram === undefined) return 'Telegram — имя пользователя латиницей (5–32 символа).';
+    if (!row.delivery_pickup && !row.delivery_courier) return 'Выберите хотя бы один способ получения.';
+    for (const kind of ['logo', 'cover']) if (b[kind + '_path'] !== undefined) row[kind + '_path'] = /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.jpg$/.test(b[kind + '_path'] || '') ? b[kind + '_path'] : null;
+    const { error } = await supabase.from('boutiques').update(row).eq('id', id);
+    return error ? 'Не удалось сохранить.' : '';
+  },
+  // ===== Статистика продавца =====
+  trackView(id) { if (isUuid(id)) supabase.rpc('track_view', { pid: id }).then(() => {}, () => {}); },
+  async sellerStats(days = 30) {
+    const { data, error } = await supabase.rpc('seller_stats', { days });
+    return error ? null : data;
+  },
+  // ===== Жалобы =====
+  async report(targetType, targetId, reason, body) {
+    if (!['product', 'review', 'boutique'].includes(targetType) || !isUuid(targetId)) return 'Не удалось отправить.';
+    const { error } = await supabase.from('reports').insert({ target_type: targetType, target_id: targetId, reason, body: cleanText(body, 500) || null });
+    return error ? (error.code === '23505' ? 'Вы уже пожаловались — мы рассматриваем.' : 'Не удалось отправить.') : '';
+  },
+  // ===== Админ: модерация, заказы, жалобы, рассылка, обороты =====
+  async adminListProducts({ query = '', blocked = false } = {}) {
+    let req = supabase.from('products').select('id,title,price_rub,image_path,is_published,moderation,moderation_reason,created_at,boutique:boutiques(id,name)').order('created_at', { ascending: false }).limit(60);
+    const q = cleanQuery(query);
+    if (q) req = req.ilike('title', '%' + escapeLike(q) + '%');
+    if (blocked) req = req.eq('moderation', 'blocked');
+    const { data } = await req;
+    return (data || []).map((r) => ({ ...r, ...imageUrls(r.image_path) }));
+  },
+  async adminModerateProduct(id, block, reason) {
+    const { error } = await supabase.rpc('admin_moderate_product', { pid: id, block, reason: cleanText(reason, 300) || null });
+    return !error;
+  },
+  async adminListReviews(onlyHidden = false) {
+    let req = supabase.from('reviews').select('id,rating,body,author_name,hidden,created_at,product:products(id,title)').order('created_at', { ascending: false }).limit(60);
+    if (onlyHidden) req = req.eq('hidden', true);
+    const { data } = await req;
+    return data || [];
+  },
+  async adminHideReview(id, hide) { const { error } = await supabase.rpc('admin_hide_review', { rid: id, hide }); return !error; },
+  async adminListOrders(status = '') {
+    let req = supabase.from('orders').select('id,status,total_rub,created_at,delivery,boutique:boutiques(id,name),items:order_items(title,qty,size)').order('created_at', { ascending: false }).limit(100);
+    if (['new', 'confirmed', 'done', 'cancelled'].includes(status)) req = req.eq('status', status);
+    const { data } = await req;
+    return data || [];
+  },
+  async adminListReports(status = 'open') {
+    const { data } = await supabase.from('reports').select('id,target_type,target_id,reason,body,status,created_at').eq('status', status).order('created_at', { ascending: false }).limit(100);
+    return data || [];
+  },
+  async adminResolveReport(id, status) {
+    const { error } = await supabase.from('reports').update({ status, resolved_at: new Date().toISOString() }).eq('id', id);
+    return !error;
+  },
+  async adminBroadcast(title, body, audience, link) {
+    const { data, error } = await supabase.rpc('admin_broadcast', { title: cleanText(title, 120), body: cleanText(body, 300), audience, link: /^\/[A-Za-z0-9/_-]*$/.test(link || '') ? link : '/catalog' });
+    return error ? null : data;
+  },
+  async adminFinance(days = 30) {
+    const since = new Date(Date.now() - days * 864e5).toISOString();
+    const [{ data: orders }, { data: promos }] = await Promise.all([
+      supabase.from('orders').select('status,total_rub,boutique:boutiques(id,name)').gte('created_at', since).limit(5000),
+      supabase.from('promotions').select('advertiser,starts_at,ends_at,product:products(boutique_id)').gte('ends_at', since).limit(500),
+    ]);
+    const by = new Map();
+    for (const o of orders || []) {
+      const k = o.boutique?.id || '—';
+      const r = by.get(k) || { id: k, name: o.boutique?.name || 'Без бутика', done: 0, revenue: 0, active: 0, cancelled: 0, promos: 0 };
+      if (o.status === 'done') { r.done++; r.revenue += o.total_rub; } else if (o.status === 'cancelled') r.cancelled++; else r.active++;
+      by.set(k, r);
+    }
+    for (const p of promos || []) { const r = by.get(p.product?.boutique_id); if (r) r.promos++; }
+    return [...by.values()].sort((a, b) => b.revenue - a.revenue);
   },
   // Фото товара: сжимается на телефоне, основное + превью; путь — в папке бутика
   async uploadProductPhoto(boutiqueId, file) {

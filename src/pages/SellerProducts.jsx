@@ -37,6 +37,7 @@ export default function SellerProducts() {
             <div className="grow">
               <strong>{p.title}</strong>
               <span className="muted block">{rub(p.price)} · {p.category} · {p.published ? 'опубликован' : 'скрыт'} · фото: {p.photos.length}</span>
+              {p.blocked && <span className="msg block">Скрыт модератором{p.blockReason ? ': ' + p.blockReason : ''}. Исправьте товар и напишите в поддержку.</span>}
               {p.stock && <span className="muted small block">Остатки: {Object.entries(p.stock).map(([k, v]) => (k === '_' ? v + ' шт.' : `${k}: ${v}`)).join(', ')}</span>}
             </div>
             <div className="acts">

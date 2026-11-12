@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext.jsx';
 import { useToast } from '../store/toast.jsx';
 import { api } from '../api/index.js';
 import { useAction } from '../lib/useAction.js';
+import ReportSheet from './ReportSheet.jsx';
 export default function Reviews({ productId }) {
   const { user } = useAuth();
   const toast = useToast();
@@ -12,6 +13,7 @@ export default function Reviews({ productId }) {
   const [text, setText] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, run] = useAction();
+  const [rep, setRep] = useState(null);
   const load = useCallback(() => api.listReviews(productId).then(setItems), [productId]);
   useEffect(() => { load(); }, [load]);
   const submit = (e) => {
@@ -35,7 +37,7 @@ export default function Reviews({ productId }) {
           <div className="field"><label htmlFor="rv">Ваш отзыв</label><input id="rv" maxLength={1000} value={text} onChange={(e) => setText(e.target.value)} /></div>
           {msg && <p className="msg" role="status">{msg}</p>}
           <button className="btn btn-secondary press" type="submit" disabled={busy === 'add'}>{busy === 'add' ? 'Отправляем…' : 'Оставить отзыв'}</button>
-          <p className="muted">Отзыв можно оставить после заказа товара.</p>
+          <p className="muted">Отзыв можно оставить, когда заказ с этим товаром выполнен.</p>
         </form>
       ) : <p className="muted">Войдите, чтобы оставить отзыв.</p>}
       {items === null ? <p className="lead">Загрузка…</p> : items.map((r) => (
@@ -44,9 +46,11 @@ export default function Reviews({ productId }) {
           <strong>{r.author_name}</strong>
           {r.body && <span>{r.body}</span>}
           <span className="muted">{new Date(r.created_at).toLocaleDateString('ru-RU')}</span>
+          {user && r.user_id !== user.id && <button type="button" className="link-muted" style={{ justifySelf: 'start' }} onClick={() => setRep(r.id)}>Пожаловаться</button>}
           {user && r.user_id === user.id && <button type="button" className="act danger press" style={{ justifySelf: 'start' }} disabled={busy === r.id} onClick={() => del(r.id)}>Удалить мой отзыв</button>}
         </div>
       ))}
+      {rep && <ReportSheet type="review" id={rep} onClose={() => setRep(null)} />}
     </section>
   );
 }

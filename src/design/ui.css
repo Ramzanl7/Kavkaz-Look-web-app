@@ -510,3 +510,25 @@ button.link-u { background: none; border: 0; border-bottom: 1px solid var(--gold
 .photo-add { display: grid; place-content: center; justify-items: center; gap: 6px; color: var(--gold); font-size: .8125rem; cursor: pointer; border-style: dashed; }
 .photo-add svg { width: 24px; height: 24px; }
 .stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+
+/* ===== Неделя 2: бутик, статистика, модерация ===== */
+.bq-media { position: relative; margin-bottom: 28px; }
+.bq-cover { display: grid; place-items: center; aspect-ratio: 16 / 7; border-radius: 16px; overflow: hidden; border: 1px dashed var(--edge); background: var(--bg-2); color: var(--text-2); font-size: .8125rem; text-align: center; padding: 8px; cursor: pointer; }
+.bq-cover img { width: 100%; height: 100%; object-fit: cover; }
+.bq-logo { position: absolute; left: 16px; bottom: -26px; width: 72px; height: 72px; border-radius: 18px; overflow: hidden; display: grid; place-items: center; background: var(--card); border: 2px solid var(--gold); color: var(--gold); font-size: .75rem; cursor: pointer; }
+.bq-logo img { width: 100%; height: 100%; object-fit: cover; }
+.bq-hero { position: relative; margin: 0 -20px 30px; height: 150px; background: linear-gradient(135deg, #17402b, #0B2419); }
+.bq-hero.has-cover { background: linear-gradient(180deg, rgba(6,26,19,0) 50%, rgba(6,26,19,.7)), var(--cover) center / cover no-repeat; }
+.bq-hero-logo { position: absolute; left: 20px; bottom: -28px; width: 76px; height: 76px; border-radius: 20px; object-fit: cover; border: 2px solid var(--gold); background: var(--card); }
+.bq-initial { display: grid; place-items: center; font-family: var(--font-display); font-size: 2rem; color: var(--gold); }
+.link-plain { color: var(--gold); justify-self: start; }
+.badge.inline { position: static; margin-left: 6px; }
+.stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.stat { display: grid; gap: 2px; padding: 12px 14px; border-radius: 14px; background: var(--card); border: 1px solid var(--edge); }
+.stat b { font-size: 1.25rem; color: var(--gold); }
+.stat span { font-size: .75rem; color: var(--text-2); }
+.mini-chart { display: flex; align-items: flex-end; gap: 3px; height: 90px; margin-top: 8px; }
+.mini-chart i { flex: 1; min-width: 3px; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, var(--gold), rgba(217,183,101,.35)); }
+.tbl td:first-child { white-space: normal; min-width: 120px; }
+.link-muted svg { width: 15px; height: 15px; vertical-align: -2px; }
+@media (min-width: 600px) { .stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

@@ -5,6 +5,7 @@ import { api } from '../api/index.js';
 import PhotoSlot from '../components/PhotoSlot.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import Reviews from '../components/Reviews.jsx';
+import ReportSheet from '../components/ReportSheet.jsx';
 import { Icon, starsText } from '../components/Icons.jsx';
 import { useCart, rub } from '../store/cart.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
@@ -23,13 +24,14 @@ export default function Product() {
   const toast = useToast();
   const [m, setM] = useState(null);
   const [size, setSize] = useState(null);
+  const [rep, setRep] = useState(false);
   const [needSize, setNeedSize] = useState(!!loc.state?.pickSize);
   useEffect(() => { if (user) api.getMeasurements().then(setM); }, [user]);
   // Данные карточки показываются сразу, свежие подгружаются в фоне
   const [p, setP] = useState(() => loc.state?.p ?? api.peekProduct(id) ?? undefined);
   useEffect(() => {
     let on = true;
-    api.getProduct(id).then((r) => { if (r) history.add(r.id); if (on) setP((prev) => r ?? prev ?? null); });
+    api.getProduct(id).then((r) => { if (r) { history.add(r.id); api.trackView(r.id); } if (on) setP((prev) => r ?? prev ?? null); });
     return () => { on = false; };
   }, [id]);
   if (p === undefined) return <main className="wrap"><div className="photo skeleton" style={{ aspectRatio: '4 / 5' }} /><div className="skeleton" style={{ height: 24, borderRadius: 6 }} /></main>;
@@ -40,7 +42,7 @@ export default function Product() {
     <main className="wrap">
       <Gallery p={p} />
       <h1 className="screen-title">{p.title}</h1>
-      <p className="lead">{p.boutique}</p>
+      {p.boutiqueId ? <Link className="lead link-plain" to={'/boutiques/' + p.boutiqueId}>{p.boutique} ›</Link> : <p className="lead">{p.boutique}</p>}
       {p.ratingCount > 0 && <p className="stars">{starsText(p.rating)} {p.rating.toFixed(1)} <span className="muted">({p.ratingCount})</span></p>}
       <b className="price big">{rub(p.price)}</b>
       {p.description && <p>{p.description}</p>}
@@ -78,6 +80,8 @@ export default function Product() {
         <button type="button" className={'iconbtn big' + (on ? ' on' : '')} onClick={heart} aria-label={on ? 'Убрать из избранного' : 'В избранное'}><Icon name="heart" /></button>
       </div>
       <Reviews productId={p.id} />
+      {user && <button type="button" className="link-muted" style={{ justifySelf: 'start' }} onClick={() => setRep(true)}><Icon name="shield" /> Пожаловаться на товар</button>}
+      {rep && <ReportSheet type="product" id={p.id} onClose={() => setRep(false)} />}
     </main>
   );
 }

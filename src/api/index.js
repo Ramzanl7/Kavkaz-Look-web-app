@@ -149,7 +149,7 @@ export const api = {
     return error || !data ? [] : data.map(toBrand);
   },
   async adminSaveBrand(b, files = {}) {
-    const url = (v) => { const t = cleanText(v, 300); return t ? (/^https:\/\/[^\s<>"]{3,300}$/.test(t) ? t : undefined) : null; };
+    const url = (v) => { let t = cleanText(v, 300); if (t && !/^https?:\/\//i.test(t)) t = 'https://' + t; t = t.replace(/^http:\/\//i, 'https://'); return t ? (/^https:\/\/[^\s<>"]{3,300}$/.test(t) ? t : undefined) : null; };
     const row = {
       name: cleanText(b.name, 60), description: cleanText(b.description, 140) || null,
       boutique_id: isUuid(b.boutique_id) ? b.boutique_id : null,
@@ -167,8 +167,8 @@ export const api = {
       const v = await makeVariants(f);
       if (!v) return 'Не удалось обработать изображение.';
       const path = `brands/${id}-${kind}.jpg`;
-      const { error } = await supabase.storage.from('brand-media').upload(path, kind === 'banner' ? v.main : v.thumb, { contentType: 'image/jpeg', upsert: true });
-      if (error) return 'Не удалось загрузить изображение.';
+      const { error } = await supabase.storage.from('brand-media').upload(path, kind === 'banner' ? v.main : v.thumb, { contentType: 'image/jpeg', upsert: !!b[kind + '_path'] });
+      if (error) return 'Не удалось загрузить изображение' + (/policy|security|403|Unauthorized/i.test(error.message || '') ? ': нет прав (выполните последний SQL).' : '. Попробуйте фото поменьше.');
       row[kind + '_path'] = path;
     }
     const { error } = isUuid(b.id) ? await supabase.from('local_brands').update(row).eq('id', b.id) : await supabase.from('local_brands').insert({ id, ...row });
@@ -527,7 +527,7 @@ export const api = {
       const v = await makeVariants(cover);
       if (!v) return { error: 'Не удалось обработать обложку.' };
       const path = `collections/${id}.jpg`;
-      const { error } = await supabase.storage.from('brand-media').upload(path, v.main, { contentType: 'image/jpeg', upsert: true });
+      const { error } = await supabase.storage.from('brand-media').upload(path, v.main, { contentType: 'image/jpeg', upsert: !!c.cover_path });
       if (error) return { error: 'Не удалось загрузить обложку.' };
       row.cover_path = path;
     }

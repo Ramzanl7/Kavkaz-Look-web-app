@@ -258,3 +258,8 @@ begin
 end $$;
 revoke all on function public.admin_referral_top(integer) from public, anon;
 grant execute on function public.admin_referral_top(integer) to authenticated;
+
+-- Баннеры брендов и обложки подборок: замена файла (upsert) требует права чтения для админа
+drop policy if exists brand_media_select on storage.objects;
+create policy brand_media_select on storage.objects for select to authenticated
+  using (bucket_id = 'brand-media' and public.is_admin());

@@ -8,7 +8,6 @@ import { useWishlist } from '../store/wishlist.jsx';
 import { useToast } from '../store/toast.jsx';
 
 // Одна карточка товара для всех лент: variant="grid" — основной каталог, "compact" — горизонтальная лента «Популярное».
-// p.ad — оплаченное размещение: показываем пометку «Реклама» и по нажатию — рекламодателя и токен erid (38-ФЗ).
 export default function ProductCard({ p, i = 0, variant = 'grid', priority = false }) {
   const { add } = useCart();
   const { user } = useAuth();
@@ -16,7 +15,6 @@ export default function ProductCard({ p, i = 0, variant = 'grid', priority = fal
   const toast = useToast();
   const nav = useNavigate();
   const [pop, setPop] = useState(false);
-  const [adInfo, setAdInfo] = useState(false);
   const on = ids.has(p.id);
   const heart = async () => {
     if (!user) { toast('Войдите, чтобы сохранять товары'); nav('/login'); return; }
@@ -37,15 +35,9 @@ export default function ProductCard({ p, i = 0, variant = 'grid', priority = fal
         </span>
       </Link>
       <div className="pc-badges">
-        {p.ad && <button type="button" className="badge-ad" onClick={() => setAdInfo(!adInfo)} aria-expanded={adInfo}>Реклама</button>}
         {p.oldPrice && <span className="badge-sale">−{Math.round((1 - p.price / p.oldPrice) * 100)}%</span>}
         {!p.ad && !p.oldPrice && p.isNew && variant === 'grid' && <span className="badge-new">Новинка</span>}
       </div>
-      {adInfo && p.ad && (
-        <div className="ad-info" role="note">
-          Рекламодатель: {p.ad.advertiser}{p.ad.inn ? `, ИНН ${p.ad.inn}` : ''}{p.ad.erid ? <><br />erid: {p.ad.erid}</> : null}
-        </div>
-      )}
       <button type="button" className={'iconbtn heart' + (on ? ' on' : '') + (pop ? ' pop' : '')} onClick={heart} aria-label={on ? 'Убрать из избранного' : 'В избранное'}><Icon name="heart" /></button>
       <button type="button" className="cartbtn press" onClick={() => { if (p.sizes?.length) { nav('/product/' + encodeURIComponent(p.id), { state: { p, pickSize: true } }); return; } add(p); toast('Добавлено в корзину'); }} aria-label={'В корзину: ' + p.title}><Icon name="cart" /></button>
     </div>

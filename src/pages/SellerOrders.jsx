@@ -3,7 +3,7 @@ import EmptyState from '../components/EmptyState.jsx';
 import { rub } from '../store/cart.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { api } from '../api/index.js';
-import { STATUS, DELIVERY, OrderSteps } from './Orders.jsx';
+import { STATUS, DELIVERY, OrderSteps, holdText } from './Orders.jsx';
 import { useAction } from '../lib/useAction.js';
 
 const FILTERS = [['active', 'Активные'], ['done', 'Выполненные'], ['cancelled', 'Отменённые'], ['all', 'Все']];
@@ -48,6 +48,7 @@ export default function SellerOrders() {
             </ul>
             <div className="order-contact">
               <span><b>{DELIVERY[o.delivery] || 'Получение не указано'}</b>{o.address ? ': ' + o.address : ''}</span>
+              {o.delivery === 'reserve' && ['new', 'confirmed'].includes(o.status) && <span className="reserve-hold">{holdText(o)} — потом бронь снимется сама</span>}
               {o.comment && <span className="muted">«{o.comment}»</span>}
               {o.phone ? (
                 <span className="row-gap">
@@ -59,9 +60,9 @@ export default function SellerOrders() {
             </div>
             <div className="order-foot"><span>Сумма</span><b className="price">{rub(o.total_rub)}</b></div>
             <div className="acts" aria-busy={busy === o.id}>
-              {o.status === 'new' && <button type="button" className="act ok press" disabled={busy === o.id} onClick={() => act(o.id, 'confirmed')}>Подтвердить</button>}
-              {o.status === 'confirmed' && <button type="button" className="act ok press" disabled={busy === o.id} onClick={() => act(o.id, 'done', 'Покупатель получил заказ и оплатил его?')}>Выполнен</button>}
-              {['new', 'confirmed'].includes(o.status) && <button type="button" className="act danger press" disabled={busy === o.id} onClick={() => act(o.id, 'cancelled', 'Отменить заказ? Остатки вернутся в продажу.')}>Отменить</button>}
+              {o.status === 'new' && <button type="button" className="act ok press" disabled={busy === o.id} onClick={() => act(o.id, 'confirmed')}>{o.delivery === 'reserve' ? 'Отложил' : 'Подтвердить'}</button>}
+              {o.status === 'confirmed' && <button type="button" className="act ok press" disabled={busy === o.id} onClick={() => act(o.id, 'done', o.delivery === 'reserve' ? 'Покупатель примерил и купил?' : 'Покупатель получил заказ и оплатил его?')}>{o.delivery === 'reserve' ? 'Купил' : 'Выполнен'}</button>}
+              {['new', 'confirmed'].includes(o.status) && <button type="button" className="act danger press" disabled={busy === o.id} onClick={() => act(o.id, 'cancelled', o.delivery === 'reserve' ? 'Не подошло или не пришёл? Вещь вернётся в продажу.' : 'Отменить заказ? Остатки вернутся в продажу.')}>{o.delivery === 'reserve' ? 'Не купил' : 'Отменить'}</button>}
             </div>
           </article>
         ))}</div>

@@ -6,6 +6,7 @@ import ProductCard from '../components/ProductCard.jsx';
 import HomeHeader from '../components/home/HomeHeader.jsx';
 import SearchBar from '../components/home/SearchBar.jsx';
 import LocalBrands, { useOpenBrand } from '../components/home/LocalBrands.jsx';
+import Collections from '../components/home/Collections.jsx';
 import { api, PAGE } from '../api/index.js';
 import { history, city as cityStore } from '../lib/local.js';
 import { BELT } from '../components/ornamentPaths.js';
@@ -21,13 +22,14 @@ export default function Catalog() {
   const [city, setCity] = useState(cityStore.get);
   const [brands, setBrands] = useState([]);
   const [popular, setPopular] = useState(null);
+  const [colls, setColls] = useState([]);
   const [hasHistory] = useState(() => history.list().length > 0);
   const [openBrand, brandSheet] = useOpenBrand();
   const chipsRef = useRef(null);
   const opts = { query, category: cat === 'Для вас' ? '' : cat, ...filters, city };
   const searching = query.trim() !== '' || cat !== 'Для вас' || !!(filters.minPrice || filters.maxPrice || filters.size || filters.color || filters.sort !== 'new');
 
-  useEffect(() => { api.listLocalBrands().then(setBrands); api.listPopular().then(setPopular); }, []);
+  useEffect(() => { api.listLocalBrands().then(setBrands); api.listPopular().then(setPopular); api.listCollections().then(setColls); }, []);
 
   // каталог: первая страница сразу (из кэша, если есть), следующие — при прокрутке
   const [items, setItems] = useState(() => api.peekList({ ...opts, boutiqueId: '' }));
@@ -106,6 +108,8 @@ export default function Catalog() {
           </section>
         )}
         {popular === null && <div className="hscroll popular">{[0, 1, 2].map((n) => <div key={n} className="pcard pcard-compact"><div className="photo skeleton" style={{ aspectRatio: '4 / 5' }} /></div>)}</div>}
+
+        <Collections items={colls} />
 
         {hasHistory && (
           <Link className="history-link press" to="/history"><Icon name="clock" /><span className="grow">История просмотров</span><Icon name="chevron" /></Link>

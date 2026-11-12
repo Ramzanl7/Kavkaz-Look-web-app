@@ -7,6 +7,7 @@ import EmptyState from '../components/EmptyState.jsx';
 import Reviews from '../components/Reviews.jsx';
 import ReportSheet from '../components/ReportSheet.jsx';
 import ProductCard from '../components/ProductCard.jsx';
+import ReserveSheet from '../components/ReserveSheet.jsx';
 import { Icon, starsText } from '../components/Icons.jsx';
 import { useCart, rub } from '../store/cart.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
@@ -27,6 +28,8 @@ export default function Product() {
   const [size, setSize] = useState(null);
   const [rep, setRep] = useState(false);
   const [rel, setRel] = useState({ same: [], shop: [] });
+  const [shop, setShop] = useState(null);
+  const [reserveOpen, setReserveOpen] = useState(false);
   const [needSize, setNeedSize] = useState(!!loc.state?.pickSize);
   useEffect(() => { if (user) api.getMeasurements().then(setM); }, [user]);
   // Данные карточки показываются сразу, свежие подгружаются в фоне
@@ -36,7 +39,7 @@ export default function Product() {
     api.getProduct(id).then((r) => { if (r) { history.add(r.id); api.trackView(r.id); } if (on) setP((prev) => r ?? prev ?? null); });
     return () => { on = false; };
   }, [id]);
-  useEffect(() => { setRel({ same: [], shop: [] }); setSize(null); if (p?.id) api.related(p).then(setRel); }, [p?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setRel({ same: [], shop: [] }); setSize(null); if (p?.id) api.related(p).then(setRel); if (p?.boutiqueId) api.getBoutique(p.boutiqueId).then(setShop); }, [p?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   if (p === undefined) return <main className="wrap"><div className="photo skeleton" style={{ aspectRatio: '4 / 5' }} /><div className="skeleton" style={{ height: 24, borderRadius: 6 }} /></main>;
   if (!p) return <main className="wrap"><EmptyState title="Товар не найден" text="Возможно, его уже убрали." /></main>;
   const on = ids.has(p.id);
@@ -104,6 +107,14 @@ export default function Product() {
         }}>В корзину</button>
         <button type="button" className={'iconbtn big' + (on ? ' on' : '')} onClick={heart} aria-label={on ? 'Убрать из избранного' : 'В избранное'}><Icon name="heart" /></button>
       </div>
+      {shop?.allow_reserve && shop.address && !soldOut && (
+        <button type="button" className="reserve-btn press" onClick={() => { if (!user) { toast('Войдите, чтобы отложить'); nav('/login'); return; } setReserveOpen(true); }}>
+          <span className="reserve-ic"><Icon name="store" /></span>
+          <span className="grow"><strong className="block">Отложить и примерить в бутике</strong><small>Бесплатно, до конца сегодня или завтра · {shop.address}</small></span>
+          <Icon name="chevron" />
+        </button>
+      )}
+      {reserveOpen && shop && <ReserveSheet p={p} boutique={shop} size={size} onClose={() => setReserveOpen(false)} />}
       {rel.shop.length > 0 && <RelatedStrip title={'Ещё из бутика ' + p.boutique} items={rel.shop} />}
       {rel.same.length > 0 && <RelatedStrip title="Похожие товары" items={rel.same} />}
       <Reviews productId={p.id} />

@@ -19,7 +19,7 @@ export default function SellerProfile() {
     if (!user) return;
     api.getMyBoutique(user.id).then((r) => {
       setB(r);
-      if (r) setF({ description: r.description || '', city: r.city || 'Грозный', address: r.address || '', hours: r.hours || '', phone: r.phone || '', whatsapp: r.whatsapp || '', telegram: r.telegram || '', delivery_pickup: r.delivery_pickup ?? true, delivery_courier: !!r.delivery_courier, courier_note: r.courier_note || '' });
+      if (r) setF({ description: r.description || '', city: r.city || 'Грозный', address: r.address || '', hours: r.hours || '', phone: r.phone || '', whatsapp: r.whatsapp || '', telegram: r.telegram || '', delivery_pickup: r.delivery_pickup ?? true, delivery_courier: !!r.delivery_courier, courier_note: r.courier_note || '', allow_reserve: r.allow_reserve ?? true });
       if (r) setImg({ logo: r.logo, cover: r.cover });
     });
   }, [user]);
@@ -64,6 +64,7 @@ export default function SellerProfile() {
           <legend>Как покупатель получает заказ</legend>
           <label className="check"><input type="checkbox" checked={f.delivery_pickup} onChange={(e) => setF({ ...f, delivery_pickup: e.target.checked })} /> Самовывоз из магазина</label>
           <label className="check"><input type="checkbox" checked={f.delivery_courier} onChange={(e) => setF({ ...f, delivery_courier: e.target.checked })} /> Доставка курьером</label>
+          <label className="check"><input type="checkbox" checked={f.allow_reserve} onChange={(e) => setF({ ...f, allow_reserve: e.target.checked })} /> «Отложить и примерить» — покупатель бронирует вещь до конца дня и приходит примерить (нужен адрес магазина)</label>
           {f.delivery_courier && <div className="field"><label htmlFor="bn">Условия доставки</label><input id="bn" maxLength={150} value={f.courier_note} onChange={set('courier_note')} placeholder="По Грозному 300 ₽, бесплатно от 5000 ₽" /></div>}
         </fieldset>
         <p className="hint">Контакты бутика видны покупателям на странице магазина.</p>

@@ -6,7 +6,7 @@ import { useToast } from '../store/toast.jsx';
 import { rub } from '../store/cart.jsx';
 import { STATUS } from './Orders.jsx';
 
-const TABS = [['products', 'Товары'], ['reviews', 'Отзывы'], ['reports', 'Жалобы'], ['orders', 'Заказы'], ['broadcast', 'Рассылка'], ['finance', 'Обороты']];
+const TABS = [['collections', 'Подборки'], ['products', 'Товары'], ['reviews', 'Отзывы'], ['reports', 'Жалобы'], ['orders', 'Заказы'], ['broadcast', 'Рассылка'], ['finance', 'Обороты']];
 const REASON = { fake: 'Подделка/обман', prohibited: 'Запрещённый товар', offensive: 'Оскорбления', fraud: 'Мошенничество', other: 'Другое' };
 const TARGET = { product: 'Товар', review: 'Отзыв', boutique: 'Бутик' };
 
@@ -18,6 +18,7 @@ export default function AdminTools() {
     <main className="wrap">
       <h1 className="screen-title rise">Модерация</h1>
       <div className="chips">{TABS.map(([v, l]) => <button key={v} type="button" className={'chip' + (tab === v ? ' on' : '')} onClick={() => pick(v)}>{l}</button>)}</div>
+      {tab === 'collections' && <CollectionsAdmin />}
       {tab === 'products' && <Products />}
       {tab === 'reviews' && <Reviews />}
       {tab === 'reports' && <Reports />}
@@ -156,5 +157,60 @@ function Finance() {
       </table></div>
       <p className="hint">Комиссию площадки пока не считаем — когда решите её размер, добавлю расчёт «к оплате бутиком».</p>
     </>}
+  </>;
+}
+
+const day = (d) => (d ? new Date(d).toISOString().slice(0, 10) : '');
+function CollectionsAdmin() {
+  const [list, setList] = useState(null), [ed, setEd] = useState(null), [cover, setCover] = useState(null);
+  const [q, setQ] = useState(''), [found, setFound] = useState([]);
+  const [busy, run] = useAction(); const toast = useToast();
+  const load = () => api.adminListCollections().then(setList);
+  useEffect(() => { load(); }, []);
+  useEffect(() => { if (ed) { const t = setTimeout(() => api.adminFindProducts(q).then(setFound), 250); return () => clearTimeout(t); } return undefined; }, [q, !!ed]); // eslint-disable-line react-hooks/exhaustive-deps
+  const open = (c) => { setCover(null); setQ(''); setEd(c ? { ...c, starts_at: day(c.starts_at), ends_at: day(c.ends_at), picked: (c.items || []).sort((a, b) => a.sort - b.sort).map((i) => ({ id: i.product_id, title: i.product?.title || 'Товар' })) } : { title: '', subtitle: '', is_published: true, sort: 0, starts_at: day(new Date()), ends_at: '', picked: [] }); };
+  const toggle = (p) => setEd((e) => ({ ...e, picked: e.picked.some((x) => x.id === p.id) ? e.picked.filter((x) => x.id !== p.id) : [...e.picked, { id: p.id, title: p.title }] }));
+  const save = () => run(async () => {
+    const r = await api.adminSaveCollection({ ...ed, productIds: ed.picked.map((x) => x.id) }, cover);
+    if (r.error) { toast(r.error); return; }
+    toast('Подборка сохранена'); setEd(null); load();
+  });
+  return <>
+    <button type="button" className="btn btn-primary press" onClick={() => open(null)}>Новая подборка</button>
+    <p className="hint">Подборки показываются на главной после «Популярного». Например: «К Ураза-Байраму», «Свадебный сезон», «Школьная форма».</p>
+    {list === null ? <p className="lead">Загрузка…</p> : list.length ? list.map((c) => (
+      <div key={c.id} className="bcard promo-row">
+        {c.cover ? <img src={c.cover} alt="" /> : <span className="promo-thumb" />}
+        <div className="grow"><strong>{c.title}</strong><small className="muted block">{c.is_published ? 'Опубликована' : 'Черновик'} · товаров: {c.items?.length || 0}{c.ends_at ? ' · до ' + day(c.ends_at) : ''}</small></div>
+        <div className="acts">
+          <button type="button" className="act press" onClick={() => open(c)}>Изменить</button>
+          <button type="button" className="act danger press" disabled={!!busy} onClick={() => run(async () => { if (window.confirm('Удалить подборку «' + c.title + '»?') && (await api.adminDeleteCollection(c.id))) load(); })}>Удалить</button>
+        </div>
+      </div>
+    )) : <p className="muted">Подборок пока нет.</p>}
+    {ed && (
+      <div className="sheet-bg" onClick={() => setEd(null)}>
+        <div className="sheet form" role="dialog" aria-modal="true" aria-labelledby="col-t" onClick={(e) => e.stopPropagation()}>
+          <h2 id="col-t">{ed.id ? 'Подборка' : 'Новая подборка'}</h2>
+          <div className="field"><label htmlFor="ct">Название</label><input id="ct" maxLength={60} value={ed.title} onChange={(e) => setEd({ ...ed, title: e.target.value })} placeholder="К Ураза-Байраму" /></div>
+          <div className="field"><label htmlFor="cs">Подзаголовок</label><input id="cs" maxLength={120} value={ed.subtitle || ''} onChange={(e) => setEd({ ...ed, subtitle: e.target.value })} placeholder="Нарядное для всей семьи" /></div>
+          <div className="field"><label htmlFor="cc">Обложка (широкое фото)</label><input id="cc" type="file" accept="image/*" onChange={(e) => setCover(e.target.files?.[0] || null)} /></div>
+          <div className="row">
+            <div className="field"><label htmlFor="c1">Начало</label><input id="c1" type="date" value={ed.starts_at} onChange={(e) => setEd({ ...ed, starts_at: e.target.value })} /></div>
+            <div className="field"><label htmlFor="c2">Окончание</label><input id="c2" type="date" value={ed.ends_at || ''} onChange={(e) => setEd({ ...ed, ends_at: e.target.value })} /></div>
+          </div>
+          <label className="check"><input type="checkbox" checked={ed.is_published} onChange={(e) => setEd({ ...ed, is_published: e.target.checked })} /> Опубликовать</label>
+          <span className="muted">Товары в подборке: {ed.picked.length}</span>
+          {ed.picked.length > 0 && <div className="chips wrapchips">{ed.picked.map((x) => <button key={x.id} type="button" className="chip on" onClick={() => toggle(x)}>{x.title} ✕</button>)}</div>}
+          <div className="field"><label htmlFor="cq">Добавить товары</label><input id="cq" placeholder="Поиск по названию" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+          <div className="pick-list">{found.map((x) => (
+            <button key={x.id} type="button" className={'drop-item' + (ed.picked.some((p) => p.id === x.id) ? ' on' : '')} onClick={() => toggle(x)}>
+              <span className="grow">{x.title} <small className="muted">· {x.boutique?.name}</small></span><b>{rub(x.price_rub)}</b>
+            </button>
+          ))}</div>
+          <button type="button" className="btn btn-primary press" disabled={!!busy} onClick={save}>{busy ? 'Сохраняем…' : 'Сохранить'}</button>
+        </div>
+      </div>
+    )}
   </>;
 }

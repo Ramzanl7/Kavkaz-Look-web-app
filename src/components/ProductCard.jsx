@@ -32,12 +32,14 @@ export default function ProductCard({ p, i = 0, variant = 'grid', priority = fal
         {variant === 'grid' && p.boutique && <span className="pc-shop">{p.boutique}</span>}
         <span className="pc-row">
           <b className="price">{rub(p.price)}</b>
+          {p.oldPrice && <s className="old-price">{rub(p.oldPrice)}</s>}
           {variant === 'grid' && sizes && <span className="pc-sizes">{sizes}</span>}
         </span>
       </Link>
       <div className="pc-badges">
         {p.ad && <button type="button" className="badge-ad" onClick={() => setAdInfo(!adInfo)} aria-expanded={adInfo}>Реклама</button>}
-        {!p.ad && p.isNew && variant === 'grid' && <span className="badge-new">Новинка</span>}
+        {p.oldPrice && <span className="badge-sale">−{Math.round((1 - p.price / p.oldPrice) * 100)}%</span>}
+        {!p.ad && !p.oldPrice && p.isNew && variant === 'grid' && <span className="badge-new">Новинка</span>}
       </div>
       {adInfo && p.ad && (
         <div className="ad-info" role="note">

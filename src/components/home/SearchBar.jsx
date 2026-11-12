@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../Icons.jsx';
-import { api } from '../../api/index.js';
+import { api, COLORS } from '../../api/index.js';
 import { searches } from '../../lib/local.js';
 import { GRID } from '../../lib/fit.js';
 
@@ -31,7 +31,7 @@ export default function SearchBar({ value, onChange, filters, onFilters, onBrand
     else if (h.kind === 'boutique') nav('/boutiques/' + h.id);
     else onBrand?.(h.id);
   };
-  const active = (filters.minPrice ? 1 : 0) + (filters.maxPrice ? 1 : 0) + (filters.size ? 1 : 0) + (filters.sort !== 'new' ? 1 : 0);
+  const active = (filters.minPrice ? 1 : 0) + (filters.maxPrice ? 1 : 0) + (filters.size ? 1 : 0) + (filters.color ? 1 : 0) + (filters.sort !== 'new' ? 1 : 0);
   const showHist = focus && !value && hist.length > 0;
   const showHints = focus && value.trim().length >= 2 && hints.length > 0;
   return (
@@ -64,7 +64,7 @@ export default function SearchBar({ value, onChange, filters, onFilters, onBrand
   );
 }
 
-const SORTS = [['new', 'Новинки'], ['price_asc', 'Сначала дешёвые'], ['price_desc', 'Сначала дорогие'], ['rating', 'По рейтингу']];
+const SORTS = [['new', 'Новинки'], ['popular', 'Популярные'], ['discount', 'Со скидкой'], ['price_asc', 'Сначала дешёвые'], ['price_desc', 'Сначала дорогие'], ['rating', 'По рейтингу']];
 const SIZE_LIST = [...new Set([...GRID.female, ...GRID.male])].sort((a, b) => a - b);
 
 function FilterSheet({ filters, onApply, onClose }) {
@@ -83,12 +83,16 @@ function FilterSheet({ filters, onApply, onClose }) {
         <div className="chips wrapchips">
           {SIZE_LIST.map((s) => <button key={s} type="button" className={'chip' + (f.size === s ? ' on' : '')} aria-pressed={f.size === s} onClick={() => setF({ ...f, size: f.size === s ? '' : s })}>{s}</button>)}
         </div>
+        <span className="muted">Цвет</span>
+        <div className="color-pick">
+          {COLORS.map(([v, l, c]) => <button key={v} type="button" className={'color-dot' + (f.color === v ? ' on' : '')} style={{ background: c }} aria-label={l} aria-pressed={f.color === v} title={l} onClick={() => setF({ ...f, color: f.color === v ? '' : v })} />)}
+        </div>
         <span className="muted">Сортировка</span>
         <div className="chips wrapchips">
           {SORTS.map(([v, l]) => <button key={v} type="button" className={'chip' + (f.sort === v ? ' on' : '')} aria-pressed={f.sort === v} onClick={() => setF({ ...f, sort: v })}>{l}</button>)}
         </div>
         <div className="sheet-actions">
-          <button type="button" className="btn btn-secondary press grow" onClick={() => setF({ minPrice: '', maxPrice: '', size: '', sort: 'new' })}>Сбросить</button>
+          <button type="button" className="btn btn-secondary press grow" onClick={() => setF({ minPrice: '', maxPrice: '', size: '', sort: 'new', color: '' })}>Сбросить</button>
           <button type="button" className="btn btn-primary press grow" onClick={() => onApply(f)}>Показать</button>
         </div>
       </div>

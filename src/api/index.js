@@ -13,10 +13,14 @@ window.fetch = async (...args) => {
 const CATEGORIES = ['Женское', 'Мужское', 'Национальное', 'Обувь', 'Аксессуары'];
 const PARTNER_CATEGORIES = ['food', 'taxi', 'delivery', 'coffee'];
 const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
-const COLS = 'id,title,price_rub,category,image_path,images,stock,moderation,moderation_reason,garment_type,sizes,size_chart,is_published,rating_avg,rating_count,created_at,boutique_id,boutique:boutiques(name,city)';
+const COLS_BASE = 'id,title,price_rub,category,image_path,images,stock,moderation,moderation_reason,garment_type,sizes,size_chart,is_published,rating_avg,rating_count,created_at,boutique_id,boutique:boutiques(name,city)';
+// Новые поля (скидка, цвет). Если база ещё не обновлена — один раз переходим на прежний набор, чтобы каталог не ломался.
+let COLS = COLS_BASE + ',old_price_rub,color';
+const downgrade = (error) => { if (error?.code === '42703' && COLS !== COLS_BASE) { COLS = COLS_BASE; return true; } return false; };
 export const PAGE = 20;
 export const CITIES = ['Грозный', 'Аргун', 'Гудермес', 'Урус-Мартан', 'Шали', 'Курчалой', 'Ачхой-Мартан', 'Наурская', 'Ведено'];
-const SORTS = { new: ['created_at', false], price_asc: ['price_rub', true], price_desc: ['price_rub', false], rating: ['rating_avg', false] };
+const SORTS = { new: ['created_at', false], popular: ['rating_count', false], discount: ['created_at', false], price_asc: ['price_rub', true], price_desc: ['price_rub', false], rating: ['rating_avg', false] };
+export const COLORS = [['black', 'Чёрный', '#1d1d1f'], ['white', 'Белый', '#f2efe8'], ['beige', 'Бежевый', '#cdb38c'], ['brown', 'Коричневый', '#6b4429'], ['grey', 'Серый', '#8a8d92'], ['blue', 'Синий', '#2b4a86'], ['green', 'Зелёный', '#2f7d52'], ['red', 'Красный', '#b3312f'], ['burgundy', 'Бордовый', '#6b1d2a'], ['pink', 'Розовый', '#e0a3b0'], ['yellow', 'Жёлтый', '#e2c14a'], ['multi', 'Разноцветный', 'conic-gradient(#b3312f, #e2c14a, #2f7d52, #2b4a86, #b3312f)']];
 const pub = (path) => supabase.storage.from('product-images').getPublicUrl(path).data.publicUrl;
 // Ссылки на фото товара по пути в хранилище (для ответов, где есть только image_path)
 export const imageUrls = (path) => (path ? { image: pub(path), thumb: pub(path.replace(/\.jpg$/, '_t.jpg')) } : { image: null, thumb: null });
@@ -44,6 +48,7 @@ const toProduct = (r) => ({
   garmentType: r.garment_type ?? null, sizes: r.sizes ?? [], sizeChart: r.size_chart ?? null,
   image: r.image_path ? pub(r.image_path) : null, thumb: r.image_path ? pub(r.image_path.replace(/\.jpg$/, '_t.jpg')) : null,
   photos: (r.images?.length ? r.images : r.image_path ? [r.image_path] : []).map((x) => ({ path: x, image: pub(x), thumb: pub(x.replace(/\.jpg$/, '_t.jpg')) })),
+  oldPrice: r.old_price_rub > r.price_rub ? r.old_price_rub : null, color: r.color || null,
   stock: r.stock && typeof r.stock === 'object' ? r.stock : null, blocked: r.moderation === 'blocked', blockReason: r.moderation_reason || '',
 });
 const BQ_COLS = 'id,name,description,city,logo_path,cover_path,address,hours,phone,whatsapp,telegram,delivery_pickup,delivery_courier,courier_note';
@@ -52,7 +57,7 @@ const brandUrl = (path) => (path ? supabase.storage.from('brand-media').getPubli
 const toBrand = (r) => ({ ...r, banner: brandUrl(r.banner_path), logo: brandUrl(r.logo_path) });
 // Кэш на 60 секунд: каталог открывается мгновенно, данные обновляются в фоне.
 const lists = new Map(), products = new Map();
-const keyOf = (o) => [o.query ?? '', o.category ?? '', o.boutiqueId ?? '', o.sort ?? 'new', o.minPrice ?? '', o.maxPrice ?? '', o.size ?? '', o.city ?? ''].join('|');
+const keyOf = (o) => [o.query ?? '', o.category ?? '', o.boutiqueId ?? '', o.sort ?? 'new', o.minPrice ?? '', o.maxPrice ?? '', o.size ?? '', o.city ?? '', o.color ?? ''].join('|');
 
 // Приводит контакты поддержки к виду, который принимает база. Пустое поле = канал скрыт.
 const PHONE = /^\+?[0-9]{10,15}$/;
@@ -76,7 +81,7 @@ export const api = {
   peekList(o = {}) { const v = lists.get(keyOf(o)); return v && Date.now() - v.t < 60000 ? v.data : null; },
   peekProduct(id) { return products.get(id) ?? null; },
   // Каталог: постранично (по PAGE), фильтры — раздел, цена, размер, город бутика; поиск — по названию товара и по бутику
-  async listProducts({ query = '', category = '', boutiqueId = '', sort = 'new', page = 0, minPrice = '', maxPrice = '', size = '', city = '' } = {}) {
+  async listProducts({ query = '', category = '', boutiqueId = '', sort = 'new', page = 0, minPrice = '', maxPrice = '', size = '', city = '', color = '' } = {}) {
     const [col, asc] = SORTS[sort] || SORTS.new;
     const byCity = CITIES.includes(city);
     let req = supabase.from('products').select(byCity ? COLS.replace('boutique:boutiques(name,city)', 'boutique:boutiques!inner(name,city)') : COLS)
@@ -95,10 +100,13 @@ export const api = {
     if (hi > 0) req = req.lte('price_rub', hi);
     if (/^[0-9]{2}$/.test(String(size))) req = req.contains('sizes', [String(size)]);
     if (byCity) req = req.eq('boutique.city', city);
+    if (COLORS.some(([c]) => c === color) && COLS !== COLS_BASE) req = req.eq('color', color);
+    if (sort === 'discount' && COLS !== COLS_BASE) req = req.not('old_price_rub', 'is', null);
     const { data, error } = await req;
+    if (downgrade(error)) return api.listProducts(arguments[0]);
     if (error || !data) return page ? [] : null;
     const list = data.map(toProduct);
-    if (!page) lists.set(keyOf({ query, category, boutiqueId, sort, minPrice, maxPrice, size, city }), { t: Date.now(), data: list });
+    if (!page) lists.set(keyOf({ query, category, boutiqueId, sort, minPrice, maxPrice, size, city, color }), { t: Date.now(), data: list });
     list.forEach((p) => products.set(p.id, p));
     return list;
   },
@@ -122,6 +130,7 @@ export const api = {
     const ok = (ids || []).filter(isUuid).slice(0, 50);
     if (!ok.length) return [];
     const { data, error } = await supabase.from('products').select(COLS).in('id', ok);
+    if (downgrade(error)) return api.listProductsByIds(ids);
     if (error || !data) return [];
     const map = new Map(data.map((r) => [r.id, toProduct(r)]));
     return ok.map((id) => map.get(id)).filter(Boolean);
@@ -200,7 +209,8 @@ export const api = {
   },
   // «Популярное сейчас»: сначала оплаченные размещения (с маркировкой), затем самые популярные товары без рекламы
   async listPopular() {
-    const { data } = await supabase.from('promotions').select('id,advertiser,advertiser_inn,erid,sort,product:products!inner(' + COLS + ')').order('sort').limit(10);
+    const { data, error } = await supabase.from('promotions').select('id,advertiser,advertiser_inn,erid,sort,product:products!inner(' + COLS + ')').order('sort').limit(10);
+    if (downgrade(error)) return api.listPopular();
     const ads = (data || []).filter((r) => r.product?.is_published === true).map((r) => ({ ...toProduct(r.product), ad: { advertiser: r.advertiser, inn: r.advertiser_inn, erid: r.erid } }));
     const seen = new Set(ads.map((p) => p.id));
     const { data: top } = await supabase.from('products').select(COLS).eq('is_published', true).order('rating_count', { ascending: false }).order('created_at', { ascending: false }).limit(12);
@@ -212,6 +222,7 @@ export const api = {
   async getProduct(id) {
     if (!isUuid(id)) return null;
     const { data, error } = await supabase.from('products').select(COLS + ',description').eq('id', id).maybeSingle();
+    if (downgrade(error)) return api.getProduct(id);
     if (error || !data) return null;
     const p = toProduct(data);
     products.set(p.id, p);
@@ -229,6 +240,7 @@ export const api = {
   },
   async listWishlist() {
     const { data, error } = await supabase.from('wishlist').select('product:products(' + COLS + ')').limit(100);
+    if (downgrade(error)) return api.listWishlist();
     return error || !data ? [] : data.map((r) => r.product).filter(Boolean).map(toProduct);
   },
   async listWishedIds() {
@@ -404,7 +416,7 @@ export const api = {
     if (ok.length) await supabase.storage.from('product-images').remove(ok.flatMap((x) => [x, x.replace(/\.jpg$/, '_t.jpg')]));
   },
   // Создание и правка товара: название, цена, раздел, описание, до 6 фото, размеры и остатки
-  async saveProduct({ id, boutiqueId, title, price, category, description, photos = [], sizing, stock }) {
+  async saveProduct({ id, boutiqueId, title, price, category, description, photos = [], sizing, stock, oldPrice, color }) {
     const t = cleanText(title, 120), d = cleanText(description, 2000), p = Number(price);
     if (!isUuid(boutiqueId) || t.length < 2 || !Number.isInteger(p) || p < 1 || p > 10000000 || !CATEGORIES.includes(category)) return { ok: false, error: 'Проверьте название, цену и раздел.' };
     const images = photos.filter((x) => /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.jpg$/.test(x)).slice(0, 6);
@@ -418,6 +430,12 @@ export const api = {
       st = Object.keys(o).length ? o : null;
     }
     const row = { title: t, description: d || null, price_rub: p, category, images, image_path: images[0] || null, stock: st, ...sz };
+    const op = Number(oldPrice);
+    if (oldPrice !== undefined && COLS !== COLS_BASE) {
+      if (oldPrice !== '' && oldPrice != null && (!Number.isInteger(op) || op <= p)) return { ok: false, error: 'Старая цена должна быть больше новой.' };
+      row.old_price_rub = Number.isInteger(op) && op > p ? op : null;
+      row.color = COLORS.some(([c]) => c === color) ? color : null;
+    }
     const { error } = isUuid(id) ? await supabase.from('products').update(row).eq('id', id) : await supabase.from('products').insert({ boutique_id: boutiqueId, ...row });
     if (error) return { ok: false, error: 'Не удалось сохранить товар.' };
     products.delete(id); lists.clear();
@@ -428,10 +446,29 @@ export const api = {
     if (file) { const r = await this.uploadProductPhoto(boutiqueId, file); if (r.error) return { ok: false, error: r.error }; photos = [r.path]; }
     return this.saveProduct({ boutiqueId, title, price, category, description, photos, sizing });
   },
+  // Похожие: тот же раздел; «Ещё из бутика»: тот же продавец
+  async related(p) {
+    if (!p?.id) return { same: [], shop: [] };
+    const base = () => supabase.from('products').select(COLS).eq('is_published', true).neq('id', p.id).limit(10);
+    const [a, b] = await Promise.all([
+      CATEGORIES.includes(p.category) ? base().eq('category', p.category).order('rating_count', { ascending: false }) : Promise.resolve({ data: [] }),
+      isUuid(p.boutiqueId) ? base().eq('boutique_id', p.boutiqueId).order('created_at', { ascending: false }) : Promise.resolve({ data: [] }),
+    ]);
+    const shop = (b.data || []).map(toProduct);
+    const shopIds = new Set(shop.map((x) => x.id));
+    return { same: (a.data || []).map(toProduct).filter((x) => !shopIds.has(x.id)), shop };
+  },
+  // «Сообщить, когда появится размер»
+  async stockAlert(productId, size) {
+    if (!isUuid(productId)) return 'Не удалось.';
+    const { error } = await supabase.from('stock_alerts').insert({ product_id: productId, size: size || '_' });
+    return !error || error.code === '23505' ? '' : 'Не удалось подписаться.';
+  },
   // Все товары своего бутика (без постраничного ограничения каталога)
   async listMyProducts(boutiqueId) {
     if (!isUuid(boutiqueId)) return [];
     const { data, error } = await supabase.from('products').select(COLS + ',description').eq('boutique_id', boutiqueId).order('created_at', { ascending: false }).limit(500);
+    if (downgrade(error)) return api.listMyProducts(boutiqueId);
     return error || !data ? [] : data.map(toProduct);
   },
   async setProductSizing(id, sizing) {
@@ -471,7 +508,7 @@ export const api = {
   },
   async listMyOrders(userId) {
     if (!isUuid(userId)) return [];
-    const { data, error } = await supabase.from('orders').select('id,status,total_rub,created_at,delivery,address,comment,payment,boutique:boutiques(id,name),items:order_items(title,qty,price_rub,size,product_id)').eq('buyer_id', userId).order('created_at', { ascending: false }).limit(50);
+    const { data, error } = await supabase.from('orders').select('id,status,total_rub,created_at,delivery,address,comment,payment,boutique:boutiques(id,name,whatsapp,phone),items:order_items(title,qty,price_rub,size,product_id)').eq('buyer_id', userId).order('created_at', { ascending: false }).limit(50);
     return error || !data ? [] : data;
   },
   // ===== Восстановление пароля =====

@@ -57,8 +57,26 @@ export default function TryOn() {
   if (!p) return <main className="wrap"><EmptyState title="Товар не найден" /></main>;
   if (!user) return <main className="wrap"><h1 className="screen-title">Примерка</h1><EmptyState title="Войдите, чтобы примерить" text="Манекен строится по вашим меркам." action={<Link className="btn btn-primary press" to="/login">Войти</Link>} /></main>;
   if (type === 'none') return <main className="wrap"><h1 className="screen-title">Примерка</h1><EmptyState title="Эту вещь примерить нельзя" text="Примерка доступна для одежды и обуви." /></main>;
+  // шаг 1: пол выбирает сам пользователь (запоминаем в мерках)
+  if (!m?.gender) return (
+    <main className="wrap tryon">
+      <h1 className="screen-title rise">Примерка</h1>
+      <section className="fit-quiz" aria-label="Выбор манекена">
+        <h2>Для кого собрать манекен?</h2>
+        <p className="hint" style={{ margin: 0 }}>Выбор запомнится в «Моих мерках», его можно изменить в любой момент.</p>
+        <div className="quiz-opts">
+          {[['female', 'Женщина'], ['male', 'Мужчина']].map(([v, l]) => (
+            <button key={v} type="button" className="quiz-opt press" disabled={!!busy} onClick={() => run(async () => {
+              const err = await api.saveGender(user.id, v);
+              if (err) toast(err); else setM({ ...(m || {}), gender: v });
+            }, 'gender')}><span>{l}</span></button>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
   const needs = type === 'shoes' ? !body?.shoe : !body?.complete;
-  if (!m || needs) return (
+  if (needs) return (
     <main className="wrap">
       <h1 className="screen-title">Примерка: {p.title}</h1>
       <EmptyState title={type === 'shoes' ? 'Нужен ваш размер обуви' : 'Нужны ваши мерки'}
@@ -71,7 +89,7 @@ export default function TryOn() {
   if (askQuiz) return (
     <main className="wrap tryon">
       <h1 className="screen-title rise">Примерка</h1>
-      <FitQuiz initial={m.fit_pref || {}} busy={busy === 'pref'} onSave={savePref} onSkip={() => { sessionStorageSet('kl-quiz-skip'); setQuiz(false); setM({ ...m }); }} />
+      <FitQuiz initial={m.fit_pref || {}} gender={m.gender} busy={busy === 'pref'} onSave={savePref} onSkip={() => { sessionStorageSet('kl-quiz-skip'); setQuiz(false); setM({ ...m }); }} />
     </main>
   );
 

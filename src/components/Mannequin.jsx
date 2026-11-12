@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { STATUS } from '../lib/fit.js';
 
 // 3D-манекен по меркам покупателя и вещь на нём.
-// Гладкое тело без лица и анатомических подробностей, всегда в нейтральной скромной базовой одежде.
+// Реалистичное тело (открытая модель MakeHuman, CC0) с гладким лицом без черт, матовое «премиальное» покрытие,
+// всегда в нейтральной скромной базовой одежде.
 // Сетки считаются в фоновом потоке (lib/avatar/worker.js), здесь — только показ.
 
 const statusColors = Object.fromEntries(Object.entries(STATUS).map(([k, v]) => [k, v.color]));
@@ -22,15 +24,19 @@ export default function Mannequin({ body, look, type, garment, fit, color, heat 
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.shadowMap.enabled = true;
     el.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
+    // мягкий «студийный» свет как в играх: окружение для отражений + ключевой свет с тенью
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.6;
     const camera = new THREE.PerspectiveCamera(30, 1, 1, 3000);
-    scene.add(new THREE.HemisphereLight(0xfff6e8, 0x6b6458, 1.1));
-    const key = new THREE.DirectionalLight(0xffffff, 2.1); key.position.set(150, 300, 250); scene.add(key);
-    const fill = new THREE.DirectionalLight(0xffffff, 0.8); fill.position.set(0, 60, 300); scene.add(fill);
-    const rim = new THREE.DirectionalLight(0xffe2a8, 1.1); rim.position.set(-250, 200, -200); scene.add(rim);
-    const floor = new THREE.Mesh(new THREE.CircleGeometry(45, 48), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.22 }));
-    floor.rotation.x = -Math.PI / 2; floor.position.y = 0.05; scene.add(floor);
+    const key = new THREE.DirectionalLight(0xfff4e6, 2.0); key.position.set(120, 300, 220); key.castShadow = true;
+    key.shadow.mapSize.set(1024, 1024); Object.assign(key.shadow.camera, { left: -70, right: 70, top: 210, bottom: -10, near: 10, far: 800 }); key.shadow.normalBias = 0.6;
+    scene.add(key);
+    const rim = new THREE.DirectionalLight(0xffe2a8, 1.0); rim.position.set(-250, 220, -200); scene.add(rim);
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(70, 48), new THREE.ShadowMaterial({ opacity: 0.35 }));
+    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
     const group = new THREE.Group(); scene.add(group);
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enablePan = false; controls.enableDamping = true; controls.minPolarAngle = Math.PI * 0.25; controls.maxPolarAngle = Math.PI * 0.6;
@@ -44,7 +50,7 @@ export default function Mannequin({ body, look, type, garment, fit, color, heat 
     const worker = new Worker(new URL('../lib/avatar/worker.js', import.meta.url), { type: 'module' });
     state.current = { scene, camera, controls, group, renderer, worker, req: 0, framed: '' };
     return () => {
-      cancelAnimationFrame(raf); ro.disconnect(); controls.dispose(); worker.terminate();
+      cancelAnimationFrame(raf); ro.disconnect(); controls.dispose(); worker.terminate(); pmrem.dispose(); scene.environment?.dispose();
       group.traverse((o) => { o.geometry?.dispose(); o.material?.dispose?.(); });
       renderer.dispose(); renderer.domElement.remove();
     };
@@ -76,7 +82,8 @@ export default function Mannequin({ body, look, type, garment, fit, color, heat 
   );
 }
 
-const skin = () => new THREE.MeshStandardMaterial({ color: 0xe8e0d4, roughness: 0.45, metalness: 0 });
+// матовое покрытие дорогого магазинного манекена (слоновая кость)
+const skin = () => new THREE.MeshPhysicalMaterial({ color: 0xe9e2d6, roughness: 0.42, metalness: 0, clearcoat: 0.25, clearcoatRoughness: 0.5 });
 
 function show(s, data, body, type) {
   s.group.traverse((o) => { o.geometry?.dispose(); o.material?.dispose?.(); });
@@ -89,11 +96,11 @@ function show(s, data, body, type) {
     let mat;
     if (m.part === 'cloth') {
       if (m.color) geo.setAttribute('color', new THREE.BufferAttribute(m.color, 3));
-      mat = new THREE.MeshStandardMaterial({ color: m.color ? 0xffffff : new THREE.Color(...m.rgb), vertexColors: !!m.color, roughness: m.base ? 0.92 : 0.8 });
-    } else if (m.part === 'hair') mat = new THREE.MeshStandardMaterial({ color: 0x2a1f19, roughness: 0.8 });
+      mat = new THREE.MeshStandardMaterial({ color: m.color ? 0xffffff : new THREE.Color(...m.rgb), vertexColors: !!m.color, roughness: 0.85, side: THREE.DoubleSide });
+    } else if (m.part === 'hair') mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(...(m.rgb || [0.05, 0.035, 0.03])), roughness: 0.75, side: THREE.DoubleSide });
     else mat = skin();
-    if (m.lowres) { mat.polygonOffset = true; mat.polygonOffsetFactor = 2; mat.polygonOffsetUnits = 2; }
-    s.group.add(new THREE.Mesh(geo, mat));
+    const mesh = new THREE.Mesh(geo, mat); mesh.castShadow = true; mesh.receiveShadow = true;
+    s.group.add(mesh);
   }
   // кадр: для обуви — ближе к стопам; камеру не дёргаем, если вид уже настроен под эту фигуру
   const frame = JSON.stringify([body.height, type === 'shoes']);

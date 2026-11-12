@@ -7,7 +7,7 @@ import { FIELDS, suggestSize } from '../lib/sizes.js';
 import { api } from '../api/index.js';
 import FitQuiz from '../components/FitQuiz.jsx';
 
-const EMPTY = { gender: '', height_cm: '', chest_cm: '', waist_cm: '', hips_cm: '', shoulder_cm: '', inseam_cm: '', shoe_eu: '' };
+const EMPTY = { gender: '', height_cm: '', weight_kg: '', chest_cm: '', waist_cm: '', hips_cm: '', shoulder_cm: '', inseam_cm: '', shoe_eu: '' };
 
 export default function Measurements() {
   const { user } = useAuth();
@@ -49,7 +49,7 @@ export default function Measurements() {
       <p className="lead">По меркам мы подскажем ваш размер на странице товара. Заполните только то, что хотите, — все поля необязательны.</p>
       <form className="form" onSubmit={save}>
         <div className="seg" role="radiogroup" aria-label="Сетка размеров">
-          {[['female', 'Женская сетка'], ['male', 'Мужская сетка']].map(([v, l]) => (
+          {[['female', 'Женщина'], ['male', 'Мужчина']].map(([v, l]) => (
             <button key={v} type="button" role="radio" aria-checked={m.gender === v} className={'chip' + (m.gender === v ? ' on' : '')} onClick={() => setM({ ...m, gender: v })}>{l}</button>
           ))}
         </div>
@@ -71,7 +71,7 @@ export default function Measurements() {
         <button type="button" className="link-muted" disabled={!!busy} onClick={clear}>Удалить мои мерки</button>
       </form>
       <h2 className="quiz-head">Как вы любите носить</h2>
-      <FitQuiz key={JSON.stringify(pref)} initial={pref} compact busy={busy === 'pref'} onSave={savePref} />
+      <FitQuiz key={JSON.stringify(pref) + m.gender} initial={pref} gender={m.gender} compact busy={busy === 'pref'} onSave={savePref} />
       <p className="notice">Мерки видите только вы. Продавцы их не видят. Они удаляются вместе с аккаунтом или кнопкой выше.</p>
     </main>
   );

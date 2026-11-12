@@ -268,13 +268,13 @@ export const api = {
   },
   // ===== Мои мерки (видит и меняет только владелец) =====
   async getMeasurements() {
-    const { data, error } = await supabase.from('measurements').select('gender,height_cm,chest_cm,waist_cm,hips_cm,shoulder_cm,inseam_cm,shoe_eu,fit_pref,updated_at').maybeSingle();
+    const { data, error } = await supabase.from('measurements').select('gender,height_cm,weight_kg,chest_cm,waist_cm,hips_cm,shoulder_cm,inseam_cm,shoe_eu,fit_pref,updated_at').maybeSingle();
     return error ? null : data;
   },
   async saveMeasurements(userId, m) {
     if (!isUuid(userId)) return 'Нужно войти';
     const row = { user_id: userId, gender: ['female', 'male'].includes(m.gender) ? m.gender : null, updated_at: new Date().toISOString() };
-    for (const k of ['height_cm', 'chest_cm', 'waist_cm', 'hips_cm', 'shoulder_cm', 'inseam_cm']) { const v = Math.round(Number(String(m[k] ?? '').replace(',', '.'))); row[k] = m[k] === '' || m[k] == null || !Number.isFinite(v) ? null : v; }
+    for (const k of ['height_cm', 'weight_kg', 'chest_cm', 'waist_cm', 'hips_cm', 'shoulder_cm', 'inseam_cm']) { const v = Math.round(Number(String(m[k] ?? '').replace(',', '.'))); row[k] = m[k] === '' || m[k] == null || !Number.isFinite(v) ? null : v; }
     const shoe = Number(String(m.shoe_eu ?? '').replace(',', '.'));
     row.shoe_eu = m.shoe_eu === '' || m.shoe_eu == null || !Number.isFinite(shoe) ? null : Math.round(shoe * 2) / 2;
     const { error } = await supabase.from('measurements').upsert(row, { onConflict: 'user_id' });
@@ -284,11 +284,17 @@ export const api = {
   // Ответы опросника о посадке (как любит носить, что брать между размерами, любимая длина)
   async saveFitPref(userId, pref) {
     if (!isUuid(userId)) return 'Нужно войти';
-    const ok = { fit: ['tight', 'regular', 'loose', 'oversize'], between: ['smaller', 'bigger'], length: ['maxi', 'midi', 'any'] };
+    const ok = { fit: ['tight', 'regular', 'loose', 'oversize'], between: ['smaller', 'bigger'], length: ['maxi', 'midi', 'any'], trousers: ['long', 'cropped', 'any'] };
     const fit_pref = {};
     for (const [k, vals] of Object.entries(ok)) if (vals.includes(pref?.[k])) fit_pref[k] = pref[k];
     const { error } = await supabase.from('measurements').upsert({ user_id: userId, fit_pref, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
     return error ? 'Не удалось сохранить ответы. Попробуйте ещё раз.' : '';
+  },
+  // Пол для манекена и размерной сетки: выбирает сам пользователь
+  async saveGender(userId, gender) {
+    if (!isUuid(userId) || !['female', 'male'].includes(gender)) return 'Нужно войти';
+    const { error } = await supabase.from('measurements').upsert({ user_id: userId, gender, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+    return error ? 'Не удалось сохранить. Попробуйте ещё раз.' : '';
   },
   async clearMeasurements(userId) {
     if (!isUuid(userId)) return false;

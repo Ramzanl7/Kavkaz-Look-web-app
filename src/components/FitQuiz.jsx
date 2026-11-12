@@ -6,16 +6,17 @@ import { FIT_PREFS } from '../lib/fit.js';
 const QUESTIONS = [
   { key: 'fit', title: 'Как вы любите носить одежду?', opts: Object.entries(FIT_PREFS).map(([v, p]) => [v, p.label, p.hint]) },
   { key: 'between', title: 'Если вы между двумя размерами, что взять?', opts: [['smaller', 'Меньший', 'чтобы сидело аккуратнее'], ['bigger', 'Больший', 'чтобы точно не жало']] },
-  { key: 'length', title: 'Какую длину платьев и юбок вы любите?', opts: [['maxi', 'Макси', 'до щиколотки или в пол'], ['midi', 'Миди', 'ниже колена'], ['any', 'Не важно', '']] },
+  { key: 'length', only: 'female', title: 'Какую длину платьев и юбок вы любите?', opts: [['maxi', 'Макси', 'до щиколотки или в пол'], ['midi', 'Миди', 'ниже колена'], ['any', 'Не важно', '']] },
+  { key: 'trousers', only: 'male', title: 'Какую длину брюк вы любите?', opts: [['long', 'Длинные', 'до обуви'], ['cropped', 'Укороченные', 'открывают щиколотку'], ['any', 'Не важно', '']] },
 ];
 
-export default function FitQuiz({ initial, onSave, onSkip, busy, compact = false }) {
+export default function FitQuiz({ initial, onSave, onSkip, busy, gender = 'female', compact = false }) {
   const [a, setA] = useState(() => ({ ...(initial || {}) }));
   return (
     <section className="fit-quiz" aria-label="Опросник о посадке">
       {!compact && <h2>Подберём размер под ваш вкус</h2>}
       {!compact && <p className="hint" style={{ margin: 0 }}>Три коротких вопроса — ответы сохранятся в «Моих мерках», их можно изменить в любой момент.</p>}
-      {QUESTIONS.map((q) => (
+      {QUESTIONS.filter((q) => !q.only || q.only === (gender === 'male' ? 'male' : 'female')).map((q) => (
         <fieldset key={q.key}>
           <legend>{q.title}</legend>
           <div className="quiz-opts" role="radiogroup" aria-label={q.title}>

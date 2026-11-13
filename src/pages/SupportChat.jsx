@@ -47,7 +47,7 @@ export default function SupportChat() {
     <main className="chat-screen">
       <header className="chat-head">
         <span className="chat-ava" aria-hidden="true">K</span>
-        <span className="grow"><strong>Поддержка Kavkaz Look</strong><small>{hours ? 'Работаем ' + hours : 'Обычно отвечаем в течение дня'}</small></span>
+        <span className="grow"><strong>Поддержка Kavkaz Look</strong><small>{hours ? (/^[А-ЯЁA-Z]/.test(hours) ? hours : 'Работаем ' + hours) : 'Обычно отвечаем в течение дня'}</small></span>
       </header>
       {data === undefined ? <p className="chat-note">Загрузка…</p> : data === null ? (
         <p className="chat-note">Чат поддержки скоро заработает. Пока напишите нам в <Link className="link-u" to="/support">другие каналы</Link>.</p>

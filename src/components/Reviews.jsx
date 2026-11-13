@@ -46,6 +46,7 @@ export default function Reviews({ productId }) {
           <strong>{r.author_name}</strong>
           {r.body && <span>{r.body}</span>}
           <span className="muted">{new Date(r.created_at).toLocaleDateString('ru-RU')}</span>
+          {r.reply && <div className="review-reply"><b>Ответ бутика</b><span>{r.reply}</span></div>}
           {user && r.user_id !== user.id && <button type="button" className="link-muted" style={{ justifySelf: 'start' }} onClick={() => setRep(r.id)}>Пожаловаться</button>}
           {user && r.user_id === user.id && <button type="button" className="act danger press" style={{ justifySelf: 'start' }} disabled={busy === r.id} onClick={() => del(r.id)}>Удалить мой отзыв</button>}
         </div>

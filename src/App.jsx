@@ -32,12 +32,16 @@ const CollectionPage = lazy(() => import('./pages/CollectionPage.jsx'));
 const Following = lazy(() => import('./pages/Following.jsx'));
 const SellerProfile = lazy(() => import('./pages/SellerProfile.jsx'));
 const SellerStats = lazy(() => import('./pages/SellerStats.jsx'));
-const AdminTools = lazy(() => import('./pages/AdminTools.jsx'));
+const AdminSection = lazy(() => import('./pages/AdminSection.jsx'));
+const SupportChat = lazy(() => import('./pages/SupportChat.jsx'));
 const History = lazy(() => import('./pages/History.jsx'));
 const Brands = lazy(() => import('./pages/Brands.jsx'));
 const Measurements = lazy(() => import('./pages/Measurements.jsx'));
 const Notifications = lazy(() => import('./pages/Notifications.jsx'));
 const Stylist = lazy(() => import('./pages/Stylist.jsx'));
+const SellerReviews = lazy(() => import('./pages/SellerReviews.jsx'));
+const SellerPayments = lazy(() => import('./pages/SellerPayments.jsx'));
+const SellerHelp = lazy(() => import('./pages/SellerHelp.jsx'));
 const SellerPromos = lazy(() => import('./pages/SellerPromos.jsx'));
 const Sell = lazy(() => import('./pages/Sell.jsx'));
 const Invite = lazy(() => import('./pages/Invite.jsx'));
@@ -83,6 +87,7 @@ export default function App() {
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/following" element={<Following />} />
           <Route path="/invite" element={<Invite />} />
+          <Route path="/support/chat" element={<SupportChat />} />
         </Route>
         <Route element={<RequireRole roles={['seller']} />}>
           <Route path="/seller" element={<SellerHome />} />
@@ -95,13 +100,18 @@ export default function App() {
           <Route path="/seller/profile" element={<SellerProfile />} />
           <Route path="/seller/stats" element={<SellerStats />} />
           <Route path="/seller/promos" element={<SellerPromos />} />
+          <Route path="/seller/reviews" element={<SellerReviews />} />
+          <Route path="/seller/payments" element={<SellerPayments />} />
+          <Route path="/seller/help" element={<SellerHelp />} />
         </Route>
         <Route element={<RequireRole roles={['admin']} />}>
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/stats" element={<AdminStats />} />
           <Route path="/admin/promo" element={<AdminPromo />} />
-          <Route path="/admin/tools" element={<AdminTools />} />
-          <Route path="/admin/tools/:tab" element={<AdminTools />} />
+          <Route path="/admin/tools" element={<Navigate to="/admin" replace />} />
+          <Route path="/admin/tools/:tab" element={<AdminSection />} />
+          <Route path="/admin/s/:section" element={<AdminSection />} />
+          <Route path="/admin/s/:section/:id" element={<AdminSection />} />
         </Route>
         <Route path="*" element={<Stub title="Страница не найдена" hint="Проверьте адрес или вернитесь в каталог." />} />
       </Route>

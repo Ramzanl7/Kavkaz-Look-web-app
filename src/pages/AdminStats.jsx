@@ -86,7 +86,8 @@ function UserRow({ u, me, onBan, open, onToggle }) {
   );
 }
 
-export default function AdminStats() {
+// part: 'stats' — цифры и посещения, 'users' — пользователи и блокировка; без part — всё
+export default function AdminStats({ part }) {
   const { user } = useAuth();
   const toast = useToast();
   const [days, setDays] = useState(30);
@@ -118,7 +119,8 @@ export default function AdminStats() {
 
   return (
     <main className="wrap">
-      <h1 className="screen-title rise">Статистика</h1>
+      <h1 className="screen-title rise">{part === 'users' ? 'Пользователи' : 'Статистика'}</h1>
+      {part !== 'users' && <>
       {s === null && <p className="notice">Не удалось загрузить статистику. Проверьте, что вы вошли как администратор.</p>}
 
       <div className="kpis rise" style={{ '--d': 1 }}>
@@ -154,6 +156,8 @@ export default function AdminStats() {
         ) : s === undefined ? <div className="skeleton" style={{ height: 220, borderRadius: 16 }} /> : null}
       </section>
 
+      </>}
+      {part !== 'stats' && <>
       <section className="panel rise" style={{ '--d': 3 }}>
         <div className="panel-head"><h2>Пользователи</h2>{users && <span className="muted">{shown.length} из {users[0]?.total ?? 0}</span>}</div>
         <input className="search" type="search" placeholder="Поиск по почте или имени" maxLength={80} value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -165,6 +169,7 @@ export default function AdminStats() {
         ) : <p className="muted">Никого не нашлось.</p>}
       </section>
 
+      </>}
       {ban && createPortal(
         <div className="sheet-bg" role="presentation" onClick={() => !busy && setBan(null)}>
           <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="ban-t" onClick={(e) => e.stopPropagation()}>

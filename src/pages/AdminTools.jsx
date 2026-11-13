@@ -35,7 +35,7 @@ export default function AdminTools() {
   );
 }
 
-function Products() {
+export function Products() {
   const [q, setQ] = useState(''), [onlyBlocked, setOnly] = useState(false), [list, setList] = useState(null);
   const [busy, run] = useAction(); const toast = useToast();
   const load = useCallback(() => api.adminListProducts({ query: q, blocked: onlyBlocked }).then(setList), [q, onlyBlocked]);
@@ -64,7 +64,7 @@ function Products() {
   </>;
 }
 
-function Reviews() {
+export function Reviews() {
   const [hidden, setHidden] = useState(false), [list, setList] = useState(null);
   const [busy, run] = useAction();
   const load = useCallback(() => api.adminListReviews(hidden).then(setList), [hidden]);
@@ -83,7 +83,7 @@ function Reviews() {
   </>;
 }
 
-function Reports() {
+export function Reports() {
   const [status, setStatus] = useState('open'), [list, setList] = useState(null);
   const [busy, run] = useAction();
   const load = useCallback(() => api.adminListReports(status).then(setList), [status]);
@@ -106,7 +106,7 @@ function Reports() {
   </>;
 }
 
-function Orders() {
+export function Orders() {
   const [status, setStatus] = useState(''), [list, setList] = useState(null);
   const [busy, run] = useAction(); const toast = useToast();
   const load = useCallback(() => api.adminListOrders(status).then(setList), [status]);
@@ -129,7 +129,7 @@ function Orders() {
   </>;
 }
 
-function Broadcast() {
+export function Broadcast() {
   const [f, setF] = useState({ title: '', body: '', audience: 'all', link: '/catalog' });
   const [busy, run] = useAction(); const toast = useToast();
   const send = (e) => { e.preventDefault(); return run(async () => {
@@ -150,7 +150,7 @@ function Broadcast() {
 }
 
 const LEAD_ST = { new: 'Новая', contacted: 'Связались', done: 'Подключён', rejected: 'Отказ' };
-function Leads() {
+export function Leads() {
   const [list, setList] = useState(null), [f, setF] = useState('new');
   const [busy, run] = useAction();
   const load = () => api.adminListLeads().then(setList);
@@ -180,7 +180,7 @@ function Leads() {
 }
 
 // Неоплаченные заказы: продавец нажал «Не оплатил». Связаться с покупателем, при необходимости — заблокировать или снять ограничение.
-function Unpaid() {
+export function Unpaid() {
   const [list, setList] = useState(null), [busy, run] = useAction(); const toast = useToast();
   const load = () => api.adminUnpaidList().then(setList);
   useEffect(() => { load(); }, []);
@@ -207,7 +207,7 @@ function Unpaid() {
   </>;
 }
 
-function Invites() {
+export function Invites() {
   const [list, setList] = useState(null);
   useEffect(() => { api.adminReferralTop().then(setList); }, []);
   return list === null ? <p className="lead">Загрузка…</p> : <>
@@ -219,7 +219,7 @@ function Invites() {
   </>;
 }
 
-function Finance() {
+export function Finance() {
   const [days, setDays] = useState(30), [list, setList] = useState(null);
   useEffect(() => { setList(null); api.adminFinance(days).then(setList); }, [days]);
   const sum = (list || []).reduce((a, r) => a + r.revenue, 0);
@@ -238,7 +238,7 @@ function Finance() {
 }
 
 const day = (d) => (d ? new Date(d).toISOString().slice(0, 10) : '');
-function CollectionsAdmin() {
+export function CollectionsAdmin() {
   const [list, setList] = useState(null), [ed, setEd] = useState(null), [cover, setCover] = useState(null);
   const [q, setQ] = useState(''), [found, setFound] = useState([]);
   const [busy, run] = useAction(); const toast = useToast();

@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import { Icon } from '../components/Icons.jsx';
 import { api } from '../api/index.js';
@@ -14,13 +16,22 @@ export const channels = (c) => [
 ].filter(Boolean);
 
 export default function Support() {
-  const [c, setC] = useState(null);
+  const [c, setC] = useState(null), [unread, setUnread] = useState(0);
+  const { user } = useAuth();
   useEffect(() => { api.getSupportContacts().then(setC); }, []);
+  useEffect(() => { if (user) api.supportUnread().then(setUnread); }, [user]);
   const list = c ? channels(c) : [];
   return (
     <main className="wrap">
       <h1 className="screen-title rise">Поддержка</h1>
-      <p className="lead">Вопрос по заказу, бутику или приложению — напишите нам удобным способом.</p>
+      <p className="lead">Вопрос по заказу, бутику или приложению — напишите нам прямо здесь.</p>
+      <Link className="admin-card press rise" to={user ? '/support/chat' : '/login'} state={user ? undefined : { from: '/support/chat' }}>
+        <span className="menu-ic"><Icon name="chat" /></span>
+        <span className="grow"><strong>Написать в поддержку</strong><small>{unread ? `Новых ответов: ${unread}` : 'Чат в приложении — ответ придёт уведомлением'}</small></span>
+        {unread ? <i className="pill-count">{unread}</i> : null}
+        <Icon name="chevron" />
+      </Link>
+      <div className="sec-head"><h2>Другие способы связи</h2></div>
       {c === null ? <p className="lead">Загрузка…</p> : list.length ? (
         <div className="menu">
           {list.map((x) => (

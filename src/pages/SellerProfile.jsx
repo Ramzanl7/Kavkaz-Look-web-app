@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { api, CITIES } from '../api/index.js';
 import { useAction } from '../lib/useAction.js';
-import PhoneInput, { formatPhone } from '../components/PhoneInput.jsx';
 import { useToast } from '../store/toast.jsx';
 
 // Профиль бутика: то, что покупатель видит на странице бутика
@@ -16,14 +15,12 @@ export default function SellerProfile() {
   const [img, setImg] = useState({});
   const [busy, run] = useAction();
   const [msg, setMsg] = useState('');
-  const [pay, setPay] = useState(null);
   useEffect(() => {
     if (!user) return;
     api.getMyBoutique(user.id).then((r) => {
       setB(r);
       if (r) setF({ description: r.description || '', city: r.city || 'Грозный', address: r.address || '', hours: r.hours || '', phone: r.phone || '', whatsapp: r.whatsapp || '', telegram: r.telegram || '', delivery_pickup: r.delivery_pickup ?? true, delivery_courier: !!r.delivery_courier, courier_note: r.courier_note || '', allow_reserve: r.allow_reserve ?? true });
       if (r) setImg({ logo: r.logo, cover: r.cover });
-      if (r) api.myBoutiquePay(r.id).then((p) => p && setPay({ ...p, sbp_phone: p.sbp_phone ? formatPhone(p.sbp_phone) : '', sbp_bank: p.sbp_bank || '' }));
     });
   }, [user]);
   const upload = (kind) => (e) => {
@@ -38,7 +35,7 @@ export default function SellerProfile() {
   };
   const save = (e) => { e.preventDefault(); return run(async () => {
     setMsg('');
-    const err = await api.saveBoutique(b.id, f) || (pay ? await api.saveBoutiquePay(b.id, pay) : '');
+    const err = await api.saveBoutique(b.id, f);
     if (err) { setMsg(err); return; }
     toast('Профиль бутика сохранён'); nav('/seller');
   }, 'save'); };
@@ -70,26 +67,7 @@ export default function SellerProfile() {
           <label className="check"><input type="checkbox" checked={f.allow_reserve} onChange={(e) => setF({ ...f, allow_reserve: e.target.checked })} /> «Отложить и примерить» — покупатель бронирует вещь до конца дня и приходит примерить (нужен адрес магазина)</label>
           {f.delivery_courier && <div className="field"><label htmlFor="bn">Условия доставки</label><input id="bn" maxLength={150} value={f.courier_note} onChange={set('courier_note')} placeholder="По Грозному 300 ₽, бесплатно от 5000 ₽" /></div>}
         </fieldset>
-        {pay && (
-          <fieldset className="size-editor">
-            <legend>Оплата при доставке курьером</legend>
-            <label className="check"><input type="checkbox" checked={pay.pay_cash} onChange={(e) => setPay({ ...pay, pay_cash: e.target.checked })} /> Наличными при получении</label>
-            <label className="check"><input type="checkbox" checked={pay.pay_transfer} onChange={(e) => setPay({ ...pay, pay_transfer: e.target.checked })} /> Переводом при получении</label>
-            <label className="check"><input type="checkbox" checked={pay.pay_prepay} onChange={(e) => setPay({ ...pay, pay_prepay: e.target.checked })} /> Предоплата по СБП — покупатель переводит до отправки</label>
-            {pay.pay_prepay && <>
-              <div className="field"><label htmlFor="sp">Номер для перевода по СБП</label><PhoneInput id="sp" value={pay.sbp_phone} onChange={(sbp_phone) => setPay((x) => ({ ...x, sbp_phone }))} /></div>
-              <div className="field"><label htmlFor="sb">Банк</label><input id="sb" maxLength={40} value={pay.sbp_bank} onChange={(e) => setPay({ ...pay, sbp_bank: e.target.value })} placeholder="Например, Сбербанк" /></div>
-              <p className="hint">Номер увидит только покупатель, выбравший предоплату, — в своём заказе.</p>
-            </>}
-            <p className="hint">Самовывоз и примерка — оплата в бутике. Если покупатель не оплатит доставку, нажмите в заказе «Не оплатил»: ему закроют новые заказы, а администрация свяжется с ним.</p>
-          </fieldset>
-        )}
-        {pay && (
-          <fieldset className="size-editor">
-            <legend>Приём заказов</legend>
-            <label className="check"><input type="checkbox" checked={pay.auto_accept} onChange={(e) => setPay({ ...pay, auto_accept: e.target.checked })} /> <span><b>Принимать заказы автоматически</b> — вам придёт уведомление, нажимать ничего не нужно. Заказ закроется сам через 3 дня или когда покупатель подтвердит получение.</span></label>
-          </fieldset>
-        )}
+        <Link className="admin-card press" to="/seller/payments"><span className="grow"><strong>Оплата и приём заказов</strong><small>Способы оплаты, СБП, автоприём — отдельный экран</small></span></Link>
         <p className="hint">Контакты бутика видны покупателям на странице магазина.</p>
         {msg && <p className="msg" role="status">{msg}</p>}
         <button className="btn btn-primary press" type="submit" disabled={!!busy}>{busy === 'save' ? 'Сохраняем…' : 'Сохранить'}</button>

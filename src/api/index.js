@@ -816,11 +816,6 @@ export const api = {
     const { data, error } = await supabase.rpc('admin_list_users', { search: cleanQuery(search), lim: limit, off: offset });
     return error || !data ? null : data;
   },
-  async adminUserDays(id) {
-    if (!isUuid(id)) return [];
-    const { data, error } = await supabase.rpc('admin_user_days', { target: id });
-    return error || !data ? [] : data.map((r) => (typeof r === 'string' ? r : r.admin_user_days));
-  },
   async adminSetBlocked(id, blocked, reason = '') {
     if (!isUuid(id)) return 'Неверный пользователь';
     const { error } = await supabase.rpc('admin_set_blocked', { target: id, blocked: !!blocked, reason: cleanText(reason, 200) || null });

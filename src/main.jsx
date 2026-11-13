@@ -20,10 +20,13 @@ import { ToastProvider } from './store/toast.jsx';
 import { WishlistProvider } from './store/wishlist.jsx';
 import { NotificationsProvider } from './store/notifications.jsx';
 import App from './App.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { startUpdater } from './lib/updater.js';
 import { keepPushWorker } from './lib/push.js';
 
 startUpdater();
+// Приложение запустилось нормально — разрешаем снова одну автоперезагрузку при сбое загрузки экрана
+setTimeout(() => { try { sessionStorage.removeItem('kl-chunk-reload'); } catch { /* приватный режим */ } }, 15000);
 // Если у фото товара нет уменьшенной копии (_t.jpg — например, товар загружен до появления превью),
 // на любом экране подставляем основное фото.
 addEventListener('error', (e) => {
@@ -36,6 +39,6 @@ keepPushWorker();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter><AuthProvider><CartProvider><ToastProvider><WishlistProvider><NotificationsProvider><App /></NotificationsProvider></WishlistProvider></ToastProvider></CartProvider></AuthProvider></BrowserRouter>
+    <BrowserRouter><AuthProvider><CartProvider><ToastProvider><WishlistProvider><NotificationsProvider><ErrorBoundary><App /></ErrorBoundary></NotificationsProvider></WishlistProvider></ToastProvider></CartProvider></AuthProvider></BrowserRouter>
   </StrictMode>
 );

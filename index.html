@@ -24,6 +24,7 @@
       .boot-bar{width:120px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,#D6B56A,transparent);background-size:200% 100%;animation:boot 1.2s linear infinite}
       @keyframes boot{from{background-position:100% 0}to{background-position:-100% 0}}
       @media (prefers-reduced-motion:reduce){.boot-bar{animation:none}}
+      .boot-help{max-width:300px;text-align:center;display:grid;gap:8px;margin-top:10px}.boot-help p{margin:0}.boot-sub{font-size:.875rem;opacity:.75}.boot-help button{justify-self:center;margin-top:6px;padding:12px 28px;border:0;border-radius:14px;background:#D6B56A;color:#1a1406;font:inherit;font-weight:700}
     </style>
     <title>Kavkaz Look — одежда бутиков Грозного и Чечни</title>
     <!--og-->
@@ -39,6 +40,7 @@
   </head>
   <body>
     <div id="root"><div class="boot" aria-label="Загрузка Kavkaz Look"><img class="boot-k" src="/favicon.svg" width="88" height="88" alt="" /><span class="boot-name">Kavkaz <b>Look</b></span><i class="boot-bar"></i></div></div>
+    <script src="/boot.js" async></script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icons.jsx';
 import OrnamentBand from '../components/OrnamentBand.jsx';
+import PhoneInput, { phoneComplete } from '../components/PhoneInput.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { api, CITIES } from '../api/index.js';
 import { useAction } from '../lib/useAction.js';
@@ -9,6 +10,7 @@ import '../design/sell.css';
 
 const heroes = import.meta.glob('../assets/home-hero.{jpg,webp}', { eager: true, query: '?url', import: 'default' });
 const HERO = Object.values(heroes)[0];
+const HERO_WORDS = [['Новые'], ['покупатели'], ['для\u00a0вашего'], ['бутика\u00a0—'], ['каждый', 1], ['день', 1]];
 const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 const BENEFITS = [
@@ -39,16 +41,6 @@ const KINDS = ['Мужское', 'Женское', 'Детское', 'Нацио
 const STORY_LINES = [['Ваш бутик закрылся в 19:00.'], ['В 23:00 человек листает Kavkaz Look и находит у вас то, что искал.'], ['Два нажатия — заказ оформлен.'], ['Утром вас ждёт новый покупатель.', 1]];
 const STORY = STORY_LINES.flatMap(([t, gold], line) => t.split(' ').map((w) => [w, gold, line]));
 
-// Телефон в виде +7 (928) 000-00-00 по мере ввода
-const maskPhone = (v) => {
-  let d = String(v).replace(/\D/g, '');
-  if (!d) return '';
-  if (d[0] === '8') d = '7' + d.slice(1);
-  if (d[0] !== '7') d = '7' + d;
-  d = d.slice(0, 11);
-  const p = [d.slice(1, 4), d.slice(4, 7), d.slice(7, 9), d.slice(9, 11)];
-  return '+7' + (p[0] ? ' (' + p[0] : '') + (p[0].length === 3 ? ')' : '') + (p[1] ? ' ' + p[1] : '') + (p[2] ? '-' + p[2] : '') + (p[3] ? '-' + p[3] : '');
-};
 
 // Сцена «истории»: при прокрутке экран задерживается, слова загораются по очереди
 function Story() {
@@ -109,7 +101,7 @@ function LeadForm() {
   const [msg, setMsg] = useState(''), [sent, setSent] = useState(false);
   const [busy, run] = useAction();
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
-  const phoneOk = f.phone.replace(/\D/g, '').length === 11;
+  const phoneOk = phoneComplete(f.phone);
   const ready = f.boutique.trim().length >= 2 && phoneOk && f.agree;
   const submit = (e) => { e.preventDefault(); return run(async () => {
     setMsg('');
@@ -131,7 +123,7 @@ function LeadForm() {
       <h3>Подключить бутик</h3>
       <p className="muted small">Перезвоним в течение дня. Регистрироваться не нужно.</p>
       <div className="field"><label htmlFor="ld-b">Название бутика *</label><input id="ld-b" maxLength={80} value={f.boutique} onChange={set('boutique')} placeholder="Как на вывеске или в Instagram" autoComplete="organization" /></div>
-      <div className="field"><label htmlFor="ld-p">Телефон *</label><input id="ld-p" type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 (900) 000-00-00" value={f.phone} onChange={(e) => setF({ ...f, phone: maskPhone(e.target.value) })} /></div>
+      <div className="field"><label htmlFor="ld-p">Телефон *</label><PhoneInput id="ld-p" value={f.phone} onChange={(phone) => setF((x) => ({ ...x, phone }))} /></div>
       <div className="sell-2">
         <div className="field"><label htmlFor="ld-n">Ваше имя</label><input id="ld-n" maxLength={60} value={f.contact} onChange={set('contact')} autoComplete="given-name" /></div>
         <div className="field"><label htmlFor="ld-c">Город</label><select id="ld-c" value={f.city} onChange={set('city')}>{CITIES.map((c) => <option key={c}>{c}</option>)}</select></div>
@@ -171,18 +163,20 @@ export default function Sell() {
     <main className="sell" ref={rootRef}>
       <section className="sell-hero" style={HERO ? { '--hero': `url(${HERO})` } : undefined}>
         <div className="sell-wrap">
-          <span className="sell-eyebrow rise"><i />Для продавцов одежды Чечни</span>
-          <h1 className="sell-h1 rise" style={{ '--d': 1 }}>Новые покупатели для&nbsp;вашего бутика&nbsp;— <em>каждый день</em></h1>
-          <p className="sell-sub rise" style={{ '--d': 2 }}>Даже когда ваш бутик закрыт.</p>
-          <p className="sell-lead rise" style={{ '--d': 2 }}>Люди ищут одежду, обувь и аксессуары в Kavkaz&nbsp;Look. Покажите им свой ассортимент — они закажут с доставкой, заберут сами или придут примерить. А вам сразу придёт уведомление.</p>
-          <div className="sell-cta rise" style={{ '--d': 3 }}>
-            <button type="button" className="btn btn-primary press" onClick={toForm}>Подключить бутик <Icon name="arrow" /></button>
+          <span className="sell-eyebrow hero-in" style={{ '--t': 0.2 }}><i />Для продавцов одежды Чечни</span>
+          <h1 className="sell-h1" aria-label="Новые покупатели для вашего бутика — каждый день">
+            {HERO_WORDS.map(([w, gold], i) => <Fragment key={i}><span aria-hidden="true" className={'hero-word' + (gold ? ' gold' : '')} style={{ '--t': 0.45 + i * 0.13 }}>{w}</span>{i < HERO_WORDS.length - 1 ? ' ' : ''}</Fragment>)}
+          </h1>
+          <p className="sell-sub hero-in" style={{ '--t': 1.45 }}>Даже когда ваш бутик закрыт.</p>
+          <p className="sell-lead hero-in" style={{ '--t': 1.75 }}>Люди ищут одежду, обувь и аксессуары в Kavkaz&nbsp;Look. Покажите им свой ассортимент — они закажут с доставкой, заберут сами или придут примерить. А вам сразу придёт уведомление.</p>
+          <div className="sell-cta hero-in" style={{ '--t': 2.05 }}>
+            <button type="button" className="btn btn-primary press hero-glow" onClick={toForm}>Подключить бутик <Icon name="arrow" /></button>
             <Link className="btn btn-secondary press" to="/catalog">Как видят покупатели</Link>
           </div>
-          <div className="sell-stats rise" style={{ '--d': 4 }}>
-            <div><b>0 ₽</b><small>подключение и размещение</small></div>
-            <div><b>1 мин</b><small>оставить заявку</small></div>
-            {counts?.products >= 50 ? <div><b>{counts.products}</b><small>товаров уже в приложении</small></div> : <div><b>2 мин</b><small>добавить товар с телефона</small></div>}
+          <div className="sell-stats">
+            <div className="hero-in" style={{ '--t': 2.35 }}><b>0 ₽</b><small>подключение и размещение</small></div>
+            <div className="hero-in" style={{ '--t': 2.5 }}><b>1 мин</b><small>оставить заявку</small></div>
+            {counts?.products >= 50 ? <div className="hero-in" style={{ '--t': 2.65 }}><b>{counts.products}</b><small>товаров уже в приложении</small></div> : <div className="hero-in" style={{ '--t': 2.65 }}><b>2 мин</b><small>добавить товар с телефона</small></div>}
           </div>
         </div>
       </section>

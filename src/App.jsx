@@ -54,6 +54,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Welcome />} />
+      <Route path="/welcome" element={<Welcome />} />
       <Route element={<AppLayout />}>
         <Route path="/login" element={<Login />} />
         <Route path="/reset-password" element={<ResetPassword />} />

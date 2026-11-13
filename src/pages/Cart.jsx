@@ -7,6 +7,7 @@ import { useAuth } from '../auth/AuthContext.jsx';
 import { useToast } from '../store/toast.jsx';
 import { api } from '../api/index.js';
 import { useAction } from '../lib/useAction.js';
+import PhoneInput, { formatPhone, phoneComplete } from '../components/PhoneInput.jsx';
 
 // Ключ попытки оформления: тот же состав корзины → тот же ключ, даже после перезагрузки страницы.
 function attemptKey(items) {
@@ -36,9 +37,9 @@ export default function Cart() {
   const applyPromo = () => runPromo(async () => { setPromoMsg(''); const r = await api.promoQuote(promoIn, items); if (r.error) { setPromo(null); setPromoMsg(r.error); } else setPromo(r); });
   const pay = Math.max(0, total - (promo?.discount || 0));
   const [step, setStep] = useState('cart');
-  const [c, setC] = useState(() => ({ phone: '', delivery: 'pickup', address: '', comment: '', remember: true, ...readContact() }));
+  const [c, setC] = useState(() => ({ delivery: 'pickup', address: '', comment: '', remember: true, ...readContact(), phone: formatPhone(readContact().phone || '') }));
   const shops = new Set(items.map((i) => i.boutique || '?')).size;
-  const phoneOk = /^\+?[0-9]{10,15}$/.test(c.phone.replace(/[^0-9+]/g, ''));
+  const phoneOk = phoneComplete(c.phone);
   const ready = phoneOk && (c.delivery === 'pickup' || c.address.trim().length >= 5);
   const checkout = (e) => { e.preventDefault(); return run(async () => {
     setMsg('');
@@ -88,7 +89,7 @@ export default function Cart() {
             ))}
           </div>
           <div className="field"><label htmlFor="ph">Телефон для связи</label>
-            <input id="ph" type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 900 000-00-00" maxLength={20} value={c.phone} onChange={(e) => setC({ ...c, phone: e.target.value })} /></div>
+            <PhoneInput id="ph" maxLength={20} value={c.phone} onChange={(phone) => setC((x) => ({ ...x, phone }))} /></div>
           {c.delivery === 'courier' && (
             <div className="field"><label htmlFor="ad">Адрес доставки</label>
               <input id="ad" autoComplete="street-address" placeholder="Город, улица, дом, квартира" maxLength={200} value={c.address} onChange={(e) => setC({ ...c, address: e.target.value })} /></div>

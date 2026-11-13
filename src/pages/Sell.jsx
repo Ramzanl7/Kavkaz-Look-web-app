@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icons.jsx';
 import OrnamentBand from '../components/OrnamentBand.jsx';
@@ -6,12 +6,9 @@ import PhoneInput, { phoneComplete } from '../components/PhoneInput.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { api, CITIES } from '../api/index.js';
 import { useAction } from '../lib/useAction.js';
-import '../design/sell.css';
+import { HERO, HeroTitle, Story, reduced, useReveal, useTitle } from '../components/Landing.jsx';
 
-const heroes = import.meta.glob('../assets/home-hero.{jpg,webp}', { eager: true, query: '?url', import: 'default' });
-const HERO = Object.values(heroes)[0];
 const HERO_WORDS = [['Новые'], ['покупатели'], ['для\u00a0вашего'], ['бутика\u00a0—'], ['каждый', 1], ['день', 1]];
-const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 const BENEFITS = [
   ['box', 'Заказы онлайн', 'Покупатель оформляет заказ в пару нажатий — вам приходит уведомление с его телефоном и адресом.'],
@@ -39,43 +36,8 @@ const FAQ = [
 const KINDS = ['Мужское', 'Женское', 'Детское', 'Национальное', 'Обувь', 'Аксессуары'];
 // История по строкам; последняя — золотом
 const STORY_LINES = [['Ваш бутик закрылся в 19:00.'], ['В 23:00 человек листает Kavkaz Look и находит у вас то, что искал.'], ['Два нажатия — заказ оформлен.'], ['Утром вас ждёт новый покупатель.', 1]];
-const STORY = STORY_LINES.flatMap(([t, gold], line) => t.split(' ').map((w) => [w, gold, line]));
 
 
-// Сцена «истории»: при прокрутке экран задерживается, слова загораются по очереди
-function Story() {
-  const ref = useRef(null);
-  const [lit, setLit] = useState(reduced() ? STORY.length : 0);
-  useEffect(() => {
-    if (reduced()) return undefined;
-    let raf = 0;
-    const on = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        const el = ref.current; if (!el) return;
-        const r = el.getBoundingClientRect();
-        const p = Math.min(1, Math.max(0, -r.top / Math.max(1, r.height - innerHeight)));
-        setLit(Math.round(p * 1.15 * STORY.length));
-      });
-    };
-    on();
-    addEventListener('scroll', on, { passive: true }); addEventListener('resize', on);
-    return () => { cancelAnimationFrame(raf); removeEventListener('scroll', on); removeEventListener('resize', on); };
-  }, []);
-  return (
-    <section ref={ref} className="sell-story" aria-label="Как это выглядит для покупателя">
-      <div className="sell-story-stage">
-        <p className="sell-story-text" aria-label={STORY_LINES.map(([t]) => t).join(' ')}>
-          {STORY_LINES.map((_, line) => (
-            <span key={line} className="sell-story-line" aria-hidden="true">
-              {STORY.map(([w, gold, l], i) => l === line && <span key={i} className={(i < lit ? 'lit' : '') + (gold ? ' gold' : '')}>{w} </span>)}
-            </span>
-          ))}
-        </p>
-      </div>
-    </section>
-  );
-}
 
 // Пример кабинета продавца — нарисован вёрсткой, чтобы показать, что получит бутик
 function CabinetPreview() {
@@ -143,30 +105,16 @@ function LeadForm() {
 // Лендинг для бутиков: зачем подключаться, как это работает, заявка без регистрации
 export default function Sell() {
   const [counts, setCounts] = useState(null);
-  const formRef = useRef(null), rootRef = useRef(null);
-  // Карточки плавно появляются, когда до них долистали (если браузер не умеет — просто видны)
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root || !('IntersectionObserver' in window) || reduced()) return undefined;
-    root.classList.add('js-reveal');
-    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
-    root.querySelectorAll('.reveal').forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, []);
-  useEffect(() => {
-    const t = document.title; document.title = 'Продавайте в Kavkaz Look — бутики Грозного и Чечни';
-    api.platformCounts().then(setCounts);
-    return () => { document.title = t; };
-  }, []);
+  const formRef = useRef(null), rootRef = useReveal();
+  useTitle('Продавайте в Kavkaz Look — бутики Грозного и Чечни');
+  useEffect(() => { api.platformCounts().then(setCounts); }, []);
   const toForm = () => formRef.current?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' });
   return (
     <main className="sell" ref={rootRef}>
       <section className="sell-hero" style={HERO ? { '--hero': `url(${HERO})` } : undefined}>
         <div className="sell-wrap">
           <span className="sell-eyebrow hero-in" style={{ '--t': 0.2 }}><i />Для продавцов одежды Чечни</span>
-          <h1 className="sell-h1" aria-label="Новые покупатели для вашего бутика — каждый день">
-            {HERO_WORDS.map(([w, gold], i) => <Fragment key={i}><span aria-hidden="true" className={'hero-word' + (gold ? ' gold' : '')} style={{ '--t': 0.45 + i * 0.13 }}>{w}</span>{i < HERO_WORDS.length - 1 ? ' ' : ''}</Fragment>)}
-          </h1>
+          <HeroTitle words={HERO_WORDS} />
           <p className="sell-sub hero-in" style={{ '--t': 1.45 }}>Даже когда ваш бутик закрыт.</p>
           <p className="sell-lead hero-in" style={{ '--t': 1.75 }}>Люди ищут одежду, обувь и аксессуары в Kavkaz&nbsp;Look. Покажите им свой ассортимент — они закажут с доставкой, заберут сами или придут примерить. А вам сразу придёт уведомление.</p>
           <div className="sell-cta hero-in" style={{ '--t': 2.05 }}>
@@ -196,7 +144,7 @@ export default function Sell() {
         </div>
       </section>
 
-      <Story />
+      <Story lines={STORY_LINES} label="Как это выглядит для покупателя" />
 
       <section className="sell-wrap sell-sec sell-split">
         <div>

@@ -7,7 +7,7 @@ import { rub } from '../store/cart.jsx';
 import { STATUS } from './Orders.jsx';
 import PromoManager from '../components/PromoManager.jsx';
 
-const TABS = [['leads', 'Заявки бутиков'], ['collections', 'Подборки'], ['products', 'Товары'], ['reviews', 'Отзывы'], ['reports', 'Жалобы'], ['orders', 'Заказы'], ['broadcast', 'Рассылка'], ['promos', 'Промокоды'], ['invites', 'Приглашения'], ['finance', 'Обороты']];
+const TABS = [['leads', 'Заявки бутиков'], ['unpaid', 'Неоплаты'], ['collections', 'Подборки'], ['products', 'Товары'], ['reviews', 'Отзывы'], ['reports', 'Жалобы'], ['orders', 'Заказы'], ['broadcast', 'Рассылка'], ['promos', 'Промокоды'], ['invites', 'Приглашения'], ['finance', 'Обороты']];
 const REASON = { fake: 'Подделка/обман', prohibited: 'Запрещённый товар', offensive: 'Оскорбления', fraud: 'Мошенничество', other: 'Другое' };
 const TARGET = { product: 'Товар', review: 'Отзыв', boutique: 'Бутик' };
 
@@ -21,6 +21,7 @@ export default function AdminTools() {
       <h1 className="screen-title rise">Модерация</h1>
       <div className="chips">{TABS.map(([v, l]) => <button key={v} type="button" className={'chip' + (tab === v ? ' on' : '')} onClick={() => pick(v)}>{l}</button>)}</div>
       {tab === 'leads' && <Leads />}
+      {tab === 'unpaid' && <Unpaid />}
       {tab === 'collections' && <CollectionsAdmin />}
       {tab === 'products' && <Products />}
       {tab === 'reviews' && <Reviews />}
@@ -175,6 +176,34 @@ function Leads() {
         </div>
       </div>
     )) : <p className="muted">{f === 'new' ? 'Новых заявок нет. Отправьте владельцам бутиков ссылку на /sell.' : 'Пусто.'}</p>}
+  </>;
+}
+
+// Неоплаченные заказы: продавец нажал «Не оплатил». Связаться с покупателем, при необходимости — заблокировать или снять ограничение.
+function Unpaid() {
+  const [list, setList] = useState(null), [busy, run] = useAction(); const toast = useToast();
+  const load = () => api.adminUnpaidList().then(setList);
+  useEffect(() => { load(); }, []);
+  const wa = (ph) => String(ph || '').replace(/\D/g, '').replace(/^8(\d{10})$/, '7$1');
+  const dt = (d) => new Date(d).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+  if (list === null) return <p className="lead">Загрузка… Если список не появляется — выполните последний SQL.</p>;
+  const open = list.filter((x) => !x.resolved_at);
+  return <>
+    <p className="hint">Покупатель с неоплаченным заказом не может оформлять новые. Свяжитесь с ним и с бутиком. Если оплата была — нажмите «Снять ограничение». Если покупатель злоупотребляет — заблокируйте его: Панель администратора → Статистика → Пользователи.</p>
+    {list.length ? list.map((x) => (
+      <div key={x.order_id} className={'bcard' + (x.resolved_at ? '' : ' debt-card')}>
+        <strong>{x.buyer_name || 'Без имени'} · {rub(x.total_rub)} <span className={'status' + (x.resolved_at ? ' ok' : '')}>{x.resolved_at ? 'Решено' : 'Не оплачен'}</span></strong>
+        <span className="small">{[x.buyer_email, x.phone].filter(Boolean).join(' · ') || 'Контакт удалён'}{x.address ? ' · ' + x.address : ''}</span>
+        <span className="small">Бутик: {x.boutique}{x.boutique_phone ? ' · ' + x.boutique_phone : ''} · выкуплено заказов раньше: {x.buyer_paid}</span>
+        <span className="muted small">Заказ {dt(x.created_at)} · сообщили о неоплате {dt(x.unpaid_at)}{x.paid_claim_at ? ' · покупатель сообщил, что оплатил: ' + dt(x.paid_claim_at) : ''}{x.resolved_at ? ' · решено ' + dt(x.resolved_at) : ''}</span>
+        <div className="acts">
+          {x.phone && <a className="act ok press" href={'tel:' + x.phone}>Позвонить</a>}
+          {x.phone && <a className="act press" href={'https://wa.me/' + wa(x.phone) + '?text=' + encodeURIComponent('Здравствуйте! Это Kavkaz Look. Бутик «' + x.boutique + '» сообщил, что заказ на ' + x.total_rub + ' ₽ не оплачен. Подскажите, пожалуйста, что случилось?')} target="_blank" rel="noopener noreferrer">WhatsApp</a>}
+          {!x.resolved_at && <button type="button" className="act press" disabled={!!busy} onClick={() => run(async () => { if (window.confirm('Снять ограничение с покупателя?') && (await api.orderPaid(x.order_id))) { toast('Ограничение снято'); load(); } })}>Снять ограничение</button>}
+        </div>
+      </div>
+    )) : <p className="muted">Неоплаченных заказов нет.</p>}
+    {open.length > 0 && <p className="hint">Открытых случаев: {open.length}.</p>}
   </>;
 }
 

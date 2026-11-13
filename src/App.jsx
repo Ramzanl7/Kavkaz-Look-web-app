@@ -90,6 +90,8 @@ export default function App() {
           <Route path="/seller/products/new" element={<SellerProductNew />} />
           <Route path="/seller/products/:id/edit" element={<SellerProductNew />} />
           <Route path="/seller/orders" element={<SellerOrders />} />
+          <Route path="/seller/orders/:oid" element={<SellerOrders />} />
+          <Route path="/seller/orders/:action/:oid" element={<SellerOrders />} />
           <Route path="/seller/profile" element={<SellerProfile />} />
           <Route path="/seller/stats" element={<SellerStats />} />
           <Route path="/seller/promos" element={<SellerPromos />} />

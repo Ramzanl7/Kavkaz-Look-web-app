@@ -13,12 +13,15 @@ self.addEventListener('push', (event) => {
     badge: '/icon-192.png',
     data: { url },
     tag: url,
+    // Новый заказ: кнопка «Принять» прямо в уведомлении (Android; на iPhone откроется заказ)
+    actions: /^\/seller\/orders\/[0-9a-f-]{36}$/.test(url) && /^(Новый заказ|Заказ ждёт подтверждения)$/.test(d.title || '') ? [{ action: 'accept', title: 'Принять' }] : [],
   }));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || '/notifications';
+  let url = event.notification.data?.url || '/notifications';
+  if (event.action === 'accept') url = url.replace('/seller/orders/', '/seller/orders/accept/');
   event.waitUntil((async () => {
     const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const w of wins) {

@@ -1,8 +1,8 @@
 // Превью ссылок для WhatsApp, Telegram, VK и т. п.
 // Роботы мессенджеров не запускают JavaScript, поэтому для них (только для них — см. vercel.json)
 // отдаём ту же index.html, но с заголовком, описанием и картинкой нужной страницы.
-const SUPA = process.env.VITE_SUPABASE_URL;
-const KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const SUPA = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const KEY = process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DEFAULT = {
   title: 'Kavkaz Look — одежда бутиков Грозного и Чечни',

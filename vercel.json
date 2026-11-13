@@ -1,6 +1,17 @@
 {
   "rewrites": [
     {
+      "source": "/((?!assets/|api/|og/).+)",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(WhatsApp|TelegramBot|facebookexternalhit|Facebot|Twitterbot|vkShare|Slackbot|Discordbot|LinkedInBot|SkypeUriPreview|Viber|YandexBot|Googlebot|bingbot|Applebot|Pinterest|redditbot|Iframely|OdklBot|Mail\\.RU_Bot).*"
+        }
+      ],
+      "destination": "/api/share?p=/$1"
+    },
+    {
       "source": "/((?!assets/).*)",
       "destination": "/index.html"
     }

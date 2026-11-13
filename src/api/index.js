@@ -53,7 +53,7 @@ const toProduct = (r) => ({
 });
 const BQ_COLS_BASE = 'id,name,description,city,logo_path,cover_path,address,hours,phone,whatsapp,telegram,delivery_pickup,delivery_courier,courier_note';
 let BQ_COLS = BQ_COLS_BASE + ',allow_reserve';
-const ORDER_LEVELS = [',hold_until,subtotal_rub,discount_rub,promo_code,discount_by', ',hold_until', ''];
+const ORDER_LEVELS = [',hold_until,subtotal_rub,discount_rub,promo_code,discount_by,accepted_at,closed_at,closed_by,unpaid_at,unpaid_resolved_at,paid_claim_at', ',hold_until,subtotal_rub,discount_rub,promo_code,discount_by', ',hold_until', ''];
 let ORDER_EXTRA = ORDER_LEVELS[0];
 // новые поля могут ещё отсутствовать в базе — тогда работаем без них
 const downgradeBq = (error) => { if (error?.code === '42703' && BQ_COLS !== BQ_COLS_BASE) { BQ_COLS = BQ_COLS_BASE; return true; } return false; };
@@ -484,6 +484,36 @@ export const api = {
     const { error } = await supabase.from('boutique_leads').update(row).eq('id', id);
     return !error;
   },
+  // ===== Оплата и автопилот заказов =====
+  // Способы получения и оплаты у бутиков корзины
+  async checkoutOptions(productIds) {
+    const ids = [...new Set(productIds.filter(isUuid))];
+    if (!ids.length) return [];
+    const { data, error } = await supabase.rpc('checkout_options', { pids: ids });
+    return error ? null : data || [];
+  },
+  async myTrust() { const { data, error } = await supabase.rpc('my_trust'); return error ? null : data; },
+  async orderPayInfo(id) { if (!isUuid(id)) return null; const { data, error } = await supabase.rpc('order_pay_info', { oid: id }); return error ? null : data; },
+  async myBoutiquePay(id) { if (!isUuid(id)) return null; const { data, error } = await supabase.rpc('my_boutique_pay', { bid: id }); return error ? null : data; },
+  async saveBoutiquePay(id, p) {
+    if (!isUuid(id)) return 'Бутик не найден.';
+    const phone = String(p.sbp_phone || '').replace(/[^0-9+]/g, '');
+    if (p.pay_prepay && !/^\+?[0-9]{10,15}$/.test(phone)) return 'Для предоплаты укажите номер телефона, привязанный к СБП.';
+    if (!p.pay_cash && !p.pay_transfer && !p.pay_prepay) return 'Включите хотя бы один способ оплаты.';
+    const row = { auto_accept: !!p.auto_accept, pay_cash: !!p.pay_cash, pay_transfer: !!p.pay_transfer, pay_prepay: !!p.pay_prepay, sbp_phone: phone || null, sbp_bank: cleanText(p.sbp_bank, 40) || null };
+    const { error } = await supabase.from('boutiques').update(row).eq('id', id);
+    return error ? (error.code === '42703' ? 'Настройки оплаты заработают после обновления базы.' : 'Не удалось сохранить настройки оплаты.') : '';
+  },
+  async orderUnpaid(id) { if (!isUuid(id)) return 'Заказ не найден.'; const { error } = await supabase.rpc('order_unpaid', { oid: id }); return error ? (/not allowed/.test(error.message) ? 'Сообщить о неоплате можно только по доставке с оплатой при получении, в течение 3 дней.' : 'Не удалось отправить. Попробуйте ещё раз.') : ''; },
+  async orderPaid(id) { if (!isUuid(id)) return false; const { error } = await supabase.rpc('order_paid', { oid: id }); return !error; },
+  async orderPaidClaim(id) { if (!isUuid(id)) return false; const { error } = await supabase.rpc('order_paid_claim', { oid: id }); return !error; },
+  async buyerFlags(orderIds) {
+    const ids = orderIds.filter(isUuid);
+    if (!ids.length) return {};
+    const { data, error } = await supabase.rpc('buyer_flags', { oids: ids });
+    return error || !data ? {} : Object.fromEntries(data.map((r) => [r.order_id, r]));
+  },
+  async adminUnpaidList() { const { data, error } = await supabase.rpc('admin_unpaid_list'); return error ? null : data || []; },
   // ===== Промокоды =====
   // проверка кода для корзины: { discount, by, title } или { error }
   async promoQuote(code, items) {
@@ -645,11 +675,14 @@ export const api = {
   async placeOrder(items, contact, idem) {
     const payload = items.filter((i) => isUuid(i.id)).map((i) => ({ product_id: i.id, qty: i.qty, ...(i.size ? { size: String(i.size) } : {}) }));
     if (!payload.length) return { error: 'Корзина пуста.' };
-    const c = { phone: String(contact.phone || '').replace(/[^0-9+]/g, '').slice(0, 16), delivery: ['courier', 'reserve'].includes(contact.delivery) ? contact.delivery : 'pickup', address: cleanText(contact.address, 200), comment: cleanText(contact.comment, 300), day: contact.day === 'tomorrow' ? 'tomorrow' : 'today', ...(contact.promo ? { promo: String(contact.promo).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20) } : {}) };
+    const c = { phone: String(contact.phone || '').replace(/[^0-9+]/g, '').slice(0, 16), delivery: ['courier', 'reserve'].includes(contact.delivery) ? contact.delivery : 'pickup', address: cleanText(contact.address, 200), comment: cleanText(contact.comment, 300), day: contact.day === 'tomorrow' ? 'tomorrow' : 'today', payment: ['cash', 'transfer', 'prepay'].includes(contact.payment) ? contact.payment : 'cash', ...(contact.promo ? { promo: String(contact.promo).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20) } : {}) };
     const { data, error } = await supabase.rpc('place_order', { items: payload, contact: c, idem: isUuid(idem) ? idem : null });
     if (!error) return { ids: data || [] };
     const m = String(error.message || '');
     if (m.startsWith('promo ')) return { error: PROMO_ERR[m.slice(6)] || 'Промокод не применился. Уберите его и попробуйте снова.', promo: true };
+    if (m.includes('unpaid debt')) return { error: 'У вас есть неоплаченный заказ — новые заказы недоступны, пока вопрос не решится. Откройте «Мои заказы».', debt: true };
+    if (m.includes('cod limit')) { const [, n, sum] = m.match(/cod limit (\d+) (\d+)/) || []; return { error: `С оплатой при получении сейчас доступно ${n || 1} ${Number(n) === 1 ? 'заказ' : 'заказа'} с доставкой до ${Number(sum || 10000).toLocaleString('ru-RU')} ₽ одновременно. Лимит растёт с каждым оплаченным заказом. Выберите предоплату, самовывоз или дождитесь получения прошлых заказов.`, limit: true }; }
+    if (m.includes('payment unavailable')) return { error: 'Этот способ оплаты недоступен у одного из бутиков. Выберите другой.' };
     return { error: m.includes('reserve limit') ? 'Можно отложить не больше 3 вещей одного бутика и держать не больше 3 броней одновременно.' : m.includes('bad delivery') ? 'Бронь пока недоступна. Попробуйте позже.' : m.includes('out of stock') ? 'Одного из товаров уже нет в нужном количестве. Уменьшите количество или выберите другой размер.'
       : m.includes('unavailable') ? 'Один из товаров больше не продаётся или выбран размер, которого нет. Обновите корзину.'
         : m.includes('bad phone') ? 'Проверьте номер телефона.' : m.includes('address') ? 'Укажите адрес доставки.'

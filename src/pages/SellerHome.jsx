@@ -5,34 +5,64 @@ import { Icon } from '../components/Icons.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { api } from '../api/index.js';
 
-// Кабинет продавца: главное — новые заказы, затем товары, статистика и профиль бутика
+// Кабинет продавца: каждая кнопка — отдельный экран, число на кнопке — что ждёт внимания
 export default function SellerHome() {
   const { user } = useAuth();
   const [b, setB] = useState(undefined);
-  const [orders, setOrders] = useState(null);
-  useEffect(() => { if (user) api.getMyBoutique(user.id).then((r) => { setB(r); if (r) api.listSellerOrders(r.id).then(setOrders); }); }, [user]);
+  const [orders, setOrders] = useState(null), [reviews, setReviews] = useState(null), [support, setSupport] = useState(0);
+  useEffect(() => {
+    if (!user) return;
+    api.getMyBoutique(user.id).then((r) => { setB(r); if (r) api.listSellerOrders(r.id).then(setOrders); });
+    api.sellerReviews().then(setReviews);
+    api.supportUnread().then(setSupport);
+  }, [user]);
   if (b === undefined) return <main className="wrap"><p className="lead">Загрузка…</p></main>;
   if (!b) return <main className="wrap"><EmptyState title="Бутик не найден" text="Обратитесь к администратору." /></main>;
   const fresh = (orders || []).filter((o) => o.status === 'new').length;
   const work = (orders || []).filter((o) => o.status === 'confirmed').length;
+  const noReply = (reviews || []).filter((r) => !r.reply).length;
   const empty = !b.logo || !b.address || !(b.phone || b.whatsapp || b.telegram);
-  const Tile = ({ to, icon, title, sub, badge }) => (
-    <Link className="menu-item press" to={to}><span className="menu-ic"><Icon name={icon} /></span><span className="grow"><strong className="block">{title}</strong>{sub && <small className="muted">{sub}</small>}</span>{badge ? <i className="pill-count">{badge}</i> : null}<span className="menu-arrow"><Icon name="chevron" /></span></Link>
-  );
+  const groups = [
+    ['Продажи', [
+      ['/seller/orders', 'box', 'Заказы', orders ? `Новых: ${fresh} · в работе: ${work}` : 'Принять, отметить проблему', fresh],
+      ['/seller/reviews', 'star', 'Отзывы', reviews ? (noReply ? `Без ответа: ${noReply}` : 'Ответьте покупателям') : 'Ответьте покупателям', noReply],
+      ['/seller/stats', 'chart', 'Статистика', 'Просмотры, избранное, продажи, выручка'],
+    ]],
+    ['Товары', [
+      ['/seller/products', 'catalog', 'Мои товары', 'Изменить, остатки, снять с продажи'],
+      ['/seller/products/new', 'bag', 'Добавить товар', 'Фото, цена, размеры'],
+      ['/seller/promos', 'sparkles', 'Промокоды', 'Скидки для ваших покупателей'],
+    ]],
+    ['Бутик', [
+      ['/seller/profile', 'store', 'Профиль бутика', 'Логотип, адрес, часы, контакты, доставка'],
+      ['/seller/payments', 'shield', 'Оплата и приём заказов', 'Способы оплаты, СБП, автоприём'],
+      ...(b.is_approved ? [['/boutiques/' + b.id, 'shop', 'Мой бутик глазами покупателя', 'Как вас видят в приложении']] : []),
+    ]],
+    ['Помощь', [
+      ['/support/chat', 'chat', 'Поддержка', support ? `Новых ответов: ${support}` : 'Чат с администрацией', support],
+      ['/seller/help', 'sliders', 'Как продавать', 'Первые шаги и частые вопросы'],
+    ]],
+  ];
   return (
     <main className="wrap">
       <h1 className="screen-title rise">{b.name}</h1>
       <p className="notice">{b.is_approved ? 'Бутик одобрен и виден покупателям.' : 'Бутик ожидает одобрения администратора.'}</p>
       {empty && <Link className="stylist-card press" to="/seller/profile"><span className="grow"><strong className="block">Заполните профиль бутика</strong><small className="muted">Логотип, адрес и контакты повышают доверие покупателей</small></span><Icon name="chevron" /></Link>}
-      <div className="menu">
-        <Tile to="/seller/orders" icon="box" title="Заказы" sub={orders ? `Новых: ${fresh} · в работе: ${work}` : ''} badge={fresh} />
-        <Tile to="/seller/products" icon="catalog" title="Мои товары" sub="Добавить, изменить, остатки" />
-        <Tile to="/seller/products/new" icon="star" title="Добавить товар" />
-        <Tile to="/seller/promos" icon="sparkles" title="Промокоды" sub="Скидки для ваших покупателей" />
-        <Tile to="/seller/stats" icon="chart" title="Статистика" sub="Просмотры, избранное, продажи, выручка" />
-        <Tile to="/seller/profile" icon="store" title="Профиль бутика" sub="Логотип, адрес, часы, контакты, доставка" />
-        {b.is_approved && <Tile to={'/boutiques/' + b.id} icon="shop" title="Мой бутик глазами покупателя" />}
-      </div>
+      {groups.map(([g, items], gi) => (
+        <section key={g} className="admin-group rise" style={{ '--d': gi }}>
+          <h2 className="admin-group-title">{g}</h2>
+          <div className="admin-grid">
+            {items.map(([to, icon, title, sub, badge]) => (
+              <Link key={to} className="admin-tile press" to={to}>
+                <span className="menu-ic"><Icon name={icon} /></span>
+                <strong>{title}</strong>
+                <small>{sub}</small>
+                {badge > 0 && <i className="pill-count">{badge}</i>}
+              </Link>
+            ))}
+          </div>
+        </section>
+      ))}
     </main>
   );
 }

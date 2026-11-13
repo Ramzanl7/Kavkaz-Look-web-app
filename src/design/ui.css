@@ -632,3 +632,11 @@ button.link-u { background: none; border: 0; border-bottom: 1px solid var(--gold
 .thread-row { width: 100%; text-align: left; border: 0; background: none; color: inherit; font: inherit; }
 .thread-row small.muted { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .thread-side { display: grid; justify-items: end; gap: 4px; flex: none; }
+.review-reply { display: grid; gap: 2px; margin-top: 4px; padding: 10px 12px; border-left: 3px solid var(--gold); border-radius: 0 10px 10px 0; background: rgba(217,183,101,.07); font-size: var(--fs-small); }
+.review-reply b { color: var(--gold); font-size: .75rem; }
+.reply-input { width: 100%; resize: vertical; border-radius: 12px; border: 1px solid var(--edge); background: var(--bg-2); color: var(--text); padding: 10px 12px; font: inherit; }
+.help-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.help-steps li { display: flex; gap: 12px; padding: 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--edge); }
+.help-steps li > span { width: 30px; height: 30px; flex: none; border-radius: 50%; display: grid; place-items: center; font-weight: 700; color: #1a1406; background: linear-gradient(135deg, #F4E7C0, #C9A55A); }
+.help-steps li > div { display: grid; gap: 4px; }
+.help-steps small { color: var(--text-2); line-height: 1.45; }

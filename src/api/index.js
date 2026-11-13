@@ -258,7 +258,8 @@ export const api = {
   },
   async listReviews(productId) {
     if (!isUuid(productId)) return [];
-    const { data, error } = await supabase.from('reviews').select('id,user_id,author_name,rating,body,created_at').eq('product_id', productId).order('created_at', { ascending: false }).limit(50);
+    let { data, error } = await supabase.from('reviews').select('id,user_id,author_name,rating,body,created_at,reply,reply_at').eq('product_id', productId).order('created_at', { ascending: false }).limit(50);
+    if (error?.code === '42703') ({ data, error } = await supabase.from('reviews').select('id,user_id,author_name,rating,body,created_at').eq('product_id', productId).order('created_at', { ascending: false }).limit(50));
     return error || !data ? [] : data;
   },
   async addReview(productId, stars, text) {
@@ -548,6 +549,13 @@ export const api = {
     if (!isUuid(id)) return null;
     const { data } = await supabase.from('orders').select('id,status,total_rub,created_at,delivery,payment,phone,address,boutique:boutiques(name),items:order_items(title,qty,size,price_rub)').eq('id', id).maybeSingle();
     return data;
+  },
+  // ===== Отзывы на товары бутика и ответы на них =====
+  async sellerReviews() { const { data, error } = await supabase.rpc('seller_reviews', { lim: 200 }); return error ? null : data || []; },
+  async replyReview(id, text) {
+    if (!isUuid(id)) return 'Отзыв не найден.';
+    const { error } = await supabase.rpc('reply_review', { rid: id, txt: cleanText(text, 1000) });
+    return error ? 'Не удалось сохранить ответ.' : '';
   },
   // ===== Промокоды =====
   // проверка кода для корзины: { discount, by, title } или { error }

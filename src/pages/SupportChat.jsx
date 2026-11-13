@@ -3,74 +3,65 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { api } from '../api/index.js';
 import { rub } from '../store/cart.jsx';
-import { useAction } from '../lib/useAction.js';
-import ChatThread from '../components/ChatThread.jsx';
+import ChatThread, { ChatComposer, useChatMode } from '../components/ChatThread.jsx';
+import { STATUS } from './Orders.jsx';
 
-// Чат с поддержкой внутри приложения: один диалог на человека, можно прикрепить заказ.
+const TOPICS = ['Где мой заказ?', 'Хочу обменять или вернуть товар', 'Проблема с оплатой', 'Вопрос по товару', 'Не приходит код или не могу войти', 'Хочу продавать в Kavkaz Look'];
+const orderTitle = (o) => `${o.items?.[0]?.title || 'Заказ'}${o.items?.length > 1 ? ' и ещё ' + (o.items.length - 1) : ''} · ${rub(o.total_rub)}`;
+
+// Чат с поддержкой: как мессенджер — фото, заказ, отметки «прочитано», без отвлекающего фона
 export default function SupportChat() {
+  useChatMode();
   const { user, role } = useAuth();
-  const [data, setData] = useState(undefined);
-  const [text, setText] = useState(''), [orderId, setOrderId] = useState(''), [orders, setOrders] = useState([]), [msg, setMsg] = useState('');
-  const [busy, run] = useAction(300);
+  const [data, setData] = useState(undefined), [orders, setOrders] = useState([]), [hours, setHours] = useState('');
   const load = useCallback(async () => {
     const d = await api.supportThread();
     setData(d);
     if (d?.thread?.user_unread) api.supportRead();
   }, []);
-  useEffect(() => { load(); }, [load]);
-  // Пока экран открыт — проверяем новые ответы каждые 8 секунд
+  useEffect(() => { load(); api.getSupportContacts().then((c) => setHours(c?.hours || '')); }, [load]);
   useEffect(() => {
-    const t = setInterval(() => { if (document.visibilityState === 'visible') load(); }, 8000);
+    const t = setInterval(() => { if (document.visibilityState === 'visible') load(); }, 5000);
     return () => clearInterval(t);
   }, [load]);
-  // Заказы, которые можно прикрепить: свои покупки и (для продавца) заказы бутика
   useEffect(() => {
     if (!user) return;
     (async () => {
       const mine = (await api.listMyOrders(user.id)) || [];
       let shop = [];
       if (role === 'seller') { const b = await api.getMyBoutique(user.id); if (b) shop = (await api.listSellerOrders(b.id)) || []; }
-      const all = [...shop.map((o) => ({ ...o, mine: false })), ...mine.map((o) => ({ ...o, mine: true }))];
-      setOrders(all.slice(0, 30));
+      setOrders([...mine, ...shop].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 30));
     })();
   }, [user, role]);
-  const send = (e) => { e?.preventDefault(); return run(async () => {
-    setMsg('');
-    const err = await api.supportSend(text, orderId);
-    if (err) { setMsg(err); return; }
-    setText(''); setOrderId(''); await load();
-  }); };
-  const label = (o) => `№ ${o.id.slice(0, 8)} · ${o.mine ? o.boutique?.name || 'покупка' : 'заказ бутика'} · ${rub(o.total_rub)}`;
-  const orderLabel = (id) => { const o = orders.find((x) => x.id === id); return o ? label(o) : '№ ' + id.slice(0, 8); };
-
+  const send = async ({ text, file, orderId }) => { const e = await api.supportSend(text, orderId, file); if (!e) await load(); return e; };
+  const renderOrder = (id) => {
+    const o = orders.find((x) => x.id === id);
+    return (
+      <Link className="bubble-order" to="/orders">
+        <b>📦 Заказ № {id.slice(0, 8)}</b>
+        {o && <span>{orderTitle(o)} · {STATUS[o.status]}</span>}
+      </Link>
+    );
+  };
   return (
-    <main className="wrap chat-wrap">
-      <h1 className="screen-title rise">Чат с поддержкой</h1>
-      {data === undefined ? <p className="lead">Загрузка…</p> : data === null ? (
-        <p className="notice">Чат поддержки скоро заработает. Пока напишите нам в <Link className="link-u" to="/support">другие каналы</Link>.</p>
+    <main className="chat-screen">
+      <header className="chat-head">
+        <span className="chat-ava" aria-hidden="true">K</span>
+        <span className="grow"><strong>Поддержка Kavkaz Look</strong><small>{hours ? 'Работаем ' + hours : 'Обычно отвечаем в течение дня'}</small></span>
+      </header>
+      {data === undefined ? <p className="chat-note">Загрузка…</p> : data === null ? (
+        <p className="chat-note">Чат поддержки скоро заработает. Пока напишите нам в <Link className="link-u" to="/support">другие каналы</Link>.</p>
       ) : <>
-        {data.messages.length === 0 && (
-          <div className="chat-hello">
-            <strong>Здравствуйте! Чем помочь?</strong>
-            <span className="muted small">Опишите вопрос — по заказу, бутику или приложению. Если вопрос по заказу, прикрепите его ниже. Обычно отвечаем в течение дня.</span>
-          </div>
-        )}
-        <ChatThread messages={data.messages} me="user" orderLabel={orderLabel} />
-        {data.thread?.status === 'closed' && <p className="muted small chat-closed">Вопрос отмечен как решённый. Напишите, если нужна ещё помощь — диалог откроется снова.</p>}
-        <form className="chat-form" onSubmit={send}>
-          {orders.length > 0 && (
-            <select aria-label="Прикрепить заказ" value={orderId} onChange={(e) => setOrderId(e.target.value)}>
-              <option value="">Без заказа</option>
-              {orders.map((o) => <option key={o.id} value={o.id}>{label(o)}</option>)}
-            </select>
-          )}
-          <div className="chat-input">
-            <textarea aria-label="Сообщение" rows={2} maxLength={2000} placeholder="Ваше сообщение…" value={text} onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !('ontouchstart' in window)) { e.preventDefault(); send(); } }} />
-            <button type="submit" className="btn btn-primary press" disabled={!!busy || !text.trim()}>{busy ? '…' : 'Отправить'}</button>
-          </div>
-          {msg && <p className="msg" role="alert">{msg}</p>}
-        </form>
+        <div className="chat-body">
+          {data.messages.length === 0 ? (
+            <div className="chat-empty">
+              <strong>Здравствуйте! Чем помочь?</strong>
+              <span>Выберите тему ниже или напишите своими словами. Можно прикрепить фото и заказ — кнопка 📎.</span>
+            </div>
+          ) : <ChatThread messages={data.messages} me="user" readAt={data.thread?.admin_read_at} renderOrder={renderOrder} />}
+          {data.thread?.status === 'closed' && <p className="chat-note">Вопрос отмечен как решённый. Напишите, если нужна ещё помощь.</p>}
+        </div>
+        <ChatComposer onSend={send} orders={orders} orderTitle={(o) => `№ ${o.id.slice(0, 8)} · ${orderTitle(o)}`} quick={data.messages.length ? [] : TOPICS} placeholder="Ваше сообщение…" />
       </>}
     </main>
   );

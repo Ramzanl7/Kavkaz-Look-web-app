@@ -517,33 +517,63 @@ export const api = {
   async adminUnpaidList() { const { data, error } = await supabase.rpc('admin_unpaid_list'); return error ? null : data || []; },
   // ===== Поддержка в приложении (один диалог на человека) =====
   async supportThread() {
-    const { data: t, error } = await supabase.from('support_threads').select('id,status,user_unread').maybeSingle();
+    let { data: t, error } = await supabase.from('support_threads').select('id,status,user_unread,admin_read_at').maybeSingle();
+    if (error?.code === '42703') ({ data: t, error } = await supabase.from('support_threads').select('id,status,user_unread').maybeSingle());
     if (error) return error.code === '42P01' || error.code === 'PGRST205' ? null : undefined;
     if (!t) return { thread: null, messages: [] };
-    const { data: m } = await supabase.from('support_messages').select('id,author,body,order_id,created_at').eq('thread_id', t.id).order('created_at').limit(300);
-    return { thread: t, messages: m || [] };
+    return { thread: t, messages: await api.supportMessages(t.id) };
   },
-  async supportSend(body, orderId) {
+  async supportMessages(threadId) {
+    if (!isUuid(threadId)) return [];
+    let { data, error } = await supabase.from('support_messages').select('id,author,body,order_id,image_path,created_at').eq('thread_id', threadId).order('created_at').limit(500);
+    if (error?.code === '42703') ({ data } = await supabase.from('support_messages').select('id,author,body,order_id,created_at').eq('thread_id', threadId).order('created_at').limit(500));
+    return data || [];
+  },
+  // Фото в чат: сжимаем, кладём в закрытую папку автора
+  async supportUpload(file) {
+    const { data: { session } } = await supabase.auth.getSession();
+    const uid = session?.user?.id;
+    if (!uid) return { error: 'Нужно войти.' };
+    const v = await makeVariants(file);
+    if (!v) return { error: 'Не удалось обработать фото.' };
+    const path = `${uid}/${crypto.randomUUID()}.jpg`;
+    const { error } = await supabase.storage.from('support-media').upload(path, v.main, { contentType: 'image/jpeg', upsert: false });
+    return error ? { error: 'Не удалось загрузить фото.' } : { path };
+  },
+  async supportImageUrls(paths) {
+    const list = [...new Set(paths.filter(Boolean))];
+    if (!list.length) return {};
+    const { data } = await supabase.storage.from('support-media').createSignedUrls(list, 3600);
+    return Object.fromEntries((data || []).filter((x) => x.signedUrl).map((x) => [x.path, x.signedUrl]));
+  },
+  async supportSend(body, orderId, file) {
     const txt = String(body || '').trim().slice(0, 2000);
-    if (!txt) return 'Напишите сообщение.';
-    const { error } = await supabase.rpc('support_send', { body: txt, order_id: isUuid(orderId) ? orderId : null });
+    if (!txt && !file) return 'Напишите сообщение.';
+    let image = null;
+    if (file) { const u = await api.supportUpload(file); if (u.error) return u.error; image = u.path; }
+    const { error } = await supabase.rpc('support_send', { body: txt, order_id: isUuid(orderId) ? orderId : null, ...(image ? { image } : {}) });
     return error ? (/Слишком много|rate/i.test(error.message) ? 'Слишком много сообщений подряд. Подождите немного.' : 'Не удалось отправить. Проверьте интернет.') : '';
   },
   async supportRead(threadId) { await supabase.rpc('support_read', { thread: isUuid(threadId) ? threadId : null }); },
   async supportUnread() { const { data } = await supabase.from('support_threads').select('user_unread').maybeSingle(); return data?.user_unread || 0; },
   async adminSupportThreads() { const { data, error } = await supabase.rpc('admin_support_threads'); return error ? null : data || []; },
-  async adminSupportMessages(threadId) {
-    if (!isUuid(threadId)) return [];
-    const { data } = await supabase.from('support_messages').select('id,author,body,order_id,created_at').eq('thread_id', threadId).order('created_at').limit(500);
-    return data || [];
+  async adminSupportThread(threadId) {
+    if (!isUuid(threadId)) return null;
+    let { data, error } = await supabase.from('support_threads').select('id,user_id,status,user_read_at').eq('id', threadId).maybeSingle();
+    if (error?.code === '42703') ({ data } = await supabase.from('support_threads').select('id,user_id,status').eq('id', threadId).maybeSingle());
+    return data;
   },
-  async supportReply(threadId, body) {
+  adminSupportMessages(threadId) { return api.supportMessages(threadId); },
+  async supportReply(threadId, body, file) {
     const txt = String(body || '').trim().slice(0, 2000);
-    if (!txt || !isUuid(threadId)) return 'Напишите сообщение.';
-    const { error } = await supabase.rpc('support_reply', { thread: threadId, body: txt });
+    if ((!txt && !file) || !isUuid(threadId)) return 'Напишите сообщение.';
+    let image = null;
+    if (file) { const u = await api.supportUpload(file); if (u.error) return u.error; image = u.path; }
+    const { error } = await supabase.rpc('support_reply', { thread: threadId, body: txt, ...(image ? { image } : {}) });
     return error ? 'Не удалось отправить.' : '';
   },
   async supportSetStatus(threadId, closed) { const { error } = await supabase.rpc('support_set_status', { thread: threadId, closed: !!closed }); return !error; },
+  async adminUserOrders(uid) { if (!isUuid(uid)) return []; const { data, error } = await supabase.rpc('admin_user_orders', { uid }); return error ? [] : data || []; },
   async adminCounters() { const { data, error } = await supabase.rpc('admin_counters'); return error ? {} : data || {}; },
   async adminOrder(id) {
     if (!isUuid(id)) return null;

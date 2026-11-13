@@ -605,3 +605,30 @@ button.link-u { background: none; border: 0; border-bottom: 1px solid var(--gold
 .buyer-flag { justify-self: start; font-size: .8125rem; padding: 5px 10px; border-radius: 999px; background: rgba(30,122,60,.18); color: #9FE0B4; }
 .buyer-flag.bad { background: rgba(160,40,25,.3); color: #F2B8A0; }
 .order-focus { border-color: var(--gold) !important; box-shadow: 0 0 0 3px rgba(217,183,101,.2), 0 8px 24px rgba(0,0,0,.28); }
+/* Админка: сетка разделов */
+.admin-group { display: grid; gap: 10px; }
+.admin-group-title { margin: 8px 0 0; font-size: .75rem; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
+.admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 10px; }
+.admin-tile { position: relative; display: grid; gap: 4px; align-content: start; padding: 14px; min-height: 112px; border-radius: 16px; background: var(--card); border: 1px solid var(--edge); color: var(--text); text-decoration: none; box-shadow: 0 8px 24px rgba(0,0,0,.22); }
+.admin-tile .menu-ic { margin-bottom: 4px; }
+.admin-tile strong { font-size: .9375rem; line-height: 1.25; }
+.admin-tile small { color: var(--text-2); font-size: .75rem; line-height: 1.35; }
+.admin-tile .pill-count { position: absolute; top: 10px; right: 10px; }
+/* Чат поддержки */
+.chat { display: grid; gap: 8px; padding: 4px 0; }
+.bubble { max-width: 86%; justify-self: start; display: grid; gap: 4px; padding: 10px 12px; border-radius: 16px 16px 16px 4px; background: var(--card); border: 1px solid var(--edge); }
+.bubble.mine { justify-self: end; border-radius: 16px 16px 4px 16px; background: rgba(217,183,101,.14); border-color: rgba(217,183,101,.4); }
+.bubble p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }
+.bubble-who { font-size: .75rem; color: var(--gold); font-weight: 700; }
+.bubble time { font-size: .6875rem; color: var(--text-2); justify-self: end; }
+.bubble-order { justify-self: start; font-size: .75rem; padding: 4px 8px; border-radius: 8px; border: 1px dashed var(--gold); color: var(--gold); background: none; font-family: inherit; }
+.chat-hello { display: grid; gap: 6px; padding: 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--edge); }
+.chat-closed { text-align: center; }
+.chat-form { position: sticky; bottom: calc(var(--nav-h) + 16px); display: grid; gap: 8px; padding: 10px; border-radius: 18px; background: rgba(6,26,19,.94); border: 1px solid var(--edge); backdrop-filter: blur(8px); }
+.chat-form select { min-height: 40px; border-radius: 12px; border: 1px solid var(--edge); background: var(--bg-2); color: var(--text); padding: 0 10px; font: inherit; font-size: var(--fs-small); }
+.chat-input { display: flex; gap: 8px; align-items: flex-end; }
+.chat-input textarea { flex: 1; min-width: 0; resize: none; border-radius: 12px; border: 1px solid var(--edge); background: var(--bg-2); color: var(--text); padding: 10px 12px; font: inherit; line-height: 1.4; }
+.chat-input .btn { width: auto; flex: none; padding-inline: 16px; }
+.thread-row { width: 100%; text-align: left; border: 0; background: none; color: inherit; font: inherit; }
+.thread-row small.muted { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.thread-side { display: grid; justify-items: end; gap: 4px; flex: none; }

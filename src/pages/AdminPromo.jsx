@@ -10,7 +10,8 @@ const live = (s, e) => { const n = Date.now(); return new Date(s).getTime() <= n
 const EMPTY_BRAND = { name: '', description: '', site_url: '', ios_url: '', android_url: '', boutique_id: '', starts_at: day(new Date()), ends_at: '', is_approved: true, sort: 0 };
 const EMPTY_PROMO = { product_id: '', advertiser: '', advertiser_inn: '', erid: '', starts_at: day(new Date()), ends_at: '', sort: 0 };
 
-export default function AdminPromo() {
+// part: 'brands' — «Сделано рядом», 'promotions' — «Популярное сейчас»; без part — оба раздела
+export default function AdminPromo({ part }) {
   const toast = useToast();
   const [busy, run] = useAction();
   const [brands, setBrands] = useState(null);
@@ -38,8 +39,9 @@ export default function AdminPromo() {
 
   return (
     <main className="wrap">
-      <h1 className="screen-title rise">Реклама на главной</h1>
+      <h1 className="screen-title rise">{part === 'brands' ? 'Реклама брендов' : part === 'promotions' ? 'Популярное сейчас' : 'Реклама на главной'}</h1>
 
+      {part !== 'promotions' && <>
       <div className="sec-head"><h2>Сделано рядом — бренды</h2><button type="button" className="link-u" onClick={() => { setB(EMPTY_BRAND); setFiles({}); }}>Добавить</button></div>
       <p className="hint">Показываются только одобренные бренды в сроке показа. Ссылки проверьте до публикации — только https.</p>
       {brands === null ? <div className="skeleton" style={{ height: 80, borderRadius: 16 }} /> : brands.length ? brands.map((x) => (
@@ -53,6 +55,8 @@ export default function AdminPromo() {
         </div>
       )) : <p className="muted">Брендов пока нет.</p>}
 
+      </>}
+      {part !== 'brands' && <>
       <div className="sec-head"><h2>Популярное сейчас — реклама товаров</h2><button type="button" className="link-u" onClick={() => { setPr(EMPTY_PROMO); setQ(''); }}>Добавить</button></div>
       <p className="hint">Продвижение не меняет цену. Снятый с продажи товар из выдачи пропадает сам.</p>
       {promos === null ? <div className="skeleton" style={{ height: 80, borderRadius: 16 }} /> : promos.length ? promos.map((x) => (
@@ -66,6 +70,7 @@ export default function AdminPromo() {
         </div>
       )) : <p className="muted">Размещений пока нет — в ленте показываются самые популярные товары без рекламы.</p>}
 
+      </>}
       {b && (
         <div className="sheet-bg" onClick={() => setB(null)}>
           <div className="sheet form" role="dialog" aria-modal="true" aria-labelledby="ab-t" onClick={(e) => e.stopPropagation()}>

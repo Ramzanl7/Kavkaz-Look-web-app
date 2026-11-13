@@ -30,6 +30,8 @@ export default function Profile() {
   const [confirming, setConfirming] = useState(false);
   const [busy, run] = useAction();
   useEffect(() => { if (user) api.getProfileName(user.id).then(setName); }, [user]);
+  const [supportUnread, setSupportUnread] = useState(0);
+  useEffect(() => { if (user) api.supportUnread().then(setSupportUnread); }, [user]);
 
   if (loading) return <main className="wrap"><p className="lead">Загрузка…</p></main>;
   if (!user) return (
@@ -71,7 +73,7 @@ export default function Profile() {
         <Item to="/wishlist" icon="heart" label="Избранное" />
         <Item to="/following" icon="store" label="Мои бутики" />
         <Item to="/invite" icon="send" label="Пригласить друзей" />
-        <Item to="/support" icon="chat" label="Поддержка" />
+        <Item to={supportUnread ? '/support/chat' : '/support'} icon="chat" label="Поддержка" badge={supportUnread} />
         <Item to="/notifications" icon="bell" label="Уведомления" badge={unread} />
         <Item to="/settings" icon="sliders" label="Настройки" />
         <Item to="/privacy" icon="shield" label="Политика конфиденциальности" />

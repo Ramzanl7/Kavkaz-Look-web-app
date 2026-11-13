@@ -514,6 +514,41 @@ export const api = {
     return error || !data ? {} : Object.fromEntries(data.map((r) => [r.order_id, r]));
   },
   async adminUnpaidList() { const { data, error } = await supabase.rpc('admin_unpaid_list'); return error ? null : data || []; },
+  // ===== Поддержка в приложении (один диалог на человека) =====
+  async supportThread() {
+    const { data: t, error } = await supabase.from('support_threads').select('id,status,user_unread').maybeSingle();
+    if (error) return error.code === '42P01' || error.code === 'PGRST205' ? null : undefined;
+    if (!t) return { thread: null, messages: [] };
+    const { data: m } = await supabase.from('support_messages').select('id,author,body,order_id,created_at').eq('thread_id', t.id).order('created_at').limit(300);
+    return { thread: t, messages: m || [] };
+  },
+  async supportSend(body, orderId) {
+    const txt = String(body || '').trim().slice(0, 2000);
+    if (!txt) return 'Напишите сообщение.';
+    const { error } = await supabase.rpc('support_send', { body: txt, order_id: isUuid(orderId) ? orderId : null });
+    return error ? (/Слишком много|rate/i.test(error.message) ? 'Слишком много сообщений подряд. Подождите немного.' : 'Не удалось отправить. Проверьте интернет.') : '';
+  },
+  async supportRead(threadId) { await supabase.rpc('support_read', { thread: isUuid(threadId) ? threadId : null }); },
+  async supportUnread() { const { data } = await supabase.from('support_threads').select('user_unread').maybeSingle(); return data?.user_unread || 0; },
+  async adminSupportThreads() { const { data, error } = await supabase.rpc('admin_support_threads'); return error ? null : data || []; },
+  async adminSupportMessages(threadId) {
+    if (!isUuid(threadId)) return [];
+    const { data } = await supabase.from('support_messages').select('id,author,body,order_id,created_at').eq('thread_id', threadId).order('created_at').limit(500);
+    return data || [];
+  },
+  async supportReply(threadId, body) {
+    const txt = String(body || '').trim().slice(0, 2000);
+    if (!txt || !isUuid(threadId)) return 'Напишите сообщение.';
+    const { error } = await supabase.rpc('support_reply', { thread: threadId, body: txt });
+    return error ? 'Не удалось отправить.' : '';
+  },
+  async supportSetStatus(threadId, closed) { const { error } = await supabase.rpc('support_set_status', { thread: threadId, closed: !!closed }); return !error; },
+  async adminCounters() { const { data, error } = await supabase.rpc('admin_counters'); return error ? {} : data || {}; },
+  async adminOrder(id) {
+    if (!isUuid(id)) return null;
+    const { data } = await supabase.from('orders').select('id,status,total_rub,created_at,delivery,payment,phone,address,boutique:boutiques(name),items:order_items(title,qty,size,price_rub)').eq('id', id).maybeSingle();
+    return data;
+  },
   // ===== Промокоды =====
   // проверка кода для корзины: { discount, by, title } или { error }
   async promoQuote(code, items) {

@@ -13,9 +13,27 @@ const versionFile = () => ({
   },
 });
 
+// Встраивает основные стили прямо в страницу: оформление приходит вместе с HTML,
+// и при медленной связи приложение не показывается «голым», пока догружается файл стилей.
+const inlineCss = () => ({
+  name: 'inline-css',
+  enforce: 'post',
+  transformIndexHtml: {
+    order: 'post',
+    handler(html, ctx) {
+      if (!ctx.bundle) return html;
+      return html.replace(/<link rel="stylesheet"[^>]*href="\/(assets\/[^"]+\.css)"[^>]*>/g, (tag, file) => {
+        const asset = ctx.bundle[file];
+        if (!asset || asset.type !== 'asset') return tag;
+        return '<style>' + String(asset.source).replace(/<\/style/gi, '<\\/style') + '</style>';
+      });
+    },
+  },
+});
+
 // Библиотеки — в отдельных файлах: они редко меняются и остаются в кэше браузера между обновлениями сайта.
 export default defineConfig({
-  plugins: [react(), versionFile()],
+  plugins: [react(), versionFile(), inlineCss()],
   define: { __BUILD__: JSON.stringify(BUILD), __BUILT_AT__: JSON.stringify(BUILT_AT) },
   build: {
     rolldownOptions: {

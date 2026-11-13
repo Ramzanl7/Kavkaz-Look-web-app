@@ -22,9 +22,11 @@ import { NotificationsProvider } from './store/notifications.jsx';
 import App from './App.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { startUpdater } from './lib/updater.js';
+import { guardStyles } from './lib/cssGuard.js';
 import { keepPushWorker } from './lib/push.js';
 
 startUpdater();
+guardStyles();
 // Приложение запустилось нормально — разрешаем снова одну автоперезагрузку при сбое загрузки экрана
 setTimeout(() => { try { sessionStorage.removeItem('kl-chunk-reload'); } catch { /* приватный режим */ } }, 15000);
 // Если у фото товара нет уменьшенной копии (_t.jpg — например, товар загружен до появления превью),

@@ -4,7 +4,7 @@ import { api } from '../api/index.js';
 import { rub } from '../store/cart.jsx';
 import { useAction } from '../lib/useAction.js';
 import { useToast } from '../store/toast.jsx';
-import ChatThread from './ChatThread.jsx';
+import ChatThread, { ChatComposer, useChatMode } from './ChatThread.jsx';
 import { STATUS, DELIVERY, PAYMENT } from '../pages/Orders.jsx';
 
 const ROLE = { buyer: 'Покупатель', seller: 'Продавец', admin: 'Админ' };
@@ -34,38 +34,58 @@ export default function AdminSupport() {
   </>;
 }
 
+const TEMPLATES = [
+  'Здравствуйте! Сейчас проверим и ответим.',
+  'Связались с бутиком — заказ уже в работе.',
+  'Пришлите, пожалуйста, фото товара и чека.',
+  'Оформите возврат через бутик — мы предупредили их.',
+  'Спасибо, что написали! Если будут вопросы — пишите.',
+];
+
+// Карточка прикреплённого заказа: состав и сумма подгружаются по требованию
+function OrderMini({ id }) {
+  const [o, setO] = useState(undefined), [open, setOpen] = useState(false);
+  useEffect(() => { api.adminOrder(id).then(setO); }, [id]);
+  return (
+    <button type="button" className="bubble-order" onClick={() => setOpen(!open)}>
+      <b>📦 Заказ № {id.slice(0, 8)}{o ? ' · ' + STATUS[o.status] : ''}</b>
+      {o && <span>{o.boutique?.name} · {rub(o.total_rub)}{o.delivery ? ' · ' + (DELIVERY[o.delivery] || '') : ''}</span>}
+      {open && o && <>
+        {(o.items || []).map((i, n) => <span key={n}>{i.title}{i.size ? ', ' + i.size : ''} × {i.qty} — {rub(i.price_rub * i.qty)}</span>)}
+        <span>{o.delivery === 'courier' ? (PAYMENT[o.payment] || '') + ' · ' : ''}{[o.phone, o.address].filter(Boolean).join(' · ') || 'Контакт удалён после закрытия'}</span>
+      </>}
+    </button>
+  );
+}
+
 function Thread({ id, info, onBack }) {
-  const [msgs, setMsgs] = useState(null), [text, setText] = useState(''), [err, setErr] = useState(''), [order, setOrder] = useState(null), [closed, setClosed] = useState(info?.status === 'closed');
+  useChatMode();
+  const [msgs, setMsgs] = useState(null), [t, setT] = useState(null), [orders, setOrders] = useState(null), [showOrders, setShowOrders] = useState(false);
   const [busy, run] = useAction(300); const toast = useToast();
-  const load = useCallback(async () => { setMsgs(await api.adminSupportMessages(id)); api.supportRead(id); }, [id]);
-  useEffect(() => { load(); const t = setInterval(() => document.visibilityState === 'visible' && load(), 8000); return () => clearInterval(t); }, [load]);
-  useEffect(() => { if (info) setClosed(info.status === 'closed'); }, [info]);
-  const send = (e) => { e?.preventDefault(); return run(async () => {
-    setErr(''); const r = await api.supportReply(id, text);
-    if (r) { setErr(r); return; } setText(''); await load();
-  }); };
-  const setStatus = (c) => run(async () => { if (await api.supportSetStatus(id, c)) { setClosed(c); toast(c ? 'Обращение закрыто' : 'Обращение открыто'); } });
-  return <>
-    <button type="button" className="link-muted" onClick={onBack}>← Все обращения</button>
-    {info && <div className="bcard"><strong>{info.name || 'Без имени'} · {ROLE[info.role] || ''}</strong><span className="small">{info.email}{info.boutique ? ' · бутик «' + info.boutique + '»' : ''}</span></div>}
-    {msgs === null ? <p className="lead">Загрузка…</p> : <ChatThread messages={msgs} me="admin" orderLabel={(o) => '№ ' + o.slice(0, 8)} onOrder={(o) => api.adminOrder(o).then(setOrder)} />}
-    {order && (
-      <div className="bcard order-card">
-        <strong>Заказ № {order.id.slice(0, 8)} · {STATUS[order.status]}</strong>
-        <span className="small">{order.boutique?.name} · {DELIVERY[order.delivery] || ''}{order.delivery === 'courier' ? ' · ' + (PAYMENT[order.payment] || '') : ''} · {new Date(order.created_at).toLocaleString('ru-RU')}</span>
-        <ul className="order-items">{(order.items || []).map((i, n) => <li key={n}><span>{i.title}{i.size ? ', ' + i.size : ''} × {i.qty}</span><b>{rub(i.price_rub * i.qty)}</b></li>)}</ul>
-        <span className="small">{[order.phone, order.address].filter(Boolean).join(' · ') || 'Контакт удалён после закрытия заказа'}</span>
-        <div className="order-foot"><span>Итого</span><b className="price">{rub(order.total_rub)}</b></div>
-        <button type="button" className="link-muted" onClick={() => setOrder(null)}>Скрыть заказ</button>
+  const load = useCallback(async () => {
+    const [m, th] = await Promise.all([api.adminSupportMessages(id), api.adminSupportThread(id)]);
+    setMsgs(m); setT(th); api.supportRead(id);
+  }, [id]);
+  useEffect(() => { load(); const iv = setInterval(() => document.visibilityState === 'visible' && load(), 5000); return () => clearInterval(iv); }, [load]);
+  useEffect(() => { if (t?.user_id && orders === null) api.adminUserOrders(t.user_id).then(setOrders); }, [t, orders]);
+  const closed = t?.status === 'closed';
+  const send = async ({ text, file }) => { const e = await api.supportReply(id, text, file); if (!e) await load(); return e; };
+  const setStatus = (c) => run(async () => { if (await api.supportSetStatus(id, c)) { toast(c ? 'Обращение закрыто' : 'Обращение открыто'); load(); } });
+  return (
+    <div className="chat-screen admin-chat">
+      <header className="chat-head">
+        <span className="chat-ava" aria-hidden="true">{(info?.name || info?.email || '?').slice(0, 1).toUpperCase()}</span>
+        <span className="grow"><strong>{info?.name || info?.email || 'Пользователь'}</strong><small>{[ROLE[info?.role], info?.boutique && '«' + info.boutique + '»', info?.email].filter(Boolean).join(' · ')}</small></span>
+        <button type="button" className={'chat-status' + (closed ? '' : ' open')} disabled={!!busy} onClick={() => setStatus(!closed)}>{closed ? 'Открыть' : 'Решено ✓'}</button>
+      </header>
+      <button type="button" className="chat-orders-toggle" onClick={() => setShowOrders(!showOrders)}>{showOrders ? 'Скрыть заказы' : `Заказы этого человека${orders ? ' · ' + orders.length : ''}`}</button>
+      {showOrders && <div className="chat-orders">{orders?.length ? orders.map((o) => (
+        <div key={o.id} className="chat-order"><b>№ {o.id.slice(0, 8)} · {STATUS[o.status]} · {rub(o.total_rub)}</b><span>{o.boutique} · {DELIVERY[o.delivery] || ''} · {new Date(o.created_at).toLocaleDateString('ru-RU')}</span><span className="muted">{o.items}</span></div>
+      )) : <p className="muted small">Заказов нет.</p>}</div>}
+      <div className="chat-body">
+        {msgs === null ? <p className="chat-note">Загрузка…</p> : <ChatThread messages={msgs} me="admin" readAt={t?.user_read_at} renderOrder={(oid) => <OrderMini id={oid} />} />}
       </div>
-    )}
-    <form className="chat-form" onSubmit={send}>
-      <div className="chat-input">
-        <textarea aria-label="Ответ" rows={2} maxLength={2000} placeholder="Ответ пользователю…" value={text} onChange={(e) => setText(e.target.value)} />
-        <button type="submit" className="btn btn-primary press" disabled={!!busy || !text.trim()}>Ответить</button>
-      </div>
-      {err && <p className="msg" role="alert">{err}</p>}
-    </form>
-    <button type="button" className="btn btn-secondary press" disabled={!!busy} onClick={() => setStatus(!closed)}>{closed ? 'Открыть снова' : 'Вопрос решён — закрыть'}</button>
-  </>;
+      <ChatComposer onSend={send} quick={TEMPLATES} placeholder="Ответ пользователю…" orderTitle={() => ''} />
+    </div>
+  );
 }

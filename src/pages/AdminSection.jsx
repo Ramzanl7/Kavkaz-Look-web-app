@@ -39,8 +39,9 @@ const MAP = {
 };
 
 export default function AdminSection() {
-  const { section, tab } = useParams();
+  const { section, tab, id } = useParams();
   const key = section || tab;
+  if (key === 'support' && id) return <main className="chat-page"><AdminSupport /></main>;
   if (key === 'stats') return <AdminStats part="stats" />;
   if (key === 'users') return <AdminStats part="users" />;
   if (key === 'brands') return <AdminPromo part="brands" />;

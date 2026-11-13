@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 // Здесь только публичный (publishable) ключ. Секретные ключи в браузер попадать не должны никогда.
-const url = import.meta.env.VITE_SUPABASE_URL;
+// Адрес базы: полный (https://…supabase.co) или относительный (/sb) — тогда запросы идут через наш сервер в России
+const raw = import.meta.env.VITE_SUPABASE_URL;
+const url = raw && raw.startsWith('/') ? window.location.origin + raw : raw;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 if (!url || !key) throw new Error('Не заданы VITE_SUPABASE_URL и VITE_SUPABASE_PUBLISHABLE_KEY');
 // Запросы к базе с ограничением по времени: при плохой связи запрос прерывается через 15 секунд,

@@ -131,7 +131,7 @@ export function Orders() {
 }
 
 export function Broadcast() {
-  const [f, setF] = useState({ title: '', body: '', audience: 'all', link: '/catalog' });
+  const [f, setF] = useState({ title: '', body: '', audience: 'all', link: '/home' });
   const [busy, run] = useAction(); const toast = useToast();
   const send = (e) => { e.preventDefault(); return run(async () => {
     if (!window.confirm('Отправить уведомление получателям: ' + { all: 'всем', buyers: 'покупателям', sellers: 'продавцам' }[f.audience] + '?')) return;
@@ -143,7 +143,7 @@ export function Broadcast() {
       <div className="seg">{[['all', 'Всем'], ['buyers', 'Покупателям'], ['sellers', 'Продавцам']].map(([v, l]) => <button key={v} type="button" className={'chip' + (f.audience === v ? ' on' : '')} onClick={() => setF({ ...f, audience: v })}>{l}</button>)}</div>
       <div className="field"><label htmlFor="bt">Заголовок</label><input id="bt" maxLength={120} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="Скидки к Ураза-Байраму" /></div>
       <div className="field"><label htmlFor="bb">Текст</label><textarea id="bb" rows={3} maxLength={300} value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} /></div>
-      <div className="field"><label htmlFor="bl">Куда ведёт уведомление</label><input id="bl" maxLength={80} value={f.link} onChange={(e) => setF({ ...f, link: e.target.value })} placeholder="/catalog" /></div>
+      <div className="field"><label htmlFor="bl">Куда ведёт уведомление</label><input id="bl" maxLength={80} value={f.link} onChange={(e) => setF({ ...f, link: e.target.value })} placeholder="/home" /></div>
       <p className="hint">Придёт в «Уведомления» и пушем тем, у кого они включены. Не чаще 5 рассылок в час.</p>
       <button className="btn btn-primary press" type="submit" disabled={!!busy || f.title.trim().length < 2}>{busy ? 'Отправляем…' : 'Отправить'}</button>
     </form>

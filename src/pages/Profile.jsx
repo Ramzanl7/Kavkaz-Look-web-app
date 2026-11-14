@@ -49,7 +49,7 @@ export default function Profile() {
     const err = await api.deleteMyAccount();
     if (err) { toast(err); return; }
     toast('Аккаунт удалён');
-    nav('/catalog', { replace: true });
+    nav('/home', { replace: true });
   });
 
   return (
@@ -73,6 +73,7 @@ export default function Profile() {
         <Item to="/measurements" icon="ruler" label="Мои мерки" />
         <Item to="/wishlist" icon="heart" label="Избранное" />
         <Item to="/following" icon="store" label="Мои бутики" />
+        <Item to="/history" icon="clock" label="История просмотров" />
         <Item to="/invite" icon="send" label="Пригласить друзей" />
         <Item to={supportUnread ? '/support/chat' : '/support'} icon="chat" label="Поддержка" badge={supportUnread} />
         <Item to="/notifications" icon="bell" label="Уведомления" badge={unread} />

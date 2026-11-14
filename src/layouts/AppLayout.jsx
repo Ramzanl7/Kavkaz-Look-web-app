@@ -42,7 +42,7 @@ export default function AppLayout() {
 
   const open = ['/privacy', '/support'].includes(pathname);
   const gate = user && !open ? (blocked ? <BlockedScreen reason={blocked.reason} /> : needsConsent ? <ConsentGate /> : null) : null;
-  const back = () => (window.history.state?.idx > 0 ? nav(-1) : nav('/catalog'));
+  const back = () => (window.history.state?.idx > 0 ? nav(-1) : nav('/home'));
   // Кнопка «назад» — часть экрана: она меняется вместе с ним в анимации перехода.
   const screen = (
     <div className={root ? '' : 'has-bar'}>

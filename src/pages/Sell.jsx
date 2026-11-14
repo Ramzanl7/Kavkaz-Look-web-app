@@ -119,7 +119,7 @@ export default function Sell() {
           <p className="sell-lead hero-in" style={{ '--t': 1.75 }}>Люди ищут одежду, обувь и аксессуары в Kavkaz&nbsp;Look. Покажите им свой ассортимент — они закажут с доставкой, заберут сами или придут примерить. А вам сразу придёт уведомление.</p>
           <div className="sell-cta hero-in" style={{ '--t': 2.05 }}>
             <button type="button" className="btn btn-primary press hero-glow" onClick={toForm}>Подключить бутик <Icon name="arrow" /></button>
-            <Link className="btn btn-secondary press" to="/catalog">Как видят покупатели</Link>
+            <Link className="btn btn-secondary press" to="/home">Как видят покупатели</Link>
           </div>
           <div className="sell-stats">
             <div className="hero-in" style={{ '--t': 2.35 }}><b>0 ₽</b><small>подключение и размещение</small></div>

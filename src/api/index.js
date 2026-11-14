@@ -392,7 +392,7 @@ export const api = {
     return !error;
   },
   async adminBroadcast(title, body, audience, link) {
-    const { data, error } = await supabase.rpc('admin_broadcast', { title: cleanText(title, 120), body: cleanText(body, 300), audience, link: /^\/[A-Za-z0-9/_-]*$/.test(link || '') ? link : '/catalog' });
+    const { data, error } = await supabase.rpc('admin_broadcast', { title: cleanText(title, 120), body: cleanText(body, 300), audience, link: /^\/[A-Za-z0-9/_-]*$/.test(link || '') ? link : '/home' });
     return error ? null : data;
   },
   async adminFinance(days = 30) {

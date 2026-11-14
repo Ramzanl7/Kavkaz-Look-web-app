@@ -12,6 +12,7 @@ const DEFAULT = {
 const STATIC = {
   '/sell': { title: 'Новые покупатели для вашего бутика — каждый день · Kavkaz Look', description: 'Подключите бутик к Kavkaz Look: заказы онлайн, доставка или самовывоз, примерка, промокоды. Подключение бесплатно, заявка за минуту.', image: '/og/sell.jpg' },
   '/welcome': DEFAULT,
+  '/home': DEFAULT,
   '/catalog': { ...DEFAULT, title: 'Каталог · Kavkaz Look' },
   '/boutiques': { ...DEFAULT, title: 'Бутики Грозного и Чечни · Kavkaz Look' },
 };

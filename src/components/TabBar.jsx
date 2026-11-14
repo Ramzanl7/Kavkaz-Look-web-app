@@ -2,14 +2,14 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Icon } from './Icons.jsx';
 
-export const TABS = [['/catalog', 'Каталог', 'catalog'], ['/boutiques', 'Бутики', 'shop'], ['/wishlist', 'Избранное', 'heart'], ['/cart', 'Корзина', 'bag'], ['/profile', 'Профиль', 'user']];
+export const TABS = [['/home', 'Главная', 'home'], ['/catalog', 'Каталог', 'catalog'], ['/wishlist', 'Избранное', 'heart'], ['/cart', 'Корзина', 'bag'], ['/profile', 'Профиль', 'user']];
 
 // К какой вкладке относится экран: товар — к каталогу, заказы и настройки — к профилю и т.д.
 export function tabIndexOf(path) {
   const exact = TABS.findIndex(([to]) => to === path);
   if (exact >= 0) return exact;
-  if (/^\/(product|nearby|partners|tryon|stylist|history|brands|collections)\b/.test(path)) return 0;
-  if (/^\/boutiques\//.test(path)) return 1;
+  if (/^\/(product|nearby|partners|brands)\b/.test(path)) return 0;
+  if (/^\/(boutiques|stylist|collections|tryon)\b/.test(path)) return 1;
   return 4; // профиль, заказы, настройки, поддержка, вход, админка, кабинет продавца
 }
 

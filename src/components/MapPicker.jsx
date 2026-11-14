@@ -20,7 +20,9 @@ export default function MapPicker({ start, onPick, onClose }) {
     clearTimeout(revT.current);
     revT.current = setTimeout(async () => {
       const seq = ++seqRef.current; setBusy(true);
-      let a = ''; try { a = await prov.current.reverse(lat, lng); } catch { /* сеть */ }
+      let a = ''; try { a = await prov.current.reverse(lat, lng); } catch (e) { console.warn('reverse', e); }
+      // Яндекс не ответил (лимит, сеть) — спрашиваем OpenStreetMap
+      if (!a && prov.current.name !== 'osm') { try { a = await (await import('../lib/maps/osm.js')).reverse(lat, lng); } catch { /* сеть */ } }
       if (seq === seqRef.current) { setAddr(a); setBusy(false); }
     }, 700);
   };
@@ -42,7 +44,11 @@ export default function MapPicker({ start, onPick, onClose }) {
   // подсказки адресов при вводе (не чаще раза в 0,7 с)
   useEffect(() => {
     const t = q.trim(); if (t.length < 3 || !ready) { setHints([]); return undefined; }
-    const h = setTimeout(async () => { try { setHints(await prov.current.search(t)); } catch { setHints([]); } }, 700);
+    const h = setTimeout(async () => {
+      let r = []; try { r = await prov.current.search(t); } catch (e) { console.warn('search', e); }
+      if (!r.length && prov.current.name !== 'osm') { try { r = await (await import('../lib/maps/osm.js')).search(t); } catch { /* сеть */ } }
+      setHints(r);
+    }, 700);
     return () => clearTimeout(h);
   }, [q, ready]);
 

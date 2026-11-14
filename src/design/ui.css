@@ -858,3 +858,26 @@ button.link-u { background: none; border: 0; border-bottom: 1px solid var(--gold
 .cart-page .promo-row-in input { flex: 1; min-width: 0; min-height: 48px; padding: 0 14px; border-radius: 14px; border: 1px solid var(--edge); background: rgba(16,44,30,.7); color: var(--text); font: inherit; letter-spacing: .08em; }
 .cart-page .promo-row-in input::placeholder { color: var(--text-2); letter-spacing: 0; }
 .cart-page .promo-row-in .btn { width: auto; min-height: 48px; padding: 0 18px; }
+/* Карта: выбор точки доставки */
+.mp { position: fixed; inset: 0; z-index: 80; background: #0B2017; }
+.mp-map { position: absolute; inset: 0; }
+.mp-pin { position: absolute; left: 50%; top: 50%; z-index: 500; transform: translate(-50%, -100%); color: #C8302E; pointer-events: none; filter: drop-shadow(0 4px 6px rgba(0,0,0,.45)); }
+.mp-pin svg { width: 44px; height: 44px; fill: #E2C277; stroke: #1E1607; }
+.mp-top { position: absolute; z-index: 600; left: 12px; right: 12px; top: max(12px, env(safe-area-inset-top)); display: flex; gap: 8px; align-items: flex-start; }
+.mp-btn { width: 46px; height: 46px; flex: none; border-radius: 50%; border: 1px solid rgba(0,0,0,.1); background: #fff; color: #0B2017; display: grid; place-items: center; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+.mp-btn svg { width: 20px; height: 20px; }
+.mp-search { position: relative; flex: 1; display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 14px; border-radius: 23px; background: #fff; color: #0B2017; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+.mp-search svg { width: 18px; height: 18px; opacity: .6; flex: none; }
+.mp-search input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: #0B2017; font: inherit; font-size: 1rem; }
+.mp-hints { position: absolute; left: 0; right: 0; top: 52px; margin: 0; padding: 6px; list-style: none; background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.3); max-height: 50vh; overflow-y: auto; }
+.mp-hints button { width: 100%; text-align: left; padding: 10px; border: 0; border-radius: 10px; background: none; color: #0B2017; font: inherit; font-size: .9375rem; }
+.mp-hints button:active { background: #f0ede4; }
+.mp-locate { position: absolute; z-index: 600; right: 12px; bottom: calc(190px + env(safe-area-inset-bottom)); }
+.mp-panel { position: absolute; z-index: 600; left: 0; right: 0; bottom: 0; display: grid; gap: 6px; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; background: #0F261A; border-top: 1px solid rgba(226,194,119,.35); box-shadow: 0 -10px 30px rgba(0,0,0,.4); }
+.mp-panel strong { font-size: 1.0625rem; color: #F5F2E9; min-height: 1.4em; }
+.mp-panel .btn { margin-top: 6px; }
+.mp .leaflet-control-attribution { font-size: 10px; margin-bottom: 170px !important; }
+.addr-map { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; border: 1px dashed rgba(217,183,101,.55); background: rgba(217,183,101,.07); color: var(--text); font: inherit; text-align: left; }
+.addr-map.on { border-style: solid; }
+.addr-map svg { width: 20px; height: 20px; color: var(--gold); flex: none; }
+.addr-map small { display: block; color: var(--text-2); font-size: .75rem; }

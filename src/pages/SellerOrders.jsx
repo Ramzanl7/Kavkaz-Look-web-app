@@ -94,6 +94,7 @@ export default function SellerOrders() {
                 : <span className="buyer-flag">{f.paid ? `Покупатель выкупил заказов: ${f.paid}` : 'Первый заказ покупателя'}</span>)}
               <div className="order-contact">
                 <span><b>{DELIVERY[o.delivery] || 'Получение не указано'}</b>{o.address ? ': ' + o.address : ''}</span>
+                {o.delivery_lat != null && <a className="link-u small" href={`https://yandex.ru/maps/?pt=${o.delivery_lng},${o.delivery_lat}&z=17&l=map`} target="_blank" rel="noopener noreferrer">📍 Точка доставки на карте</a>}
                 {o.delivery === 'reserve' && ['new', 'confirmed'].includes(o.status) && <span className="reserve-hold">{holdText(o)} — потом бронь снимется сама</span>}
                 {o.comment && <span className="muted">«{o.comment}»</span>}
                 {o.phone ? (

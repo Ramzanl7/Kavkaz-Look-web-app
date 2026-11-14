@@ -1,5 +1,6 @@
 // Линейные иконки, толщина линии 1,6 px
 export const PATHS = {
+  pen: 'M4 20h4L19 9l-4-4L4 16zM13 7l4 4',
   home: 'M3 11l9-7 9 7M5 9.5V20h5v-6h4v6h5V9.5',
   catalog: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z',
   search: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4',

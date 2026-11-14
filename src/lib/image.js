@@ -13,3 +13,14 @@ export async function makeVariants(file) {
   if (bmp.close) bmp.close();
   return main && thumb ? { main, thumb } : null;
 }
+
+// Квадратная аватарка: обрезаем по центру и уменьшаем до size×size, jpeg
+export async function squareJpeg(file, size = 512) {
+  let bmp;
+  try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch { try { bmp = await createImageBitmap(file); } catch { return null; } }
+  const s = Math.min(bmp.width, bmp.height), out = Math.min(size, s);
+  const c = document.createElement('canvas'); c.width = out; c.height = out;
+  c.getContext('2d').drawImage(bmp, (bmp.width - s) / 2, (bmp.height - s) / 2, s, s, 0, 0, out, out);
+  if (bmp.close) bmp.close();
+  return new Promise((res) => c.toBlob((b) => res(b), 'image/jpeg', 0.85));
+}

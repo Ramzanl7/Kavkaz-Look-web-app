@@ -879,6 +879,15 @@ export const api = {
     const { error } = await supabase.rpc('admin_set_blocked', { target: id, blocked: !!blocked, reason: cleanText(reason, 200) || null });
     return error ? (error.message || 'Не удалось') : '';
   },
+  async adminDeleteUser(id) {
+    if (!isUuid(id)) return 'Неверный пользователь';
+    // сначала фото профиля — после удаления аккаунта папку уже не найти
+    try { const { data } = await supabase.storage.from('avatars').list(id); if (data?.length) await supabase.storage.from('avatars').remove(data.map((f) => `${id}/${f.name}`)); } catch { /* не мешаем удалению */ }
+    const { error } = await supabase.rpc('admin_delete_user', { target: id, confirm: 'УДАЛИТЬ' });
+    if (!error) return '';
+    if (error.code === 'PGRST202') return 'Удаление ещё не включено на сервере';
+    return error.message || 'Не удалось удалить';
+  },
   // ===== Мои мерки (видит и меняет только владелец) =====
   async getMeasurements() {
     const { data, error } = await supabase.from('measurements').select('gender,height_cm,weight_kg,chest_cm,waist_cm,hips_cm,shoulder_cm,inseam_cm,shoe_eu,fit_pref,updated_at').maybeSingle();

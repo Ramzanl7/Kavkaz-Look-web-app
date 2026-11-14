@@ -16,7 +16,7 @@ function Tile({ label, value, hint }) {
   return <div className="kpi"><span className="kpi-l">{label}</span><strong className="kpi-v">{value ?? '—'}</strong>{hint && <span className="kpi-h">{hint}</span>}</div>;
 }
 
-function UserRow({ u, me, onBan, open, onToggle }) {
+function UserRow({ u, me, onBan, onDelete, open, onToggle }) {
   return (
     <div className={'urow' + (open ? ' open' : '')}>
       <button type="button" className="urow-main" onClick={onToggle} aria-expanded={open}>
@@ -43,6 +43,7 @@ function UserRow({ u, me, onBan, open, onToggle }) {
               {u.is_blocked
                 ? <button type="button" className="act ok press" onClick={() => onBan(u, false)}>Разблокировать</button>
                 : <button type="button" className="act danger press" onClick={() => onBan(u, true)}>Заблокировать</button>}
+              <button type="button" className="act danger press" onClick={() => onDelete(u)}>Удалить</button>
             </div>
           )}
         </div>
@@ -64,6 +65,7 @@ export default function AdminStats({ part }) {
   const [showTable, setShowTable] = useState(false);
   const [ban, setBan] = useState(null);
   const [reason, setReason] = useState('');
+  const [del, setDel] = useState(null), [delText, setDelText] = useState('');
   const [busy, run] = useAction();
 
   const loadStats = useCallback(() => api.adminStats(days).then(setStats), [days]);
@@ -76,6 +78,13 @@ export default function AdminStats({ part }) {
     if (err) { toast(err); return; }
     toast(ban.block ? 'Пользователь заблокирован' : 'Пользователь разблокирован');
     setBan(null); setReason(''); loadUsers(); loadStats();
+  });
+
+  const confirmDelete = () => run(async () => {
+    const err = await api.adminDeleteUser(del.id);
+    if (err) { toast(err); return; }
+    toast('Пользователь удалён');
+    setDel(null); setDelText(''); setOpenId(null); loadUsers(); loadStats();
   });
 
   const shown = (users || []).filter((u) => (filter === 'blocked' ? u.is_blocked : true));
@@ -128,7 +137,7 @@ export default function AdminStats({ part }) {
         <div className="chips">{FILTERS.map(([v, l]) => <button key={v} type="button" className={'chip' + (filter === v ? ' on' : '')} onClick={() => setFilter(v)}>{l}</button>)}</div>
         {users === undefined ? <p className="muted">Загрузка…</p> : users === null ? <p className="notice">Не удалось загрузить пользователей.</p> : shown.length ? (
           <div className="ulist">{shown.map((u) => (
-            <UserRow key={u.id} u={u} me={user?.id} open={openId === u.id} onToggle={() => setOpenId(openId === u.id ? null : u.id)} onBan={(x, block) => { setBan({ u: x, block }); setReason(''); }} />
+            <UserRow key={u.id} u={u} me={user?.id} open={openId === u.id} onToggle={() => setOpenId(openId === u.id ? null : u.id)} onBan={(x, block) => { setBan({ u: x, block }); setReason(''); }} onDelete={(x) => { setDel(x); setDelText(''); }} />
           ))}</div>
         ) : <p className="muted">Никого не нашлось.</p>}
       </section>
@@ -146,6 +155,19 @@ export default function AdminStats({ part }) {
             ) : <p className="lead">Пользователь снова сможет входить и пользоваться приложением.</p>}
             <button type="button" className={'btn press ' + (ban.block ? 'btn-danger' : 'btn-primary')} disabled={busy} onClick={confirmBan}>{busy ? 'Подождите…' : ban.block ? 'Заблокировать' : 'Разблокировать'}</button>
             <button type="button" className="btn btn-secondary press" disabled={busy} onClick={() => setBan(null)}>Отмена</button>
+          </div>
+        </div>,
+        document.body,
+      )}
+      {del && createPortal(
+        <div className="sheet-bg" role="presentation" onClick={() => !busy && setDel(null)}>
+          <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="del-u" onClick={(e) => e.stopPropagation()}>
+            <h2 id="del-u">Удалить пользователя «{del.display_name || del.email}»?</h2>
+            <p className="lead">Навсегда удалятся аккаунт, профиль, фото, избранное, отзывы, мерки, уведомления и чат поддержки. Заказы останутся у продавцов без имени и почты. Отменить это нельзя.</p>
+            <p className="hint" style={{ margin: 0 }}>Если нужно просто закрыть доступ — лучше заблокировать: это можно отменить.</p>
+            <div className="field"><label htmlFor="dc">Для подтверждения введите УДАЛИТЬ</label><input id="dc" autoComplete="off" value={delText} onChange={(e) => setDelText(e.target.value)} /></div>
+            <button type="button" className="btn btn-danger press" disabled={busy || delText.trim().toUpperCase() !== 'УДАЛИТЬ'} onClick={confirmDelete}>{busy ? 'Удаляем…' : 'Удалить навсегда'}</button>
+            <button type="button" className="btn btn-secondary press" disabled={busy} onClick={() => setDel(null)}>Отмена</button>
           </div>
         </div>,
         document.body,

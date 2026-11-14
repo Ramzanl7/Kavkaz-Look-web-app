@@ -34,7 +34,7 @@ const inlineCss = () => ({
 // Библиотеки — в отдельных файлах: они редко меняются и остаются в кэше браузера между обновлениями сайта.
 export default defineConfig({
   plugins: [react(), versionFile(), inlineCss()],
-  define: { __BUILD__: JSON.stringify(BUILD), __BUILT_AT__: JSON.stringify(BUILT_AT) },
+  define: { __ADMIN_APP__: 'false', __BUILD__: JSON.stringify(BUILD), __BUILT_AT__: JSON.stringify(BUILT_AT) },
   build: {
     rolldownOptions: {
       output: {

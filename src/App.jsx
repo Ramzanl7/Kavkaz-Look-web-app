@@ -1,5 +1,6 @@
-import { lazy } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { ADMIN_URL } from './lib/sites.js';
 import AppLayout from './layouts/AppLayout.jsx';
 import RequireRole from './auth/RequireRole.jsx';
 import Welcome from './pages/Welcome.jsx';
@@ -21,18 +22,14 @@ const SellerHome = lazy(() => import('./pages/SellerHome.jsx'));
 const SellerProducts = lazy(() => import('./pages/SellerProducts.jsx'));
 const SellerProductNew = lazy(() => import('./pages/SellerProductNew.jsx'));
 const SellerOrders = lazy(() => import('./pages/SellerOrders.jsx'));
-const Admin = lazy(() => import('./pages/Admin.jsx'));
 const Support = lazy(() => import('./pages/Support.jsx'));
 const Settings = lazy(() => import('./pages/Settings.jsx'));
 const Privacy = lazy(() => import('./pages/Privacy.jsx'));
-const AdminStats = lazy(() => import('./pages/AdminStats.jsx'));
-const AdminPromo = lazy(() => import('./pages/AdminPromo.jsx'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword.jsx'));
 const CollectionPage = lazy(() => import('./pages/CollectionPage.jsx'));
 const Following = lazy(() => import('./pages/Following.jsx'));
 const SellerProfile = lazy(() => import('./pages/SellerProfile.jsx'));
 const SellerStats = lazy(() => import('./pages/SellerStats.jsx'));
-const AdminSection = lazy(() => import('./pages/AdminSection.jsx'));
 const SupportChat = lazy(() => import('./pages/SupportChat.jsx'));
 const History = lazy(() => import('./pages/History.jsx'));
 const Brands = lazy(() => import('./pages/Brands.jsx'));
@@ -53,6 +50,11 @@ const idle = window.requestIdleCallback || ((f) => setTimeout(f, 1500));
 idle(() => { import('./pages/Boutiques.jsx'); import('./pages/Wishlist.jsx'); import('./pages/Cart.jsx'); import('./pages/Profile.jsx'); import('./pages/Product.jsx'); });
 
 const ANY = ['buyer', 'seller', 'admin'];
+function ToAdminSite() {
+  const { pathname, search } = useLocation();
+  useEffect(() => { window.location.replace(ADMIN_URL + pathname + search); }, [pathname, search]);
+  return <main className="wrap"><p className="lead">Открываем админку…</p></main>;
+}
 
 export default function App() {
   return (
@@ -104,15 +106,8 @@ export default function App() {
           <Route path="/seller/payments" element={<SellerPayments />} />
           <Route path="/seller/help" element={<SellerHelp />} />
         </Route>
-        <Route element={<RequireRole roles={['admin']} />}>
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/admin/stats" element={<AdminStats />} />
-          <Route path="/admin/promo" element={<AdminPromo />} />
-          <Route path="/admin/tools" element={<Navigate to="/admin" replace />} />
-          <Route path="/admin/tools/:tab" element={<AdminSection />} />
-          <Route path="/admin/s/:section" element={<AdminSection />} />
-          <Route path="/admin/s/:section/:id" element={<AdminSection />} />
-        </Route>
+        {/* Админка — отдельный сайт; старые ссылки (в том числе из уведомлений) ведут туда */}
+        <Route path="/admin/*" element={<ToAdminSite />} />
         <Route path="*" element={<Stub title="Страница не найдена" hint="Проверьте адрес или вернитесь в каталог." />} />
       </Route>
     </Routes>

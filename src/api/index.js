@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase.js';
 import { cleanQuery, cleanText, escapeLike, isUuid } from '../lib/sanitize.js';
-import { makeVariants } from '../lib/image.js';
+import { makeVariants, squareJpeg } from '../lib/image.js';
 
 // Ответ сервера «слишком часто» (лимит частоты): показываем понятное сообщение один раз для всего приложения.
 export const RATE_LIMIT_EVENT = 'kl:rate-limited';
@@ -283,6 +283,61 @@ export const api = {
     if (!isUuid(userId)) return false;
     const { error } = await supabase.from('profiles').update({ display_name: cleanText(name, 60) || null }).eq('id', userId);
     return !error;
+  },
+  // ===== Мой профиль: имя, телефон, город, адрес, аватарка =====
+  async getMyProfile(userId) {
+    if (!isUuid(userId)) return null;
+    let { data, error } = await supabase.from('profiles').select('display_name,phone,city,address,avatar_path,created_at').eq('id', userId).maybeSingle();
+    if (error?.code === '42703') ({ data, error } = await supabase.from('profiles').select('display_name,created_at').eq('id', userId).maybeSingle());
+    if (error || !data) return null;
+    let avatar = null;
+    if (data.avatar_path) {
+      const { data: u } = await supabase.storage.from('avatars').createSignedUrl(data.avatar_path, 3600);
+      avatar = u?.signedUrl || null;
+    }
+    return { name: data.display_name || '', phone: data.phone || '', city: data.city || '', address: data.address || '', avatarPath: data.avatar_path || null, avatar, since: data.created_at, extended: 'phone' in data };
+  },
+  async saveMyProfile(userId, { name, phone, city, address }) {
+    if (!isUuid(userId)) return 'Нужно войти в аккаунт';
+    const digits = String(phone || '').replace(/\D/g, '');
+    if (digits && digits.length !== 11) return 'Введите номер полностью или оставьте поле пустым';
+    const a = cleanText(address, 200);
+    if (a && a.length < 5) return 'Адрес слишком короткий';
+    const row = { display_name: cleanText(name, 60) || null, phone: digits ? '+7' + digits.slice(1) : null, city: CITIES.includes(city) ? city : null, address: a || null };
+    const { error } = await supabase.from('profiles').update(row).eq('id', userId);
+    if (!error) return '';
+    if (String(error.message).includes('rate')) return 'Имя меняли слишком часто — попробуйте позже';
+    if (error.code === '42703') return 'Обновление ещё не включено на сервере';
+    return 'Не удалось сохранить';
+  },
+  async setAvatar(userId, file, oldPath) {
+    if (!isUuid(userId) || !file) return { error: 'Нет файла' };
+    if (!/^image\//.test(file.type) || file.size > 25 * 1024 * 1024) return { error: 'Выберите фото (до 25 МБ)' };
+    const blob = await squareJpeg(file, 512);
+    if (!blob) return { error: 'Не удалось обработать фото' };
+    const path = `${userId}/${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}.jpg`;
+    const { error: e1 } = await supabase.storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+    if (e1) return { error: 'Не удалось загрузить фото' };
+    const { error: e2 } = await supabase.from('profiles').update({ avatar_path: path }).eq('id', userId);
+    if (e2) { await supabase.storage.from('avatars').remove([path]); return { error: 'Не удалось сохранить фото' }; }
+    if (oldPath) await supabase.storage.from('avatars').remove([oldPath]);
+    const { data: u } = await supabase.storage.from('avatars').createSignedUrl(path, 3600);
+    return { path, url: u?.signedUrl || URL.createObjectURL(blob) };
+  },
+  async removeAvatar(userId, path) {
+    if (!isUuid(userId)) return false;
+    const { error } = await supabase.from('profiles').update({ avatar_path: null }).eq('id', userId);
+    if (error) return false;
+    if (path) await supabase.storage.from('avatars').remove([path]);
+    return true;
+  },
+  async changePassword(pw) {
+    if (String(pw).length < 8) return 'Пароль — не короче 8 символов';
+    const { error } = await supabase.auth.updateUser({ password: pw });
+    if (!error) return '';
+    if (/same/i.test(error.message)) return 'Новый пароль совпадает со старым';
+    if (/weak|short|pwned/i.test(error.message)) return 'Пароль слишком простой — добавьте цифры и буквы';
+    return 'Не удалось сменить пароль';
   },
   async setOrderStatus(orderId, status) {
     if (!isUuid(orderId) || !['confirmed', 'done', 'cancelled'].includes(status)) return false;
@@ -796,6 +851,8 @@ export const api = {
     return 'Не удалось сохранить: ' + (error.message || 'ошибка сети');
   },
   async deleteMyAccount() {
+    // фото профиля удаляем заранее — после удаления аккаунта доступа к папке уже не будет
+    try { const uid = (await supabase.auth.getUser()).data.user?.id; if (uid) { const { data } = await supabase.storage.from('avatars').list(uid); if (data?.length) await supabase.storage.from('avatars').remove(data.map((f) => `${uid}/${f.name}`)); } } catch { /* не мешаем удалению */ }
     const { error } = await supabase.rpc('delete_my_account', { confirm: 'УДАЛИТЬ' });
     if (error) return error.message || 'Не удалось удалить аккаунт';
     await supabase.auth.signOut();

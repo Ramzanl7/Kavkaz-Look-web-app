@@ -7,6 +7,7 @@ import { useAuth } from '../auth/AuthContext.jsx';
 import { useToast } from '../store/toast.jsx';
 import { api } from '../api/index.js';
 import { useAction } from '../lib/useAction.js';
+import { useMyProfile } from '../store/profile.js';
 import PhoneInput, { formatPhone, phoneComplete } from '../components/PhoneInput.jsx';
 
 // Ключ попытки оформления: тот же состав корзины → тот же ключ, даже после перезагрузки страницы.
@@ -39,6 +40,12 @@ export default function Cart() {
   const pay = Math.max(0, total - (promo?.discount || 0));
   const [step, setStep] = useState('cart');
   const [c, setC] = useState(() => ({ delivery: 'pickup', address: '', comment: '', remember: true, ...readContact(), phone: formatPhone(readContact().phone || '') }));
+  // пустые поля заполняем из профиля (телефон и адрес из настроек)
+  const me = useMyProfile(user?.id ?? null);
+  useEffect(() => {
+    if (!me) return;
+    setC((x) => ({ ...x, phone: x.phone || formatPhone(me.phone || ''), address: x.address || [me.city, me.address].filter(Boolean).join(', ') }));
+  }, [me]);
   const shops = new Set(items.map((i) => i.boutique || '?')).size;
   // Что умеют бутики корзины и лимит доверия покупателя — загружаем при переходе к оформлению
   const [opts, setOpts] = useState(null), [trust, setTrust] = useState(null);

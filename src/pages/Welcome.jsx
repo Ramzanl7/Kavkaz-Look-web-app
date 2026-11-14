@@ -44,7 +44,7 @@ export default function Welcome() {
   const rootRef = useReveal();
   useTitle('Kavkaz Look — одежда бутиков Грозного и Чечни');
   useEffect(() => { try { localStorage.setItem('kl-welcomed', '1'); } catch { /* приватный режим */ } }, []);
-  if (skip) return <Navigate to={'/catalog' + search} replace />;
+  if (skip) return <Navigate to={'/home' + search} replace />;
   return (
     <main className="sell" ref={rootRef}>
       <section className="sell-hero" style={HERO ? { '--hero': `url(${HERO})` } : undefined}>
@@ -54,7 +54,7 @@ export default function Welcome() {
           <p className="sell-sub hero-in" style={{ '--t': 1.3 }}>Найдите свой стиль — не выходя из дома.</p>
           <p className="sell-lead hero-in" style={{ '--t': 1.6 }}>Мужская и женская одежда, национальные костюмы, обувь и аксессуары из местных бутиков. Закажите с доставкой, заберите сами или отложите и примерьте в бутике.</p>
           <div className="sell-cta hero-in" style={{ '--t': 1.9 }}>
-            <Link className="btn btn-primary press hero-glow" to="/catalog">Смотреть каталог <Icon name="arrow" /></Link>
+            <Link className="btn btn-primary press hero-glow" to="/home">Смотреть каталог <Icon name="arrow" /></Link>
             <Link className="btn btn-secondary press" to="/sell">Я продаю одежду</Link>
           </div>
           <div className="sell-stats">
@@ -99,7 +99,7 @@ export default function Welcome() {
       <section className="sell-final">
         <OrnamentBand height={24} />
         <h2 className="sell-h2">Ваш следующий образ уже ждёт в&nbsp;одном из <em>бутиков Грозного</em></h2>
-        <Link className="btn btn-primary press" to="/catalog">Смотреть каталог</Link>
+        <Link className="btn btn-primary press" to="/home">Смотреть каталог</Link>
         <Link className="link-muted" to="/sell">Продаёте одежду? Подключите свой бутик</Link>
         <Link className="link-muted" to="/privacy">Политика конфиденциальности</Link>
       </section>

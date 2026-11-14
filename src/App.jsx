@@ -4,10 +4,11 @@ import { ADMIN_URL } from './lib/sites.js';
 import AppLayout from './layouts/AppLayout.jsx';
 import RequireRole from './auth/RequireRole.jsx';
 import Welcome from './pages/Welcome.jsx';
-import Catalog from './pages/Catalog.jsx';
+import Home from './pages/Home.jsx';
 import Stub from './pages/Stub.jsx';
 
 // Остальные экраны грузятся только когда их открывают — покупатель не скачивает код админки и продавца.
+const Catalog = lazy(() => import('./pages/Catalog.jsx'));
 const Nearby = lazy(() => import('./pages/Nearby.jsx'));
 const Product = lazy(() => import('./pages/Product.jsx'));
 const Cart = lazy(() => import('./pages/Cart.jsx'));
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/privacy" element={<Privacy />} />
+        <Route path="/home" element={<Home />} />
         <Route path="/catalog" element={<Catalog />} />
         <Route path="/nearby/:category" element={<Nearby />} />
         <Route path="/partners" element={<Partners />} />
@@ -108,7 +110,7 @@ export default function App() {
         </Route>
         {/* Админка — отдельный сайт; старые ссылки (в том числе из уведомлений) ведут туда */}
         <Route path="/admin/*" element={<ToAdminSite />} />
-        <Route path="*" element={<Stub title="Страница не найдена" hint="Проверьте адрес или вернитесь в каталог." />} />
+        <Route path="*" element={<Stub title="Страница не найдена" hint="Проверьте адрес или вернитесь на главную." />} />
       </Route>
     </Routes>
   );

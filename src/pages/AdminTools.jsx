@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api/index.js';
+import SiteLink from '../components/SiteLink.jsx';
 import { useAction } from '../lib/useAction.js';
 import { useToast } from '../store/toast.jsx';
 import { rub } from '../store/cart.jsx';
@@ -52,7 +53,7 @@ export function Products() {
       <div key={p.id} className="bcard seller-item">
         {p.thumb ? <img className="seller-thumb" src={p.thumb} alt="" loading="lazy" /> : <span className="seller-thumb" />}
         <div className="grow">
-          <Link to={'/product/' + p.id}><strong>{p.title}</strong></Link>
+          <SiteLink to={'/product/' + p.id}><strong>{p.title}</strong></SiteLink>
           <span className="muted block small">{p.boutique?.name} · {rub(p.price_rub)} · {p.is_published ? 'опубликован' : 'скрыт продавцом'}</span>
           {p.moderation === 'blocked' && <span className="msg block">Скрыт модератором{p.moderation_reason ? ': ' + p.moderation_reason : ''}</span>}
         </div>
@@ -74,7 +75,7 @@ export function Reviews() {
     {list === null ? <p className="lead">Загрузка…</p> : list.length ? list.map((r) => (
       <div key={r.id} className="bcard">
         <span className="stars">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)} <span className="muted small">{r.author_name} · {new Date(r.created_at).toLocaleDateString('ru-RU')}</span></span>
-        {r.product && <Link className="small" to={'/product/' + r.product.id}>{r.product.title}</Link>}
+        {r.product && <SiteLink className="small" to={'/product/' + r.product.id}>{r.product.title}</SiteLink>}
         {r.body && <span>{r.body}</span>}
         <div className="acts"><button type="button" className={'act press' + (r.hidden ? ' ok' : ' danger')} disabled={busy === r.id}
           onClick={() => run(async () => { if (await api.adminHideReview(r.id, !r.hidden)) load(); }, r.id)}>{r.hidden ? 'Показать' : 'Скрыть'}</button></div>
@@ -96,7 +97,7 @@ export function Reports() {
         <strong>{TARGET[r.target_type]} · {REASON[r.reason]}</strong>
         <span className="muted small">{new Date(r.created_at).toLocaleString('ru-RU')}</span>
         {r.body && <span>«{r.body}»</span>}
-        {link(r) ? <Link className="link-u" to={link(r)}>Открыть</Link> : <span className="muted small">Отзыв — найдите во вкладке «Отзывы»</span>}
+        {link(r) ? <SiteLink className="link-u" to={link(r)}>Открыть</SiteLink> : <span className="muted small">Отзыв — найдите во вкладке «Отзывы»</span>}
         {status === 'open' && <div className="acts">
           <button type="button" className="act ok press" disabled={busy === r.id} onClick={() => run(async () => { if (await api.adminResolveReport(r.id, 'resolved')) load(); }, r.id)}>Меры приняты</button>
           <button type="button" className="act press" disabled={busy === r.id} onClick={() => run(async () => { if (await api.adminResolveReport(r.id, 'rejected')) load(); }, r.id)}>Отклонить</button>
@@ -158,7 +159,7 @@ export function Leads() {
   const wa = (ph) => { const d = String(ph).replace(/\D/g, ''); return d.length === 11 && d[0] === '8' ? '7' + d.slice(1) : d; };
   const shown = (list || []).filter((l) => f === 'all' || l.status === f);
   return <>
-    <p className="hint">Заявки с лендинга <Link className="link-u" to="/sell">/sell</Link> — ссылку можно отправлять владельцам бутиков. Позвоните, помогите зарегистрироваться и одобрите бутик в «Заявках на бутик» на панели администратора.</p>
+    <p className="hint">Заявки с лендинга <SiteLink className="link-u" to="/sell">/sell</SiteLink> — ссылку можно отправлять владельцам бутиков. Позвоните, помогите зарегистрироваться и одобрите бутик в «Заявках на бутик» на панели администратора.</p>
     <div className="chips">{[['new', 'Новые'], ['contacted', 'Связались'], ['done', 'Подключены'], ['rejected', 'Отказ'], ['all', 'Все']].map(([v, l]) => <button key={v} type="button" className={'chip' + (f === v ? ' on' : '')} onClick={() => setF(v)}>{l}{v === 'new' && list ? ` · ${list.filter((x) => x.status === 'new').length}` : ''}</button>)}</div>
     {list === null ? <p className="lead">Загрузка…</p> : shown.length ? shown.map((l) => (
       <div key={l.id} className="bcard">

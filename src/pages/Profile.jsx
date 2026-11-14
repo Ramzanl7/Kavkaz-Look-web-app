@@ -6,6 +6,7 @@ import { Icon } from '../components/Icons.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useToast } from '../store/toast.jsx';
 import { api } from '../api/index.js';
+import { ADMIN_URL } from '../lib/sites.js';
 import { buildLabel } from '../lib/updater.js';
 import { useAction } from '../lib/useAction.js';
 import { useNotifications } from '../store/notifications.jsx';
@@ -60,11 +61,11 @@ export default function Profile() {
       </section>
 
       {isAdmin && (
-        <Link className="admin-card press rise" to="/admin" style={{ '--d': 1 }}>
+        <a className="admin-card press rise" href={ADMIN_URL + '/admin'} style={{ '--d': 1 }}>
           <span className="menu-ic"><Icon name="star" /></span>
           <span className="grow"><strong>Панель администратора</strong><small>Статистика, пользователи, заявки, поддержка</small></span>
           <Icon name="chevron" />
-        </Link>
+        </a>
       )}
 
       <nav className="menu rise" style={{ '--d': 2 }} aria-label="Меню профиля">

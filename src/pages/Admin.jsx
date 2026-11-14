@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icons.jsx';
 import { api } from '../api/index.js';
+import SiteLink from '../components/SiteLink.jsx';
 import { useAction } from '../lib/useAction.js';
 
 // Главная админки: каждая кнопка открывает отдельный экран. Число на кнопке — что ждёт вашего внимания.
@@ -100,7 +101,7 @@ export function BoutiquesAdmin() {
       <div key={b.id} className="bcard"><strong>{b.name} <span className={b.is_approved ? 'status ok' : 'status'}>{b.is_approved ? 'Одобрен' : 'Скрыт'}</span></strong>
         <div className="acts">
           <button type="button" className={b.is_approved ? 'act press' : 'act ok press'} disabled={!!busy} onClick={() => run(async () => { setMsg(''); if (await api.setBoutiqueApproved(b.id, !b.is_approved)) await load(); else setMsg('Действие не выполнено.'); })}>{b.is_approved ? 'Скрыть' : 'Одобрить'}</button>
-          {b.is_approved && <Link className="act press" to={'/boutiques/' + b.id}>Открыть</Link>}
+          {b.is_approved && <SiteLink className="act press" to={'/boutiques/' + b.id}>Открыть</SiteLink>}
         </div>
       </div>
     )) : <p className="muted">Бутиков нет.</p>}

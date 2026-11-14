@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import EmptyState from '../components/EmptyState.jsx';
+import { Icon } from '../components/Icons.jsx';
 import { rub } from '../store/cart.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { useToast } from '../store/toast.jsx';
+import { pointUrl, routeUrl, shareLink } from '../lib/maps/links.js';
 import { api } from '../api/index.js';
 import { STATUS, DELIVERY, PAYMENT, OrderSteps, holdText, isDebt } from './Orders.jsx';
 import { useAction } from '../lib/useAction.js';
@@ -26,9 +28,11 @@ export default function SellerOrders() {
   const [orders, setOrders] = useState(null), [flags, setFlags] = useState({}), [auto, setAuto] = useState(null);
   const [filter, setFilter] = useState('active');
   const [msg, setMsg] = useState('');
+  const [shop, setShop] = useState(null);
   const accepted = useRef(false);
   const load = useCallback(async () => {
     const b = user ? await api.getMyBoutique(user.id) : null;
+    setShop(b);
     const list = b ? await api.listSellerOrders(b.id) : [];
     setOrders(list);
     if (b) api.myBoutiquePay(b.id).then((p) => setAuto(p ? !!p.auto_accept : null));
@@ -94,7 +98,13 @@ export default function SellerOrders() {
                 : <span className="buyer-flag">{f.paid ? `Покупатель выкупил заказов: ${f.paid}` : 'Первый заказ покупателя'}</span>)}
               <div className="order-contact">
                 <span><b>{DELIVERY[o.delivery] || 'Получение не указано'}</b>{o.address ? ': ' + o.address : ''}</span>
-                {o.delivery_lat != null && <a className="link-u small" href={`https://yandex.ru/maps/?pt=${o.delivery_lng},${o.delivery_lat}&z=17&l=map`} target="_blank" rel="noopener noreferrer">📍 Точка доставки на карте</a>}
+                {o.delivery_lat != null && (
+                  <div className="route-acts">
+                    <a className="route-btn press" href={pointUrl({ lat: o.delivery_lat, lng: o.delivery_lng })} target="_blank" rel="noopener noreferrer"><Icon name="pin" />Точка клиента</a>
+                    <button type="button" className="route-btn gold press" onClick={() => shareLink(`Маршрут Kavkaz Look: ${shop?.lat != null ? 'бутик «' + shop.name + '» → ' : ''}клиент`, routeUrl(shop, { lat: o.delivery_lat, lng: o.delivery_lng }), toast)}><Icon name="send" />Маршрут курьеру</button>
+                  </div>
+                )}
+                {o.delivery_lat != null && shop && shop.lat == null && <small className="muted">Отметьте магазин на карте в профиле бутика — маршрут будет идти через вас.</small>}
                 {o.delivery === 'reserve' && ['new', 'confirmed'].includes(o.status) && <span className="reserve-hold">{holdText(o)} — потом бронь снимется сама</span>}
                 {o.comment && <span className="muted">«{o.comment}»</span>}
                 {o.phone ? (

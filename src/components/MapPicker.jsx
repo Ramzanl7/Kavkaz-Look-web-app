@@ -6,7 +6,7 @@ import { Icon } from './Icons.jsx';
 // Карта — Яндекс.
 const GROZNY = [43.3178, 45.6949];
 
-export default function MapPicker({ start, onPick, onClose }) {
+export default function MapPicker({ start, startAddress = '', onPick, onClose, cta = 'Доставить сюда', hint = 'Двигайте карту — булавка покажет точку доставки' }) {
   const box = useRef(null), map = useRef(null), prov = useRef(null), revT = useRef(0), seqRef = useRef(0);
   const [addr, setAddr] = useState(''), [moved, setMoved] = useState(!!start), [busy, setBusy] = useState(false), [q, setQ] = useState(''), [hints, setHints] = useState([]), [geoErr, setGeoErr] = useState(''), [ready, setReady] = useState(false), [failed, setFailed] = useState(false);
 
@@ -29,7 +29,14 @@ export default function MapPicker({ start, onPick, onClose }) {
       } catch { if (alive) setFailed(true); return; }
       if (!alive) { m.destroy(); return; }
       prov.current = p; map.current = m; setReady(true);
-      if (start) reverse(start.lat, start.lng);
+      if (start) { reverse(start.lat, start.lng); return; }
+      // точки ещё нет: ищем человека по геолокации, а если нельзя — показываем адрес из поля
+      const byAddress = async () => {
+        const t = startAddress.trim(); if (t.length < 3) return;
+        try { const [h] = await p.search(t); if (h && alive) m.setView([h.lat, h.lng], 17); } catch { /* не нашли — остаёмся на Грозном */ }
+      };
+      if (navigator.geolocation) navigator.geolocation.getCurrentPosition((g) => alive && m.setView([g.coords.latitude, g.coords.longitude], 17), byAddress, { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
+      else byAddress();
     })();
     return () => { alive = false; clearTimeout(revT.current); map.current?.destroy(); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -70,10 +77,10 @@ export default function MapPicker({ start, onPick, onClose }) {
       </div>
       <button type="button" className="mp-btn mp-locate" onClick={locate} aria-label="Найти меня"><Icon name="pin" /></button>
       <div className="mp-panel">
-        <small className="muted">Двигайте карту — булавка покажет точку доставки</small>
+        <small className="muted">{hint}</small>
         <strong>{failed ? 'Карта не загрузилась. Проверьте интернет или впишите адрес в поле.' : !ready ? 'Загружаем карту…' : busy ? 'Определяем адрес…' : addr || (moved ? 'Адрес не определён — допишите его после выбора' : 'Найдите адрес поиском или нажмите «Найти меня»')}</strong>
         {geoErr && <small className="msg">{geoErr}</small>}
-        <button type="button" className="btn btn-primary press" disabled={!ready} onClick={confirm}>Доставить сюда</button>
+        <button type="button" className="btn btn-primary press" disabled={!ready} onClick={confirm}>{cta}</button>
       </div>
     </div>, document.body);
 }

@@ -245,10 +245,10 @@ export default function Cart() {
       )}
 
       {undo && <div className="undo-bar" role="status"><span>Товар убран</span><button type="button" onClick={() => { put(undo); setUndo(null); }}>Вернуть</button></div>}
-      {mapOpen && <Suspense fallback={null}><MapPicker start={point} onClose={() => setMapOpen(false)} onPick={(pt) => {
-        const replace = !!pt.address && (!c.address.trim() || c.address === c.mapAddr);
-        setC((x) => ({ ...x, lat: pt.lat, lng: pt.lng, address: replace ? pt.address : x.address, mapAddr: pt.address }));
-        setMapOpen(false); toast(replace ? 'Адрес подставлен — допишите квартиру и подъезд' : 'Точка выбрана — проверьте адрес в поле');
+      {mapOpen && <Suspense fallback={null}><MapPicker start={point} startAddress={c.address} onClose={() => setMapOpen(false)} onPick={(pt) => {
+        // адрес с карты полностью заменяет то, что было в поле
+        setC((x) => ({ ...x, lat: pt.lat, lng: pt.lng, address: pt.address || x.address }));
+        setMapOpen(false); toast(pt.address ? 'Адрес подставлен — допишите квартиру и подъезд' : 'Точка выбрана — впишите адрес в поле');
       }} /></Suspense>}
       {sizeFor && <SizeSheet i={sizeFor} p={fresh?.get(sizeFor.id)} onPick={(s) => { changeSize(sizeFor.key, s); setSizeFor(null); }} onClose={() => setSizeFor(null)} />}
     </main>

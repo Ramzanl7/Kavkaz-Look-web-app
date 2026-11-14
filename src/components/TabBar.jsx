@@ -9,7 +9,7 @@ export function tabIndexOf(path) {
   const exact = TABS.findIndex(([to]) => to === path);
   if (exact >= 0) return exact;
   if (/^\/(product|nearby|partners|brands)\b/.test(path)) return 0;
-  if (/^\/(boutiques|stylist|collections|tryon)\b/.test(path)) return 1;
+  if (/^\/(catalog|boutiques|stylist|collections|tryon)\b/.test(path)) return 1;
   return 4; // профиль, заказы, настройки, поддержка, вход, админка, кабинет продавца
 }
 

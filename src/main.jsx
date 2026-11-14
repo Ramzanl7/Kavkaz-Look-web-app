@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import { installViewportFix } from './lib/viewportFix.js';
 // Только кириллица и латиница: другие алфавиты приложению не нужны.
 import '@fontsource/noto-sans/cyrillic-400.css';
 import '@fontsource/noto-sans/latin-400.css';
@@ -39,6 +40,7 @@ addEventListener('error', (e) => {
 try { const ref = new URLSearchParams(location.search).get('ref'); if (ref && /^[A-Za-z0-9]{6,10}$/.test(ref)) localStorage.setItem('kl-ref', ref.toUpperCase()); } catch { /* приватный режим */ }
 keepPushWorker();
 
+installViewportFix();
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter><AuthProvider><CartProvider><ToastProvider><WishlistProvider><NotificationsProvider><ErrorBoundary><App /></ErrorBoundary></NotificationsProvider></WishlistProvider></ToastProvider></CartProvider></AuthProvider></BrowserRouter>

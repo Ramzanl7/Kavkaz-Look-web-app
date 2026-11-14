@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
+import { later as healViewportSoon } from '../lib/viewportFix.js';
 
 const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -15,7 +16,7 @@ export default function PageStage({ pageKey, dir, children }) {
 
   useLayoutEffect(() => {
     if (shownKey === pageKey) return;
-    const apply = () => { flushSync(() => setShownKey(pageKey)); window.scrollTo(0, 0); };
+    const apply = () => { flushSync(() => setShownKey(pageKey)); window.scrollTo(0, 0); healViewportSoon(); };
     if (!document.startViewTransition || reduced()) { apply(); return; }
     const root = document.documentElement;
     root.dataset.nav = dir;

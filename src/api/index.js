@@ -237,8 +237,9 @@ export const api = {
     return p;
   },
   async listBoutiques() {
-    const { data, error } = await supabase.from('boutiques').select('id,name,description,city').eq('is_approved', true).order('created_at', { ascending: false }).limit(50);
-    return error || !data ? [] : data;
+    let { data, error } = await supabase.from('boutiques').select('id,name,description,city,logo_path,cover_path').eq('is_approved', true).order('created_at', { ascending: false }).limit(50);
+    if (error?.code === '42703') ({ data, error } = await supabase.from('boutiques').select('id,name,description,city').eq('is_approved', true).order('created_at', { ascending: false }).limit(50));
+    return error || !data ? [] : data.map(toBoutique);
   },
   async getBoutique(id) {
     if (!isUuid(id)) return null;

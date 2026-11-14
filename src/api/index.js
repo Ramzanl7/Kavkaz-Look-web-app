@@ -54,7 +54,7 @@ const toProduct = (r) => ({
 const BQ_COLS_BASE = 'id,name,description,city,logo_path,cover_path,address,hours,phone,whatsapp,telegram,delivery_pickup,delivery_courier,courier_note';
 const BQ_LEVELS = [BQ_COLS_BASE + ',allow_reserve,delivery_fee_city,delivery_fee_region,free_delivery_from', BQ_COLS_BASE + ',allow_reserve', BQ_COLS_BASE];
 let BQ_COLS = BQ_LEVELS[0];
-const ORDER_LEVELS = [',hold_until,subtotal_rub,discount_rub,promo_code,discount_by,accepted_at,closed_at,closed_by,unpaid_at,unpaid_resolved_at,paid_claim_at,delivery_fee_rub', ',hold_until,subtotal_rub,discount_rub,promo_code,discount_by,accepted_at,closed_at,closed_by,unpaid_at,unpaid_resolved_at,paid_claim_at', ',hold_until,subtotal_rub,discount_rub,promo_code,discount_by', ',hold_until', ''];
+const ORDER_LEVELS = [',hold_until,subtotal_rub,discount_rub,promo_code,discount_by,accepted_at,closed_at,closed_by,unpaid_at,unpaid_resolved_at,paid_claim_at,delivery_fee_rub,delivery_lat,delivery_lng', ',hold_until,subtotal_rub,discount_rub,promo_code,discount_by,accepted_at,closed_at,closed_by,unpaid_at,unpaid_resolved_at,paid_claim_at,delivery_fee_rub', ',hold_until,subtotal_rub,discount_rub,promo_code,discount_by,accepted_at,closed_at,closed_by,unpaid_at,unpaid_resolved_at,paid_claim_at', ',hold_until,subtotal_rub,discount_rub,promo_code,discount_by', ',hold_until', ''];
 let ORDER_EXTRA = ORDER_LEVELS[0];
 // новые поля могут ещё отсутствовать в базе — тогда работаем без них
 const downgradeBq = (error) => { const i = BQ_LEVELS.indexOf(BQ_COLS); if (error?.code === '42703' && i < BQ_LEVELS.length - 1) { BQ_COLS = BQ_LEVELS[i + 1]; return true; } return false; };
@@ -895,6 +895,13 @@ export const api = {
     if (!error) return '';
     if (error.code === 'PGRST202') return 'Удаление ещё не включено на сервере';
     return error.message || 'Не удалось удалить';
+  },
+  // точка доставки на карте для только что оформленных заказов
+  async setOrderPoint(ids, lat, lng) {
+    const ok = (ids || []).filter(isUuid);
+    if (!ok.length || !Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+    const { error } = await supabase.rpc('set_order_point', { ids: ok, lat, lng });
+    return !error;
   },
   // ===== Курьеры =====
   async listDeliveryServices() {

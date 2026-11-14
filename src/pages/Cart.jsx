@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import ProductCard from '../components/ProductCard.jsx';
 import { useWishlist } from '../store/wishlist.jsx';
 import { history } from '../lib/local.js';
 import { loadPool, slotOf } from '../lib/stylist.js';
+const MapPicker = lazy(() => import('../components/MapPicker.jsx'));
 import { Icon } from '../components/Icons.jsx';
 import { useCart, rub } from '../store/cart.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
@@ -124,12 +125,15 @@ export default function Cart() {
   const drop = (i) => { remove(i.key); setUndo(i); clearTimeout(undoT.current); undoT.current = setTimeout(() => setUndo(null), 5000); };
   const toWish = async (i) => { if (!user) { toast('Войдите, чтобы сохранять товары'); return; } if (!wished.has(i.id)) await toggle(i.id); remove(i.key); toast('Перенесли в избранное'); };
   const [sizeFor, setSizeFor] = useState(null);
+  const [mapOpen, setMapOpen] = useState(false);
+  const point = c.lat != null && c.lng != null ? { lat: c.lat, lng: c.lng } : null;
 
   const checkout = (e) => { e.preventDefault(); return run(async () => {
     setMsg('');
     const r = await api.placeOrder(live, { ...c, delivery, payment, promo: promo?.code }, attemptKey(live));
     if (r.error) { setMsg(r.error); if (r.promo) setPromo(null); return; }
-    try { if (c.remember) localStorage.setItem(CONTACT_KEY, JSON.stringify({ phone: c.phone, address: c.address, delivery: c.delivery })); else localStorage.removeItem(CONTACT_KEY); } catch { /* приватный режим */ }
+    if (delivery === 'courier' && point) await api.setOrderPoint(r.ids, point.lat, point.lng);
+    try { if (c.remember) localStorage.setItem(CONTACT_KEY, JSON.stringify({ phone: c.phone, address: c.address, delivery: c.delivery, lat: c.lat ?? null, lng: c.lng ?? null })); else localStorage.removeItem(CONTACT_KEY); } catch { /* приватный режим */ }
     setDone({ ids: r.ids, delivery, payment, pay, fee: delivery === 'courier' ? (feeKnown ? feeSum : null) : 0, shops: groups.map((g) => ({ name: g.name, address: g.b?.address, city: g.b?.city })) });
     forgetAttempt(); clear(); setStep('done'); window.scrollTo(0, 0);
   }); };
@@ -198,7 +202,10 @@ export default function Cart() {
             <PhoneInput id="ph" maxLength={20} value={c.phone} onChange={(phone) => setC((x) => ({ ...x, phone }))} /></div>
           {delivery === 'courier' && (
             <div className="field"><label htmlFor="ad">Адрес доставки</label>
-              <input id="ad" autoComplete="street-address" placeholder="Город, улица, дом, квартира" maxLength={200} value={c.address} onChange={(e) => setC({ ...c, address: e.target.value })} /></div>
+              <input id="ad" autoComplete="street-address" placeholder="Город, улица, дом, квартира" maxLength={200} value={c.address} onChange={(e) => setC({ ...c, address: e.target.value })} />
+              <button type="button" className={'addr-map press' + (point ? ' on' : '')} onClick={() => setMapOpen(true)}>
+                <Icon name="pin" /><span className="grow">{point ? <><b>Точка на карте выбрана</b><small>Курьер приедет точно сюда · изменить</small></> : <><b>Указать на карте</b><small>Курьеру будет проще найти вас</small></>}</span><Icon name="chevron" />
+              </button></div>
           )}
           <div className="field"><label htmlFor="cm">Комментарий для продавца (необязательно)</label>
             <input id="cm" maxLength={300} placeholder="Например: позвонить за час" value={c.comment} onChange={(e) => setC({ ...c, comment: e.target.value })} /></div>
@@ -238,6 +245,10 @@ export default function Cart() {
       )}
 
       {undo && <div className="undo-bar" role="status"><span>Товар убран</span><button type="button" onClick={() => { put(undo); setUndo(null); }}>Вернуть</button></div>}
+      {mapOpen && <Suspense fallback={null}><MapPicker start={point} onClose={() => setMapOpen(false)} onPick={(pt) => {
+        setC((x) => ({ ...x, lat: pt.lat, lng: pt.lng, address: pt.address && (!x.address.trim() || x.address === x.mapAddr) ? pt.address : x.address, mapAddr: pt.address }));
+        setMapOpen(false); if (pt.address) toast('Адрес подставлен — допишите квартиру и подъезд');
+      }} /></Suspense>}
       {sizeFor && <SizeSheet i={sizeFor} p={fresh?.get(sizeFor.id)} onPick={(s) => { changeSize(sizeFor.key, s); setSizeFor(null); }} onClose={() => setSizeFor(null)} />}
     </main>
   );

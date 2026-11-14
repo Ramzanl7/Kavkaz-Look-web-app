@@ -52,7 +52,7 @@ const toProduct = (r) => ({
   stock: r.stock && typeof r.stock === 'object' ? r.stock : null, blocked: r.moderation === 'blocked', blockReason: r.moderation_reason || '',
 });
 const BQ_COLS_BASE = 'id,name,description,city,logo_path,cover_path,address,hours,phone,whatsapp,telegram,delivery_pickup,delivery_courier,courier_note';
-const BQ_LEVELS = [BQ_COLS_BASE + ',allow_reserve,delivery_fee_city,delivery_fee_region,free_delivery_from', BQ_COLS_BASE + ',allow_reserve', BQ_COLS_BASE];
+const BQ_LEVELS = [BQ_COLS_BASE + ',allow_reserve,delivery_fee_city,delivery_fee_region,free_delivery_from,lat,lng', BQ_COLS_BASE + ',allow_reserve,delivery_fee_city,delivery_fee_region,free_delivery_from', BQ_COLS_BASE + ',allow_reserve', BQ_COLS_BASE];
 let BQ_COLS = BQ_LEVELS[0];
 const ORDER_LEVELS = [',hold_until,subtotal_rub,discount_rub,promo_code,discount_by,accepted_at,closed_at,closed_by,unpaid_at,unpaid_resolved_at,paid_claim_at,delivery_fee_rub,delivery_lat,delivery_lng', ',hold_until,subtotal_rub,discount_rub,promo_code,discount_by,accepted_at,closed_at,closed_by,unpaid_at,unpaid_resolved_at,paid_claim_at,delivery_fee_rub', ',hold_until,subtotal_rub,discount_rub,promo_code,discount_by,accepted_at,closed_at,closed_by,unpaid_at,unpaid_resolved_at,paid_claim_at', ',hold_until,subtotal_rub,discount_rub,promo_code,discount_by', ',hold_until', ''];
 let ORDER_EXTRA = ORDER_LEVELS[0];
@@ -395,7 +395,12 @@ export const api = {
     };
     if (BQ_COLS !== BQ_COLS_BASE && b.allow_reserve !== undefined) row.allow_reserve = !!b.allow_reserve;
     // цены доставки: пусто — «сообщит бутик»
-    if (BQ_COLS === BQ_LEVELS[0]) {
+    if (BQ_COLS.includes(',lat,lng') && b.lat !== undefined) {
+      const la = Number(b.lat), lo = Number(b.lng);
+      const ok = b.lat !== null && b.lat !== '' && la >= 40 && la <= 46 && lo >= 42 && lo <= 49;
+      row.lat = ok ? Math.round(la * 1e6) / 1e6 : null; row.lng = ok ? Math.round(lo * 1e6) / 1e6 : null;
+    }
+    if (BQ_COLS.includes('delivery_fee_city')) {
       const num = (v, max) => { const d = String(v ?? '').replace(/[^0-9]/g, ''); if (!d) return null; const n = Number(d); return n <= max ? n : undefined; };
       row.delivery_fee_city = num(b.delivery_fee_city, 10000); row.delivery_fee_region = num(b.delivery_fee_region, 20000);
       const free = num(b.free_delivery_from, 1000000); row.free_delivery_from = free === 0 ? null : free;

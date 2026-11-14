@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { Icon } from '../components/Icons.jsx';
+const MapPicker = lazy(() => import('../components/MapPicker.jsx'));
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { api, CITIES } from '../api/index.js';
@@ -15,11 +17,12 @@ export default function SellerProfile() {
   const [img, setImg] = useState({});
   const [busy, run] = useAction();
   const [msg, setMsg] = useState('');
+  const [mapOpen, setMapOpen] = useState(false);
   useEffect(() => {
     if (!user) return;
     api.getMyBoutique(user.id).then((r) => {
       setB(r);
-      if (r) setF({ description: r.description || '', city: r.city || 'Грозный', address: r.address || '', hours: r.hours || '', phone: r.phone || '', whatsapp: r.whatsapp || '', telegram: r.telegram || '', delivery_pickup: r.delivery_pickup ?? true, delivery_courier: !!r.delivery_courier, courier_note: r.courier_note || '', allow_reserve: r.allow_reserve ?? true, delivery_fee_city: r.delivery_fee_city ?? '', delivery_fee_region: r.delivery_fee_region ?? '', free_delivery_from: r.free_delivery_from ?? '' });
+      if (r) setF({ description: r.description || '', city: r.city || 'Грозный', address: r.address || '', hours: r.hours || '', phone: r.phone || '', whatsapp: r.whatsapp || '', telegram: r.telegram || '', delivery_pickup: r.delivery_pickup ?? true, delivery_courier: !!r.delivery_courier, courier_note: r.courier_note || '', allow_reserve: r.allow_reserve ?? true, delivery_fee_city: r.delivery_fee_city ?? '', delivery_fee_region: r.delivery_fee_region ?? '', free_delivery_from: r.free_delivery_from ?? '', lat: r.lat ?? null, lng: r.lng ?? null });
       if (r) setImg({ logo: r.logo, cover: r.cover });
     });
   }, [user]);
@@ -55,7 +58,13 @@ export default function SellerProfile() {
         {busy === 'logo' || busy === 'cover' ? <p className="hint">Загружаем фото…</p> : null}
         <div className="field"><label htmlFor="bd">О бутике</label><textarea id="bd" rows={4} maxLength={1000} value={f.description} onChange={set('description')} placeholder="Что вы продаёте, чем отличаетесь" /></div>
         <div className="field"><label htmlFor="bc">Город</label><select id="bc" value={f.city} onChange={set('city')}>{CITIES.map((c) => <option key={c}>{c}</option>)}</select></div>
-        <div className="field"><label htmlFor="ba">Адрес магазина</label><input id="ba" maxLength={200} value={f.address} onChange={set('address')} placeholder="ул., дом, ТЦ, этаж" /></div>
+        <div className="field"><label htmlFor="ba">Адрес магазина</label><input id="ba" maxLength={200} value={f.address} onChange={set('address')} placeholder="ул., дом, ТЦ, этаж" />
+          <button type="button" className={'addr-map press' + (f.lat != null ? ' on' : '')} onClick={() => setMapOpen(true)}>
+            <Icon name="pin" /><span className="grow">{f.lat != null ? <><b>Магазин отмечен на карте</b><small>Курьер построит маршрут прямо к вам · изменить</small></> : <><b>Отметить магазин на карте</b><small>Чтобы курьер строил маршрут к вам автоматически</small></>}</span><Icon name="chevron" />
+          </button></div>
+        {mapOpen && <Suspense fallback={null}><MapPicker start={f.lat != null ? { lat: f.lat, lng: f.lng } : null} startAddress={[f.city, f.address].filter(Boolean).join(', ')}
+          cta="Магазин здесь" hint="Двигайте карту — булавка покажет вход в магазин" onClose={() => setMapOpen(false)}
+          onPick={(pt) => { setF((x) => ({ ...x, lat: pt.lat, lng: pt.lng, address: pt.address ? pt.address.replace(new RegExp('^' + (x.city || '') + ',\\s*'), '') : x.address })); setMapOpen(false); toast('Точка магазина выбрана — не забудьте сохранить'); }} /></Suspense>}
         <div className="field"><label htmlFor="bh">Часы работы</label><input id="bh" maxLength={100} value={f.hours} onChange={set('hours')} placeholder="Ежедневно 10:00–20:00" /></div>
         <div className="field"><label htmlFor="bp">Телефон</label><input id="bp" type="tel" inputMode="tel" maxLength={20} value={f.phone} onChange={set('phone')} placeholder="+7 900 000-00-00" /></div>
         <div className="field"><label htmlFor="bw">WhatsApp (номер)</label><input id="bw" inputMode="tel" maxLength={20} value={f.whatsapp} onChange={set('whatsapp')} placeholder="79000000000" /></div>

@@ -22,7 +22,7 @@ export const SECTIONS = [
 const NOFILTER = { minPrice: '', maxPrice: '', size: '', sort: 'new', color: '' };
 const isSearching = (q, f) => q.trim() !== '' || !!(f.minPrice || f.maxPrice || f.size || f.color || f.sort !== 'new');
 
-// Каталог: поиск → разделы плитками (с фото товара из раздела) → бутики → ИИ-стилист → подборки.
+// Каталог: ИИ-стилист → поиск → разделы плитками (с фото товара из раздела) → бутики → подборки.
 // Ленты товаров здесь нет — она на главной; товары раздела открываются по нажатию на плитку.
 export default function Catalog() {
   const [query, setQuery] = useState('');
@@ -48,6 +48,12 @@ export default function Catalog() {
   return (
     <main className="wrap home catalog-page">
       <h1 className="screen-title rise">Каталог</h1>
+      <Link className="stylist-bar press rise" to="/stylist">
+        <span className="stylist-ic"><Icon name="sparkles" /></span>
+        <span className="grow"><strong>ИИ-стилист</strong><small>Подберём образ под твой бюджет</small></span>
+        <svg className="stylist-orn" viewBox={`0 0 ${BELT.w} ${BELT.h}`} aria-hidden="true"><path d={BELT.d} fill="currentColor" /></svg>
+        <Icon name="chevron" />
+      </Link>
       <SearchBar value={query} onChange={setQuery} filters={filters} onFilters={setFilters}
         onBrand={(id) => openBrand(brands.find((b) => b.id === id))} />
 
@@ -92,13 +98,6 @@ export default function Catalog() {
               </div>
             ) : <p className="muted">Бутики скоро появятся.</p>}
         </section>
-
-        <Link className="stylist-bar press" to="/stylist">
-          <span className="stylist-ic"><Icon name="sparkles" /></span>
-          <span className="grow"><strong>ИИ-стилист</strong><small>Подберём образ под твой бюджет</small></span>
-          <svg className="stylist-orn" viewBox={`0 0 ${BELT.w} ${BELT.h}`} aria-hidden="true"><path d={BELT.d} fill="currentColor" /></svg>
-          <Icon name="chevron" />
-        </Link>
 
         <Collections items={colls} />
       </>}

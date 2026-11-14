@@ -9,6 +9,7 @@ import Stub from './pages/Stub.jsx';
 
 // Остальные экраны грузятся только когда их открывают — покупатель не скачивает код админки и продавца.
 const Catalog = lazy(() => import('./pages/Catalog.jsx'));
+const CatalogSection = lazy(() => import('./pages/Catalog.jsx').then((m) => ({ default: m.CatalogSection })));
 const Nearby = lazy(() => import('./pages/Nearby.jsx'));
 const Product = lazy(() => import('./pages/Product.jsx'));
 const Cart = lazy(() => import('./pages/Cart.jsx'));
@@ -68,6 +69,7 @@ export default function App() {
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/home" element={<Home />} />
         <Route path="/catalog" element={<Catalog />} />
+        <Route path="/catalog/:slug" element={<CatalogSection />} />
         <Route path="/nearby/:category" element={<Nearby />} />
         <Route path="/partners" element={<Partners />} />
         <Route path="/sell" element={<Sell />} />

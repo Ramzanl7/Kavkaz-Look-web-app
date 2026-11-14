@@ -3,27 +3,18 @@ import { createPortal } from 'react-dom';
 import { Icon } from './Icons.jsx';
 
 // Выбор точки доставки на карте: булавка в центре, поиск адреса, «Найти меня».
-// Основная карта — Яндекс (если задан ключ), запасная — OpenStreetMap.
+// Карта — Яндекс.
 const GROZNY = [43.3178, 45.6949];
-const pickProvider = async () => {
-  if (import.meta.env.VITE_YANDEX_MAPS_KEY) {
-    try { const y = await import('../lib/maps/yandex.js'); return y; } catch { /* не загрузилась — берём запасную */ }
-  }
-  return import('../lib/maps/osm.js');
-};
 
 export default function MapPicker({ start, onPick, onClose }) {
   const box = useRef(null), map = useRef(null), prov = useRef(null), revT = useRef(0), seqRef = useRef(0);
-  const [addr, setAddr] = useState(''), [moved, setMoved] = useState(!!start), [busy, setBusy] = useState(false), [q, setQ] = useState(''), [hints, setHints] = useState([]), [geoErr, setGeoErr] = useState(''), [ready, setReady] = useState(false);
+  const [addr, setAddr] = useState(''), [moved, setMoved] = useState(!!start), [busy, setBusy] = useState(false), [q, setQ] = useState(''), [hints, setHints] = useState([]), [geoErr, setGeoErr] = useState(''), [ready, setReady] = useState(false), [failed, setFailed] = useState(false);
 
   const reverse = (lat, lng) => {
     clearTimeout(revT.current);
     revT.current = setTimeout(async () => {
       const seq = ++seqRef.current; setBusy(true);
       let a = ''; try { a = await prov.current.reverse(lat, lng); } catch (e) { console.warn('reverse', e); }
-      // Яндекс не ответил (лимит, сеть) — спрашиваем OpenStreetMap
-      // нет улицы (только город) — уточняем у OpenStreetMap
-      if (!a.includes(',') && prov.current.name !== 'osm') { try { const o = await (await import('../lib/maps/osm.js')).reverse(lat, lng); if (o) a = o; } catch { /* сеть */ } }
       if (seq === seqRef.current) { setAddr(a); setBusy(false); }
     }, 700);
   };
@@ -31,10 +22,11 @@ export default function MapPicker({ start, onPick, onClose }) {
   useEffect(() => {
     let alive = true;
     (async () => {
-      let p = await pickProvider();
-      let m;
-      try { m = await p.create(box.current, start ? [start.lat, start.lng] : GROZNY, start ? 17 : 13, (lat, lng) => { setMoved(true); reverse(lat, lng); }); }
-      catch { p = await import('../lib/maps/osm.js'); m = await p.create(box.current, start ? [start.lat, start.lng] : GROZNY, start ? 17 : 13, (lat, lng) => { setMoved(true); reverse(lat, lng); }); }
+      let p, m;
+      try {
+        p = await import('../lib/maps/yandex.js');
+        m = await p.create(box.current, start ? [start.lat, start.lng] : GROZNY, start ? 17 : 13, (lat, lng) => { setMoved(true); reverse(lat, lng); });
+      } catch { if (alive) setFailed(true); return; }
       if (!alive) { m.destroy(); return; }
       prov.current = p; map.current = m; setReady(true);
       if (start) reverse(start.lat, start.lng);
@@ -47,7 +39,6 @@ export default function MapPicker({ start, onPick, onClose }) {
     const t = q.trim(); if (t.length < 3 || !ready) { setHints([]); return undefined; }
     const h = setTimeout(async () => {
       let r = []; try { r = await prov.current.search(t); } catch (e) { console.warn('search', e); }
-      if (!r.length && prov.current.name !== 'osm') { try { r = await (await import('../lib/maps/osm.js')).search(t); } catch { /* сеть */ } }
       setHints(r);
     }, 700);
     return () => clearTimeout(h);
@@ -80,7 +71,7 @@ export default function MapPicker({ start, onPick, onClose }) {
       <button type="button" className="mp-btn mp-locate" onClick={locate} aria-label="Найти меня"><Icon name="pin" /></button>
       <div className="mp-panel">
         <small className="muted">Двигайте карту — булавка покажет точку доставки</small>
-        <strong>{!ready ? 'Загружаем карту…' : busy ? 'Определяем адрес…' : addr || (moved ? 'Адрес не определён — допишите его после выбора' : 'Найдите адрес поиском или нажмите «Найти меня»')}</strong>
+        <strong>{failed ? 'Карта не загрузилась. Проверьте интернет или впишите адрес в поле.' : !ready ? 'Загружаем карту…' : busy ? 'Определяем адрес…' : addr || (moved ? 'Адрес не определён — допишите его после выбора' : 'Найдите адрес поиском или нажмите «Найти меня»')}</strong>
         {geoErr && <small className="msg">{geoErr}</small>}
         <button type="button" className="btn btn-primary press" disabled={!ready} onClick={confirm}>Доставить сюда</button>
       </div>

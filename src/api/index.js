@@ -896,6 +896,41 @@ export const api = {
     if (error.code === 'PGRST202') return 'Удаление ещё не включено на сервере';
     return error.message || 'Не удалось удалить';
   },
+  // ===== Курьеры =====
+  async listDeliveryServices() {
+    const { data, error } = await supabase.from('delivery_services').select('id,name,kind,mode,phone,whatsapp,telegram,app_url,cities,note,is_active,sort').order('sort').order('name');
+    return error ? (error.code === '42P01' ? [] : null) : data || [];
+  },
+  // вызвать курьера: вернёт данные для заявки (откуда, куда, телефон покупателя, сколько взять)
+  async callCourier(orderId, serviceId, note = '') {
+    if (!isUuid(orderId) || !isUuid(serviceId)) return { error: 'Неверные данные' };
+    const { data, error } = await supabase.rpc('seller_call_courier', { oid: orderId, sid: serviceId, note: cleanText(note, 200) || null });
+    if (!error) return data;
+    const m = String(error.message || '');
+    return { error: m.includes('already') ? 'Курьер по этому заказу уже вызван' : m.includes('not confirmed') ? 'Сначала примите заказ' : m.includes('not courier') ? 'Этот заказ без доставки' : m.includes('service') ? 'Служба сейчас недоступна' : 'Не удалось вызвать курьера' };
+  },
+  async setDeliveryStatus(deliveryId, status, { courierName = '', courierPhone = '', note = '' } = {}) {
+    if (!isUuid(deliveryId) || !['assigned', 'picked_up', 'delivered', 'failed', 'cancelled'].includes(status)) return 'Неверные данные';
+    const { error } = await supabase.rpc('seller_delivery_status', { did: deliveryId, st: status, courier_name: cleanText(courierName, 60) || null, courier_phone: String(courierPhone || '').replace(/[^0-9+]/g, '') || null, note: cleanText(note, 200) || null });
+    return error ? (String(error.message).includes('closed') ? 'Доставка уже завершена' : 'Не удалось сохранить') : '';
+  },
+  async orderDeliveries(orderIds) {
+    const ids = (orderIds || []).filter(isUuid).slice(0, 200);
+    if (!ids.length) return [];
+    const { data, error } = await supabase.from('deliveries').select('id,order_id,service_name,status,courier_name,courier_phone,tracking_url,fee_rub,cod_rub,note,created_at,updated_at').in('order_id', ids).order('created_at', { ascending: false });
+    return error ? [] : data || [];
+  },
+  async adminSaveDeliveryService(s) {
+    const row = { name: cleanText(s.name, 60), kind: s.kind === 'taxi' ? 'taxi' : 'delivery', phone: String(s.phone || '').replace(/[^0-9+]/g, '') || null,
+      whatsapp: String(s.whatsapp || '').replace(/[^0-9]/g, '') || null, telegram: String(s.telegram || '').trim().replace(/^@/, '') || null,
+      app_url: /^https:\/\//.test(s.app_url || '') ? s.app_url.trim() : null, note: cleanText(s.note, 200) || null, is_active: s.is_active !== false, sort: Number(s.sort) || 0 };
+    if (!row.name || row.name.length < 2) return 'Укажите название';
+    const q = isUuid(s.id) ? supabase.from('delivery_services').update(row).eq('id', s.id) : supabase.from('delivery_services').insert(row);
+    const { error } = await q;
+    return error ? (error.code === '23514' ? 'Проверьте телефон, WhatsApp, Telegram или ссылку' : 'Не удалось сохранить') : '';
+  },
+  async adminDeleteDeliveryService(id) { if (!isUuid(id)) return false; const { error } = await supabase.from('delivery_services').delete().eq('id', id); return !error; },
+  async adminDeliveryKey(id) { if (!isUuid(id)) return null; const { data, error } = await supabase.rpc('admin_delivery_key', { sid: id }); return error ? null : data; },
   // ===== Мои мерки (видит и меняет только владелец) =====
   async getMeasurements() {
     const { data, error } = await supabase.from('measurements').select('gender,height_cm,weight_kg,chest_cm,waist_cm,hips_cm,shoulder_cm,inseam_cm,shoe_eu,fit_pref,updated_at').maybeSingle();

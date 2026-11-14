@@ -22,7 +22,8 @@ export default function MapPicker({ start, onPick, onClose }) {
       const seq = ++seqRef.current; setBusy(true);
       let a = ''; try { a = await prov.current.reverse(lat, lng); } catch (e) { console.warn('reverse', e); }
       // Яндекс не ответил (лимит, сеть) — спрашиваем OpenStreetMap
-      if (!a && prov.current.name !== 'osm') { try { a = await (await import('../lib/maps/osm.js')).reverse(lat, lng); } catch { /* сеть */ } }
+      // нет улицы (только город) — уточняем у OpenStreetMap
+      if (!a.includes(',') && prov.current.name !== 'osm') { try { const o = await (await import('../lib/maps/osm.js')).reverse(lat, lng); if (o) a = o; } catch { /* сеть */ } }
       if (seq === seqRef.current) { setAddr(a); setBusy(false); }
     }, 700);
   };

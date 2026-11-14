@@ -20,7 +20,9 @@ const short = (geo) => {
   const a = geo.properties.get('metaDataProperty.GeocoderMetaData.Address.Components') || [];
   const pick = (k) => a.filter((c) => c.kind === k).map((c) => c.name).pop();
   const parts = [pick('locality') || pick('area'), pick('street') || pick('district'), pick('house')].filter(Boolean);
-  return parts.length ? parts.join(', ') : geo.getAddressLine?.() || geo.properties.get('text') || '';
+  const line = String(geo.getAddressLine?.() || geo.properties.get('metaDataProperty.GeocoderMetaData.text') || geo.properties.get('text') || '')
+    .split(',').map((x) => x.trim()).filter((x) => x && !/^(Россия|Чеченская Республика|городской округ .+)$/.test(x)).join(', ');
+  return parts.length >= 2 ? parts.join(', ') : line || parts.join(', ');
 };
 
 export const name = 'yandex';
@@ -33,9 +35,12 @@ export async function create(el, center, zoom, onMove) {
 }
 export async function reverse(lat, lng) {
   const ymaps = await load();
-  const r = await ymaps.geocode([lat, lng], { results: 1, kind: 'house' });
-  const g = r.geoObjects.get(0) || (await ymaps.geocode([lat, lng], { results: 1 })).geoObjects.get(0);
-  return g ? short(g) : '';
+  for (const kind of ['house', 'street']) {
+    const g = (await ymaps.geocode([lat, lng], { results: 1, kind })).geoObjects.get(0);
+    const t = g ? short(g) : '';
+    if (t.includes(',')) return t;
+  }
+  return '';
 }
 export async function search(q) {
   const ymaps = await load();

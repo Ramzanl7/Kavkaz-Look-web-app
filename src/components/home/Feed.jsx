@@ -20,7 +20,8 @@ export function Strip({ children }) {
   const [pages, setPages] = useState(1), [page, setPage] = useState(0);
   useEffect(() => {
     const el = ref.current; if (!el) return undefined;
-    const upd = () => { const w = el.clientWidth || 1; setPages(Math.max(1, Math.ceil((el.scrollWidth - 4) / w))); setPage(Math.round(el.scrollLeft / w)); };
+    // одна точка на карточку; активная — та, что сейчас слева
+    const upd = () => { const n = el.children.length, w = (el.firstElementChild?.offsetWidth || 1) + 12, end = el.scrollLeft >= el.scrollWidth - el.clientWidth - 2; setPages(n); setPage(end ? n - 1 : Math.min(n - 1, Math.round(el.scrollLeft / w))); };
     upd(); el.addEventListener('scroll', upd, { passive: true }); window.addEventListener('resize', upd);
     return () => { el.removeEventListener('scroll', upd); window.removeEventListener('resize', upd); };
   }, [children]);

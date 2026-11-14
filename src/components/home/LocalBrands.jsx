@@ -44,12 +44,13 @@ export function BrandCard({ b, onOpen }) {
         {b.logo && <img className="brand-logo" src={b.logo} alt="" loading="lazy" />}
         <strong>{b.name}</strong>
         {b.description && <small>{b.description}</small>}
+        <i className="brand-cta" aria-hidden="true">Перейти <Icon name="arrow" /></i>
       </span>
     </button>
   );
 }
 
-// «Сделано рядом»: автоматическая карусель (раз в 6 с, плавно), ручная прокрутка, пауза при касании, индикаторы страниц
+// «Сделано рядом»: баннеры на всю ширину, автопрокрутка (раз в 4 с, плавно, по кругу), ручная прокрутка, пауза при касании, индикаторы страниц
 export default function LocalBrands({ brands, onOpen }) {
   const track = useRef(null);
   const [page, setPage] = useState(0);
@@ -58,6 +59,7 @@ export default function LocalBrands({ brands, onOpen }) {
   useEffect(() => {
     const el = track.current; if (!el || n < 2) return undefined;
     const onScroll = () => { const w = el.firstElementChild?.offsetWidth || 1; setPage(Math.min(n - 1, Math.round(el.scrollLeft / (w + 12)))); };
+    // если бренд один — листать нечего
     const stop = () => { pause.current = Date.now() + 10000; };
     el.addEventListener('scroll', onScroll, { passive: true });
     el.addEventListener('pointerdown', stop); el.addEventListener('wheel', stop, { passive: true }); el.addEventListener('focusin', stop);
@@ -66,7 +68,7 @@ export default function LocalBrands({ brands, onOpen }) {
       const w = el.firstElementChild?.offsetWidth || 0, max = el.scrollWidth - el.clientWidth;
       const next = el.scrollLeft + w + 12 > max + 2 ? 0 : el.scrollLeft + w + 12;
       el.scrollTo({ left: next, behavior: 'smooth' });
-    }, 6000);
+    }, 4000);
     return () => { clearInterval(t); el.removeEventListener('scroll', onScroll); el.removeEventListener('pointerdown', stop); el.removeEventListener('wheel', stop); el.removeEventListener('focusin', stop); };
   }, [n]);
   if (!n) return null;
@@ -76,7 +78,7 @@ export default function LocalBrands({ brands, onOpen }) {
         <h2 id="near-h"><Icon name="hand" />Сделано рядом</h2>
         <Link className="sec-link" to="/brands">Все бренды <Icon name="arrow" /></Link>
       </div>
-      <div className="hscroll brands" ref={track}>
+      <div className="hscroll brands brands-wide" ref={track}>
         {brands.map((b) => <BrandCard key={b.id} b={b} onOpen={onOpen} />)}
       </div>
       {n > 1 && <div className="dots" aria-hidden="true">{brands.map((b, i) => <i key={b.id} className={i === page ? 'on' : ''} />)}</div>}

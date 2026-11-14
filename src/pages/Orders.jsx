@@ -100,6 +100,7 @@ export default function Orders() {
               </div>
             )}
             {o.discount_rub > 0 && <span className="muted small">Промокод {o.promo_code}: −{rub(o.discount_rub)}</span>}
+            {o.delivery === 'courier' && <span className="muted small">Доставка — курьеру при получении: {o.delivery_fee_rub == null ? 'стоимость сообщит бутик' : o.delivery_fee_rub ? rub(o.delivery_fee_rub) : 'бесплатно'}</span>}
             <div className="order-foot"><span>Итого</span><b className="price">{rub(o.total_rub)}</b></div>
             <div className="acts">
               {o.boutique?.whatsapp && <a className="act ok press" href={'https://wa.me/' + o.boutique.whatsapp + '?text=' + encodeURIComponent('Здравствуйте! Мой заказ № ' + o.id.slice(0, 8) + ' в Kavkaz Look.')} target="_blank" rel="noopener noreferrer">Написать в WhatsApp</a>}

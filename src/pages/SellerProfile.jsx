@@ -19,7 +19,7 @@ export default function SellerProfile() {
     if (!user) return;
     api.getMyBoutique(user.id).then((r) => {
       setB(r);
-      if (r) setF({ description: r.description || '', city: r.city || 'Грозный', address: r.address || '', hours: r.hours || '', phone: r.phone || '', whatsapp: r.whatsapp || '', telegram: r.telegram || '', delivery_pickup: r.delivery_pickup ?? true, delivery_courier: !!r.delivery_courier, courier_note: r.courier_note || '', allow_reserve: r.allow_reserve ?? true });
+      if (r) setF({ description: r.description || '', city: r.city || 'Грозный', address: r.address || '', hours: r.hours || '', phone: r.phone || '', whatsapp: r.whatsapp || '', telegram: r.telegram || '', delivery_pickup: r.delivery_pickup ?? true, delivery_courier: !!r.delivery_courier, courier_note: r.courier_note || '', allow_reserve: r.allow_reserve ?? true, delivery_fee_city: r.delivery_fee_city ?? '', delivery_fee_region: r.delivery_fee_region ?? '', free_delivery_from: r.free_delivery_from ?? '' });
       if (r) setImg({ logo: r.logo, cover: r.cover });
     });
   }, [user]);
@@ -65,6 +65,14 @@ export default function SellerProfile() {
           <label className="check"><input type="checkbox" checked={f.delivery_pickup} onChange={(e) => setF({ ...f, delivery_pickup: e.target.checked })} /> Самовывоз из магазина</label>
           <label className="check"><input type="checkbox" checked={f.delivery_courier} onChange={(e) => setF({ ...f, delivery_courier: e.target.checked })} /> Доставка курьером</label>
           <label className="check"><input type="checkbox" checked={f.allow_reserve} onChange={(e) => setF({ ...f, allow_reserve: e.target.checked })} /> «Отложить и примерить» — покупатель бронирует вещь до конца дня и приходит примерить (нужен адрес магазина)</label>
+          {f.delivery_courier && <>
+            <div className="fee-grid">
+              <div className="field"><label htmlFor="fc">Доставка по {f.city === 'Грозный' || !f.city ? 'Грозному' : 'своему городу'}, ₽</label><input id="fc" inputMode="numeric" maxLength={5} value={f.delivery_fee_city} onChange={set('delivery_fee_city')} placeholder="250" /></div>
+              <div className="field"><label htmlFor="fr">В другие города, ₽</label><input id="fr" inputMode="numeric" maxLength={5} value={f.delivery_fee_region} onChange={set('delivery_fee_region')} placeholder="500" /></div>
+            </div>
+            <div className="field"><label htmlFor="ff">Бесплатная доставка от суммы, ₽ (необязательно)</label><input id="ff" inputMode="numeric" maxLength={7} value={f.free_delivery_from} onChange={set('free_delivery_from')} placeholder="10000" /></div>
+            <p className="hint" style={{ margin: 0 }}>Покупатель увидит цену доставки при оформлении и оплатит её курьеру. Оставьте пустым — напишем «стоимость сообщит бутик».</p>
+          </>}
           {f.delivery_courier && <div className="field"><label htmlFor="bn">Условия доставки</label><input id="bn" maxLength={150} value={f.courier_note} onChange={set('courier_note')} placeholder="По Грозному 300 ₽, бесплатно от 5000 ₽" /></div>}
         </fieldset>
         <Link className="admin-card press" to="/seller/payments"><span className="grow"><strong>Оплата и приём заказов</strong><small>Способы оплаты, СБП, автоприём — отдельный экран</small></span></Link>

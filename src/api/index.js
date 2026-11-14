@@ -52,11 +52,12 @@ const toProduct = (r) => ({
   stock: r.stock && typeof r.stock === 'object' ? r.stock : null, blocked: r.moderation === 'blocked', blockReason: r.moderation_reason || '',
 });
 const BQ_COLS_BASE = 'id,name,description,city,logo_path,cover_path,address,hours,phone,whatsapp,telegram,delivery_pickup,delivery_courier,courier_note';
-let BQ_COLS = BQ_COLS_BASE + ',allow_reserve';
-const ORDER_LEVELS = [',hold_until,subtotal_rub,discount_rub,promo_code,discount_by,accepted_at,closed_at,closed_by,unpaid_at,unpaid_resolved_at,paid_claim_at', ',hold_until,subtotal_rub,discount_rub,promo_code,discount_by', ',hold_until', ''];
+const BQ_LEVELS = [BQ_COLS_BASE + ',allow_reserve,delivery_fee_city,delivery_fee_region,free_delivery_from', BQ_COLS_BASE + ',allow_reserve', BQ_COLS_BASE];
+let BQ_COLS = BQ_LEVELS[0];
+const ORDER_LEVELS = [',hold_until,subtotal_rub,discount_rub,promo_code,discount_by,accepted_at,closed_at,closed_by,unpaid_at,unpaid_resolved_at,paid_claim_at,delivery_fee_rub', ',hold_until,subtotal_rub,discount_rub,promo_code,discount_by,accepted_at,closed_at,closed_by,unpaid_at,unpaid_resolved_at,paid_claim_at', ',hold_until,subtotal_rub,discount_rub,promo_code,discount_by', ',hold_until', ''];
 let ORDER_EXTRA = ORDER_LEVELS[0];
 // новые поля могут ещё отсутствовать в базе — тогда работаем без них
-const downgradeBq = (error) => { if (error?.code === '42703' && BQ_COLS !== BQ_COLS_BASE) { BQ_COLS = BQ_COLS_BASE; return true; } return false; };
+const downgradeBq = (error) => { const i = BQ_LEVELS.indexOf(BQ_COLS); if (error?.code === '42703' && i < BQ_LEVELS.length - 1) { BQ_COLS = BQ_LEVELS[i + 1]; return true; } return false; };
 const downgradeOrders = (error) => { const i = ORDER_LEVELS.indexOf(ORDER_EXTRA); if (error?.code === '42703' && i < ORDER_LEVELS.length - 1) { ORDER_EXTRA = ORDER_LEVELS[i + 1]; return true; } return false; };
 const toBoutique = (r) => ({ ...r, logo: r.logo_path ? pub(r.logo_path.replace(/\.jpg$/, '_t.jpg')) : null, cover: r.cover_path ? pub(r.cover_path) : null });
 const PROMO_ERR = { invalid: 'Такого промокода нет или он закончился.', not_applicable: 'Промокод не действует на эти товары.', exhausted: 'Промокод закончился.', used: 'Вы уже использовали этот промокод.', first_order: 'Промокод только для первого заказа.', login: 'Войдите, чтобы применить промокод.' };
@@ -393,6 +394,13 @@ export const api = {
       delivery_pickup: !!b.delivery_pickup, delivery_courier: !!b.delivery_courier, courier_note: cleanText(b.courier_note, 150) || null,
     };
     if (BQ_COLS !== BQ_COLS_BASE && b.allow_reserve !== undefined) row.allow_reserve = !!b.allow_reserve;
+    // цены доставки: пусто — «сообщит бутик»
+    if (BQ_COLS === BQ_LEVELS[0]) {
+      const num = (v, max) => { const d = String(v ?? '').replace(/[^0-9]/g, ''); if (!d) return null; const n = Number(d); return n <= max ? n : undefined; };
+      row.delivery_fee_city = num(b.delivery_fee_city, 10000); row.delivery_fee_region = num(b.delivery_fee_region, 20000);
+      const free = num(b.free_delivery_from, 1000000); row.free_delivery_from = free === 0 ? null : free;
+      if ([row.delivery_fee_city, row.delivery_fee_region, row.free_delivery_from].includes(undefined)) return 'Проверьте цены доставки.';
+    }
     if (row.phone === undefined) return 'Проверьте телефон.';
     if (row.whatsapp === undefined) return 'WhatsApp — номер из 10–15 цифр.';
     if (row.telegram === undefined) return 'Telegram — имя пользователя латиницей (5–32 символа).';

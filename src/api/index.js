@@ -52,11 +52,12 @@ const toProduct = (r) => ({
   stock: r.stock && typeof r.stock === 'object' ? r.stock : null, blocked: r.moderation === 'blocked', blockReason: r.moderation_reason || '',
 });
 const BQ_COLS_BASE = 'id,name,description,city,logo_path,cover_path,address,hours,phone,whatsapp,telegram,delivery_pickup,delivery_courier,courier_note';
-let BQ_COLS = BQ_COLS_BASE + ',allow_reserve';
-const ORDER_LEVELS = [',hold_until,subtotal_rub,discount_rub,promo_code,discount_by,accepted_at,closed_at,closed_by,unpaid_at,unpaid_resolved_at,paid_claim_at', ',hold_until,subtotal_rub,discount_rub,promo_code,discount_by', ',hold_until', ''];
+const BQ_LEVELS = [BQ_COLS_BASE + ',allow_reserve,delivery_fee_city,delivery_fee_region,free_delivery_from', BQ_COLS_BASE + ',allow_reserve', BQ_COLS_BASE];
+let BQ_COLS = BQ_LEVELS[0];
+const ORDER_LEVELS = [',hold_until,subtotal_rub,discount_rub,promo_code,discount_by,accepted_at,closed_at,closed_by,unpaid_at,unpaid_resolved_at,paid_claim_at,delivery_fee_rub', ',hold_until,subtotal_rub,discount_rub,promo_code,discount_by,accepted_at,closed_at,closed_by,unpaid_at,unpaid_resolved_at,paid_claim_at', ',hold_until,subtotal_rub,discount_rub,promo_code,discount_by', ',hold_until', ''];
 let ORDER_EXTRA = ORDER_LEVELS[0];
 // новые поля могут ещё отсутствовать в базе — тогда работаем без них
-const downgradeBq = (error) => { if (error?.code === '42703' && BQ_COLS !== BQ_COLS_BASE) { BQ_COLS = BQ_COLS_BASE; return true; } return false; };
+const downgradeBq = (error) => { const i = BQ_LEVELS.indexOf(BQ_COLS); if (error?.code === '42703' && i < BQ_LEVELS.length - 1) { BQ_COLS = BQ_LEVELS[i + 1]; return true; } return false; };
 const downgradeOrders = (error) => { const i = ORDER_LEVELS.indexOf(ORDER_EXTRA); if (error?.code === '42703' && i < ORDER_LEVELS.length - 1) { ORDER_EXTRA = ORDER_LEVELS[i + 1]; return true; } return false; };
 const toBoutique = (r) => ({ ...r, logo: r.logo_path ? pub(r.logo_path.replace(/\.jpg$/, '_t.jpg')) : null, cover: r.cover_path ? pub(r.cover_path) : null });
 const PROMO_ERR = { invalid: 'Такого промокода нет или он закончился.', not_applicable: 'Промокод не действует на эти товары.', exhausted: 'Промокод закончился.', used: 'Вы уже использовали этот промокод.', first_order: 'Промокод только для первого заказа.', login: 'Войдите, чтобы применить промокод.' };
@@ -393,6 +394,13 @@ export const api = {
       delivery_pickup: !!b.delivery_pickup, delivery_courier: !!b.delivery_courier, courier_note: cleanText(b.courier_note, 150) || null,
     };
     if (BQ_COLS !== BQ_COLS_BASE && b.allow_reserve !== undefined) row.allow_reserve = !!b.allow_reserve;
+    // цены доставки: пусто — «сообщит бутик»
+    if (BQ_COLS === BQ_LEVELS[0]) {
+      const num = (v, max) => { const d = String(v ?? '').replace(/[^0-9]/g, ''); if (!d) return null; const n = Number(d); return n <= max ? n : undefined; };
+      row.delivery_fee_city = num(b.delivery_fee_city, 10000); row.delivery_fee_region = num(b.delivery_fee_region, 20000);
+      const free = num(b.free_delivery_from, 1000000); row.free_delivery_from = free === 0 ? null : free;
+      if ([row.delivery_fee_city, row.delivery_fee_region, row.free_delivery_from].includes(undefined)) return 'Проверьте цены доставки.';
+    }
     if (row.phone === undefined) return 'Проверьте телефон.';
     if (row.whatsapp === undefined) return 'WhatsApp — номер из 10–15 цифр.';
     if (row.telegram === undefined) return 'Telegram — имя пользователя латиницей (5–32 символа).';
@@ -888,6 +896,41 @@ export const api = {
     if (error.code === 'PGRST202') return 'Удаление ещё не включено на сервере';
     return error.message || 'Не удалось удалить';
   },
+  // ===== Курьеры =====
+  async listDeliveryServices() {
+    const { data, error } = await supabase.from('delivery_services').select('id,name,kind,mode,phone,whatsapp,telegram,app_url,cities,note,is_active,sort').order('sort').order('name');
+    return error ? (error.code === '42P01' ? [] : null) : data || [];
+  },
+  // вызвать курьера: вернёт данные для заявки (откуда, куда, телефон покупателя, сколько взять)
+  async callCourier(orderId, serviceId, note = '') {
+    if (!isUuid(orderId) || !isUuid(serviceId)) return { error: 'Неверные данные' };
+    const { data, error } = await supabase.rpc('seller_call_courier', { oid: orderId, sid: serviceId, note: cleanText(note, 200) || null });
+    if (!error) return data;
+    const m = String(error.message || '');
+    return { error: m.includes('already') ? 'Курьер по этому заказу уже вызван' : m.includes('not confirmed') ? 'Сначала примите заказ' : m.includes('not courier') ? 'Этот заказ без доставки' : m.includes('service') ? 'Служба сейчас недоступна' : 'Не удалось вызвать курьера' };
+  },
+  async setDeliveryStatus(deliveryId, status, { courierName = '', courierPhone = '', note = '' } = {}) {
+    if (!isUuid(deliveryId) || !['assigned', 'picked_up', 'delivered', 'failed', 'cancelled'].includes(status)) return 'Неверные данные';
+    const { error } = await supabase.rpc('seller_delivery_status', { did: deliveryId, st: status, courier_name: cleanText(courierName, 60) || null, courier_phone: String(courierPhone || '').replace(/[^0-9+]/g, '') || null, note: cleanText(note, 200) || null });
+    return error ? (String(error.message).includes('closed') ? 'Доставка уже завершена' : 'Не удалось сохранить') : '';
+  },
+  async orderDeliveries(orderIds) {
+    const ids = (orderIds || []).filter(isUuid).slice(0, 200);
+    if (!ids.length) return [];
+    const { data, error } = await supabase.from('deliveries').select('id,order_id,service_name,status,courier_name,courier_phone,tracking_url,fee_rub,cod_rub,note,created_at,updated_at').in('order_id', ids).order('created_at', { ascending: false });
+    return error ? [] : data || [];
+  },
+  async adminSaveDeliveryService(s) {
+    const row = { name: cleanText(s.name, 60), kind: s.kind === 'taxi' ? 'taxi' : 'delivery', phone: String(s.phone || '').replace(/[^0-9+]/g, '') || null,
+      whatsapp: String(s.whatsapp || '').replace(/[^0-9]/g, '') || null, telegram: String(s.telegram || '').trim().replace(/^@/, '') || null,
+      app_url: /^https:\/\//.test(s.app_url || '') ? s.app_url.trim() : null, note: cleanText(s.note, 200) || null, is_active: s.is_active !== false, sort: Number(s.sort) || 0 };
+    if (!row.name || row.name.length < 2) return 'Укажите название';
+    const q = isUuid(s.id) ? supabase.from('delivery_services').update(row).eq('id', s.id) : supabase.from('delivery_services').insert(row);
+    const { error } = await q;
+    return error ? (error.code === '23514' ? 'Проверьте телефон, WhatsApp, Telegram или ссылку' : 'Не удалось сохранить') : '';
+  },
+  async adminDeleteDeliveryService(id) { if (!isUuid(id)) return false; const { error } = await supabase.from('delivery_services').delete().eq('id', id); return !error; },
+  async adminDeliveryKey(id) { if (!isUuid(id)) return null; const { data, error } = await supabase.rpc('admin_delivery_key', { sid: id }); return error ? null : data; },
   // ===== Мои мерки (видит и меняет только владелец) =====
   async getMeasurements() {
     const { data, error } = await supabase.from('measurements').select('gender,height_cm,weight_kg,chest_cm,waist_cm,hips_cm,shoulder_cm,inseam_cm,shoe_eu,fit_pref,updated_at').maybeSingle();

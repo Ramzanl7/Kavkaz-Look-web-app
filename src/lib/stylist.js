@@ -70,7 +70,7 @@ export async function loadPool() {
 }
 
 // Место вещи в образе
-const slotOf = (p) => {
+export const slotOf = (p) => {
   if (p.category === 'Обувь' || p.garmentType === 'shoes') return 'shoes';
   if (p.category === 'Аксессуары' || p.garmentType === 'none') return 'acc';
   if (p.garmentType === 'pants' || p.garmentType === 'skirt') return 'bottom';

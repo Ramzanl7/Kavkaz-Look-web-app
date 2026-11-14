@@ -22,10 +22,21 @@ export function CartProvider({ children }) {
       : [...l, { key: k, id: String(p.id), size: size || null, title: String(p.title), price: Number(p.price), thumb: p.thumb || null, boutique: p.boutique || '' }]
         .map((i) => (i.key === k && !i.qty ? { ...i, qty: 1 } : i))));
   };
+  // вернуть убранную позицию (кнопка «Вернуть»)
+  const put = (item) => setItems((l) => (l.some((i) => i.key === item.key) ? l : [...l, item]));
+  // сменить размер прямо в корзине; если такой размер уже лежит — объединяем
+  const changeSize = (key, size) => setItems((l) => {
+    const it = l.find((i) => i.key === key); if (!it) return l;
+    const nk = keyOf(it.id, size), same = l.find((i) => i.key === nk && i.key !== key);
+    if (same) return l.filter((i) => i.key !== key).map((i) => (i.key === nk ? { ...i, qty: Math.min(i.qty + it.qty, 99) } : i));
+    return l.map((i) => (i.key === key ? { ...i, size, key: nk } : i));
+  });
+  // свежие данные с сервера: цена, название, фото, бутик
+  const sync = (fresh) => setItems((l) => l.map((i) => { const p = fresh.get(i.id); return p ? { ...i, price: p.price, title: p.title, thumb: p.thumb || i.thumb, boutique: p.boutique || i.boutique } : i; }));
   const setQty = (key, qty) => setItems((l) => (qty < 1 ? l.filter((i) => i.key !== key) : l.map((i) => (i.key === key ? { ...i, qty: Math.min(qty, 99) } : i))));
   const remove = (key) => setItems((l) => l.filter((i) => i.key !== key));
   const clear = () => setItems([]);
   const total = items.reduce((s, i) => s + i.price * i.qty, 0);
-  return <CartCtx.Provider value={{ items, add, setQty, remove, clear, total }}>{children}</CartCtx.Provider>;
+  return <CartCtx.Provider value={{ items, add, setQty, remove, clear, total, put, changeSize, sync }}>{children}</CartCtx.Provider>;
 }
 export const useCart = () => useContext(CartCtx);

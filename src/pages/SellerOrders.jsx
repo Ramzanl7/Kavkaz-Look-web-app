@@ -110,6 +110,7 @@ export default function SellerOrders() {
               </div>
               {isDebt(o) && <div className="debt-card bcard"><strong>Вы сообщили о неоплате</strong><span className="small">{o.paid_claim_at ? 'Покупатель сообщает, что оплатил. Проверьте поступление.' : 'Администрация свяжется с покупателем.'}</span></div>}
               {o.discount_rub > 0 && <span className="promo-note">Промокод {o.promo_code}: −{rub(o.discount_rub)} · {o.discount_by === 'platform' ? 'скидку возмещает площадка' : 'скидка вашего бутика'}</span>}
+              {o.delivery === 'courier' && o.delivery_fee_rub != null && <span className="promo-note">Доставка (платит покупатель курьеру): {o.delivery_fee_rub ? rub(o.delivery_fee_rub) : 'бесплатно'}</span>}
               <div className="order-foot"><span>К оплате покупателем</span><b className="price">{rub(o.total_rub)}</b></div>
               <div className="acts" aria-busy={busy === o.id}>
                 {o.status === 'new' && <button type="button" className="act ok press" disabled={busy === o.id} onClick={() => act(o.id, 'confirmed')}>Принять</button>}

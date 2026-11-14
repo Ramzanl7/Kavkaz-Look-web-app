@@ -26,6 +26,30 @@ export async function pushEnabled() {
   return !!(await reg?.pushManager.getSubscription());
 }
 
+const WANT = 'kl-push'; // на этом устройстве пользователь включал уведомления
+const want = (v) => { try { if (v) localStorage.setItem(WANT, '1'); else localStorage.removeItem(WANT); } catch { /* приватный режим */ } };
+const wanted = () => { try { return localStorage.getItem(WANT) === '1'; } catch { return false; } };
+
+// Привязать подписку устройства к аккаунту. Если адрес подписки остался за другим аккаунтом
+// (например, выход был без интернета) — выпускаем устройству новую подписку.
+async function attach(reg, userId, publicKey) {
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(publicKey) });
+  for (let i = 0; i < 2; i++) {
+    const j = sub.toJSON();
+    // уже привязана к этому аккаунту — ничего не делаем
+    const { data: mine } = await supabase.from('push_subscriptions').select('endpoint').eq('endpoint', j.endpoint).maybeSingle();
+    if (mine) return 'ok';
+    const { error } = await supabase.from('push_subscriptions').insert({ user_id: userId, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth });
+    if (!error) return 'ok';
+    if (error.code !== '23505') return 'error';
+    // адрес занят другим аккаунтом — выпускаем устройству новую подписку
+    await sub.unsubscribe();
+    sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(publicKey) });
+  }
+  return 'error';
+}
+
 // Включить: спросить разрешение (только по нажатию), подписать устройство, сохранить подписку.
 export async function enablePush(userId) {
   const s = pushSupport();
@@ -35,22 +59,38 @@ export async function enablePush(userId) {
   const reg = await register();
   await navigator.serviceWorker.ready;
   const { publicKey } = await fetch(FN).then((r) => r.json());
-  let sub = await reg.pushManager.getSubscription();
-  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(publicKey) });
-  const j = sub.toJSON();
-  const { error } = await supabase.from('push_subscriptions').insert({ user_id: userId, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth });
-  if (error && error.code !== '23505') { await sub.unsubscribe(); return 'error'; }
-  return 'ok';
+  const r = await attach(reg, userId, publicKey);
+  if (r === 'ok') want(true);
+  return r;
 }
 
-// Выключить на этом устройстве (и при выходе из аккаунта — чтобы чужие уведомления не приходили).
-export async function disablePush() {
+// После входа: если на этом устройстве уведомления были включены — включаем снова, без вопросов.
+let resumed = null;
+export async function resumePush(userId) {
   try {
+    if (!userId || resumed === userId || pushSupport() !== 'ok' || Notification.permission !== 'granted') return;
+    resumed = userId;
+    const reg = await register();
+    // включали раньше (или подписка устройства сохранилась после выхода из аккаунта)
+    if (!wanted() && !(await reg.pushManager.getSubscription())) return;
+    await navigator.serviceWorker.ready;
+    const { publicKey } = await fetch(FN).then((r) => r.json());
+    if (await attach(reg, userId, publicKey) === 'ok') want(true); else resumed = null;
+  } catch { resumed = null; /* нет сети — попробуем при следующем запуске */ }
+}
+
+// Выключить на этом устройстве (кнопкой в «Уведомлениях»).
+// При выходе из аккаунта (keepDevice) только отвязываем устройство от аккаунта — чужие уведомления
+// приходить не будут, а после следующего входа уведомления включатся сами.
+export async function disablePush({ keepDevice = false } = {}) {
+  try {
+    if (!keepDevice) want(false);
+    resumed = null;
     const reg = await navigator.serviceWorker?.getRegistration('/');
     const sub = await reg?.pushManager.getSubscription();
     if (!sub) return;
     await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
-    await sub.unsubscribe();
+    if (!keepDevice) await sub.unsubscribe();
   } catch { /* нет поддержки — нечего выключать */ }
 }
 

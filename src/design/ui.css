@@ -688,3 +688,23 @@ button.link-u { background: none; border: 0; border-bottom: 1px solid var(--gold
 .chat-mode .composer { bottom: 0; margin: 0; border-radius: 22px 22px 0 0; border-width: 1px 0 0; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); }
 .chat-mode .chat-end { scroll-margin-bottom: 110px; }
 .home.catalog-page { padding-top: max(20px, env(safe-area-inset-top)); }
+
+/* «Популярное сейчас»: крупные карточки на ~80% ширины, следующая выглядывает */
+.pcard-compact.pcard-wide { width: min(80%, 340px); }
+.pcard-wide .pc-title { font-size: 1.0625rem; bottom: 42px; left: 14px; }
+.pcard-wide .pc-row { left: 14px; bottom: 10px; }
+.pcard-wide .price { font-size: 1.375rem; }
+.pcard-wide .cartbtn { right: 12px; bottom: 12px; }
+.pcard-wide .heart { top: 12px; right: 12px; }
+.pcard-wide .pc-badges { top: 12px; left: 12px; }
+/* «Сделано рядом»: баннер почти на всю ширину экрана */
+.brands-wide .brand-card { width: 100%; height: clamp(150px, 42vw, 260px); border-radius: 20px; }
+.brands-wide .brand-go { display: none; }
+.brands-wide .brand-shade { background: linear-gradient(90deg, rgba(6,26,19,.88) 0%, rgba(6,26,19,.55) 50%, rgba(6,26,19,.1) 100%); }
+.brands-wide .brand-text { place-content: center start; justify-items: start; text-align: left; padding: 18px 22px; gap: 6px; max-width: 70%; }
+.brands-wide .brand-text strong { font-family: var(--font-display); font-size: 1.75rem; line-height: 1.05; letter-spacing: .01em; }
+.brands-wide .brand-text small { font-size: .875rem; color: var(--text); opacity: .9; }
+.brands-wide .brand-logo { width: 36px; height: 36px; }
+.brand-cta { display: none; }
+.brands-wide .brand-cta { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 8px 16px; border-radius: 999px; font-style: normal; font-weight: 700; font-size: .875rem; color: #1a1406; background: linear-gradient(180deg, #F0D99A, #D9B765); box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+.brands-wide .brand-cta svg { width: 16px; height: 16px; }

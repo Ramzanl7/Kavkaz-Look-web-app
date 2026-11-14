@@ -8,7 +8,7 @@ import { useWishlist } from '../store/wishlist.jsx';
 import { useToast } from '../store/toast.jsx';
 
 // Одна карточка товара для всех лент: variant="grid" — основной каталог, "compact" — горизонтальная лента «Популярное».
-export default function ProductCard({ p, i = 0, variant = 'grid', priority = false }) {
+export default function ProductCard({ p, i = 0, variant = 'grid', priority = false, wide = false }) {
   const { add } = useCart();
   const { user } = useAuth();
   const { ids, toggle } = useWishlist();
@@ -23,9 +23,9 @@ export default function ProductCard({ p, i = 0, variant = 'grid', priority = fal
   };
   const sizes = p.sizes?.length ? (p.sizes.length > 3 ? `${p.sizes[0]}–${p.sizes[p.sizes.length - 1]}` : p.sizes.join(', ')) : '';
   return (
-    <div className={'pcard pcard-' + variant + ' rise'} style={{ '--d': Math.min(i, 8) }}>
+    <div className={'pcard pcard-' + variant + (wide ? ' pcard-wide' : '') + ' rise'} style={{ '--d': Math.min(i, 8) }}>
       <Link to={'/product/' + encodeURIComponent(p.id)} state={{ p }} className="plink press" aria-label={p.title + ', ' + rub(p.price)}>
-        <PhotoSlot src={p.thumb} fallback={p.image} alt={p.title} ratio={variant === 'compact' ? '31 / 30' : '4 / 5'} priority={priority} />
+        <PhotoSlot src={p.thumb} fallback={p.image} alt={p.title} ratio={wide ? '4 / 3' : variant === 'compact' ? '31 / 30' : '4 / 5'} priority={priority} />
         <span className="pc-title">{p.title}</span>
         {variant === 'grid' && p.boutique && <span className="pc-shop">{p.boutique}</span>}
         <span className="pc-row">

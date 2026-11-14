@@ -44,7 +44,7 @@ export default function Home() {
               <h2 id="pop-h"><Icon name="flame" />Популярное сейчас</h2>
               <button type="button" className="sec-link" onClick={toFeed}>Ещё <Icon name="arrow" /></button>
             </div>
-            <Strip>{popular.map((p, i) => <ProductCard key={p.id} p={p} i={i} variant="compact" priority={i < 2} />)}</Strip>
+            <Strip>{popular.map((p, i) => <ProductCard key={p.id} p={p} i={i} variant="compact" wide priority={i < 2} />)}</Strip>
           </section>
         )}
         {popular === null && <div className="hscroll popular">{[0, 1, 2].map((n) => <div key={n} className="pcard pcard-compact"><div className="photo skeleton" style={{ aspectRatio: '4 / 5' }} /></div>)}</div>}

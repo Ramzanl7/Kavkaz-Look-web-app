@@ -876,7 +876,6 @@ button.link-u { background: none; border: 0; border-bottom: 1px solid var(--gold
 .mp-panel { position: absolute; z-index: 600; left: 0; right: 0; bottom: 0; display: grid; gap: 6px; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; background: #0F261A; border-top: 1px solid rgba(226,194,119,.35); box-shadow: 0 -10px 30px rgba(0,0,0,.4); }
 .mp-panel strong { font-size: 1.0625rem; color: #F5F2E9; min-height: 1.4em; }
 .mp-panel .btn { margin-top: 6px; }
-.mp .leaflet-control-attribution { font-size: 10px; margin-bottom: 170px !important; }
 .addr-map { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; border: 1px dashed rgba(217,183,101,.55); background: rgba(217,183,101,.07); color: var(--text); font: inherit; text-align: left; }
 .addr-map.on { border-style: solid; }
 .addr-map svg { width: 20px; height: 20px; color: var(--gold); flex: none; }
